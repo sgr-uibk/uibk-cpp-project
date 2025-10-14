@@ -18,7 +18,7 @@ For references:
 - Nier Automata's Hacking Minigame ![](https://www.confreaksandgeeks.com/wp-content/uploads/2017/03/NieR_Automata_20170315171011.jpg)
 - Tank 1990
 - Tank Trouble
-- ![Reference Picture](images/reference_game.gif)
+- ![Reference Picture](images/reference_game1.gif)
 - ![Reference Picture](images/reference_game2.jpg)
 ---
 
