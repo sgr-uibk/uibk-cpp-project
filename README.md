@@ -1,4 +1,4 @@
-# RPG Specification
+# Game Specification
 
 We describe a simple 2D networked multiplayer game.
 
@@ -15,109 +15,11 @@ Maps are predefined, stored in files like explained in the metroidvania specific
 
 
 
-
 For references:
 
 - Nier Automata's Hacking Minigame
 - ...
 
-As already mentioned, the first layer of your game is an overworld where the player interacts with other characters and so on.
-This overworld is typically composed of safe-zones (like villages or small settlements) and wilderness where enemies are encountered.
-Often, certain sections of the overworld remain gated off until the player has advanced far enough into the story.
-
-Here is the overworld of Pokémon Red and Blue (1996)
-
-![Pokémon Red and Blue Map](images/pokemon_map.png)
-
-### Overworld Implementation
-
-A 2D array of tiles can be used to describe the map itself.
-Entities (characters, chests, enemies, …) can be added by simply stating their coordinates.
-
-I recommend to put the world definition into a dedicated file, following a human-readable, easy-to-parse file-format.
-Alternatively, just put the definition in your code.
-
-## Viewing the World
-
-[Sprites](https://en.wikipedia.org/wiki/Sprite_(computer_graphics)) are essentially bitmap images with transparent background.
-They are used for everything that needs to be displayed.
-
-The *transform* (position, rotation, scale) of an entity determines where and how the corresponding sprite is rendered.
-
-### Animations
-
-Dynamic entities, like the player character (PC) or enemies, often feature animations.
-These start with simple idle and walking animations, but can also turn into breath-taking combat and dodging choreographies.
-
-![Sprite Map](images/sprite_map.png)
-
-The key idea is to use multiple sprites instead of just one.
-Each animation frame is a new sprite.
-When an animation is played, the related sprites are displayed one after another to simulate motion.
-
-Multiple sprites are combined and put into the same image, which is then called a *sprite map*.
-The rendering API allows us to select which part of the image to use for rendering.
-A simple rectangle selection is used to pick the sprite for the current frame.
-
-## Hearing the World
-
-Commonly, the background music is either determined by the section of the overworld or enemy encounter (regular battle theme, boss battle theme, …).
-The selected tune is repeated until the player moves to a new section or finishes the encounter.
-
-A more advanced technique would be to use different variations of the same background music and blend them together depending on the situation. Say, switch to a more tense version of your regular battle theme as soon as the player's combatants are low on health.
-
-### Audio Implementation
-
-SDL_mixer is probably all you need for this.
-It provides separate sound channels, each with its own volume setting.
-Sound effects are played on different channels than background music so they do not interfere.
-
-If you wanna go for something fancy, with more features, have a look at [OpenAL].
-
-## Interacting with the World
-
-Most interaction between the player and the game world is done through message boxes and menu systems.
-For this, you need to implement some basic UI system.
-You already know how to render sprites, font support is available via [SDL_ttf].
-
-### Interaction Implementation
-
-Often, a scripting engine is added to the game engine for scripting the interactions between characters, combat, and so on.
-However, this goes beyond the scope of this project.
-
-My recommendation is to simply hard-code the logic and script of your game in C++.
-Think about creating your own little embedded domain-specific language (EDSL) on top of C++.
-Consider trying [Boost Coroutine](https://theboostcpplibraries.com/boost.coroutine) for adding asynchronous programming paradigms.
-
-## Story
-
-Again, the focus of the side project lies on learning C++.
-Your RPG should feature a short story with a twist near the end.
-Nothing fancy, just something to keep the player interested while exploring the overworld.
-
-## Combat AI
-
-Similar to your other game logic components, the combat AI may be hard-coded in C++.
-[Behaviour trees](https://en.wikipedia.org/wiki/Behavior_tree_(artificial_intelligence,_robotics_and_control)) are often utilised for creating game AI.
-Maybe give them a try.
-Consider adding randomness to your decision making progress to make enemies less predictable.
-
-## Debugging
-
-Develop debugging utilities as early as possible.
-Consider the following:
-
-- Log output
-- Show details (positions, damage numbers, decision making process, …) on screen
-- *God mode* (player's combatants can't die)
-- Infinite resources (items, spells, …)
-- …
-
-Another helpful technique is the use of fall-back assets.
-Let's say, a certain sprite cannot be loaded for whatever reason.
-Instead of crashing the application with a cryptic error code, log a warning and use an *error sprite* instead.
-
----
 
 ## Goals (11 Points)
 
