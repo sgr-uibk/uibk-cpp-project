@@ -1,4 +1,4 @@
-# RPG Specification
+# Game Specification
 
 We describe a simple 2D networked multiplayer game.
 
@@ -15,12 +15,15 @@ Maps are predefined, stored in files like explained in the metroidvania specific
 
 
 
-
 For references:
 
 - ![Nier Automata's Hacking Minigame](https://www.confreaksandgeeks.com/wp-content/uploads/2017/03/NieR_Automata_20170315171011.jpg)
 - ...
 ---
+
+It could also look like this at the end:
+![Reference Picture](images/reference_game.gif)
+
 
 ## Goals (11 Points)
 
