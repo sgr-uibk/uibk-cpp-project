@@ -18,10 +18,13 @@ Maps are predefined, stored in files like explained in the metroidvania specific
 For references:
 
 - Nier Automata's Hacking Minigame
-- ...
+- Tank 1990
+- Tank Trouble
 
 It could also look like this at the end:
-![Reference Picture](images/reference_game.gif)
+![Reference Picture](images/reference_game1.gif)
+
+![Reference Picture](images/reference_game2.gif)
 
 
 ## Goals (11 Points)
