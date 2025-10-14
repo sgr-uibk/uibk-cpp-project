@@ -11,11 +11,15 @@ In the match, players shoot each other until the last one survives, who is the w
 
 Maps are predefined, stored in files like explained in the metroidvania specification example.
 
+
+
 For references:
 
 - Nier Automata's Hacking Minigame ![](https://www.confreaksandgeeks.com/wp-content/uploads/2017/03/NieR_Automata_20170315171011.jpg)
-- ...
+- Tank 1990
+- Tank Trouble
 - ![Reference Picture](images/reference_game.gif)
+- ![Reference Picture](images/reference_game2.jpg)
 ---
 
 ## Goals (11 Points)
