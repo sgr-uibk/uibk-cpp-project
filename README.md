@@ -20,6 +20,9 @@ For references:
 - Nier Automata's Hacking Minigame
 - ...
 
+It could also look like this at the end:
+![Reference Picture](images/reference_game.gif)
+
 
 ## Goals (11 Points)
 
