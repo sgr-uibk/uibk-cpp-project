@@ -24,7 +24,7 @@ For references:
 It could also look like this at the end:
 ![Reference Picture](images/reference_game1.gif)
 
-![Reference Picture](images/reference_game2.gif)
+![Reference Picture](images/reference_game2.jpg)
 
 
 ## Goals (11 Points)
