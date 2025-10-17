@@ -53,3 +53,19 @@ For references:
     - Host Lobby
     - Set Name
     - Exit
+
+
+
+How to setup the project
+
+Configure cmake file:
+`cmake ..`
+
+Build the project:
+`cmake --build .`
+
+Copy assets into the build directory:
+`cp -r ../assets ./`
+
+Start the game:
+`./TankGame`
