@@ -1,0 +1,77 @@
+name: CMake Build
+
+on:
+  push:
+    branches:
+      - simon
+      - main
+  pull_request:
+
+jobs:
+  linux-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: CMake Setup
+        uses: jwlawson/actions-setup-cmake@v2
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev
+
+      - name: CMake Configure
+        run: cmake -S . -B build
+
+      - name: CMake Build
+        run: cmake --build build
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TankGame-${{github.job}}
+          path: |
+            build/TankGame
+            assets/*
+
+  windows-build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set Up vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          vcpkg\bootstrap-vcpkg.bat
+
+      - name: Install Dependencies
+        run: |
+          cd vcpkg
+          $env:VCPKG_ROOT = $(pwd)
+          $env:PATH = "$env:VCPKG_ROOT;$env:PATH"
+          vcpkg integrate install
+
+      - name: CMake Setup
+        uses: jwlawson/actions-setup-cmake@v2
+
+      - name: CMake Configure
+        run: | 
+          cmake -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
+
+      - name: CMake Build
+        run: | 
+          cmake --build build --config Release
+          dir build
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TankGame-${{github.job}}
+          path: |
+            build/Release/*
+            assets/*
