@@ -4,6 +4,12 @@ project(TankGame VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(WIN32) # link executable against static runtime
+    set(MSVC_RUNTIME_LIBRARY MultiThreaded)
+    set(CMAKE_C_RUNTIME_LIBRARY MultiThreaded)
+    set(CMAKE_CXX_RUNTIME_LIBRARY MultiThreaded)
+endif()
+
 find_package(SDL2 REQUIRED CONFIG)
 find_package(SDL2_image REQUIRED CONFIG)
 
@@ -19,8 +25,4 @@ if(UNIX)
     target_link_libraries(TankGame PRIVATE OpenGL::GL)
 elseif(WIN32)
     target_link_libraries(TankGame PRIVATE OpenGL32)
-endif()
-
-if(WIN32) # link executable against static runtime
-    set(MSVC_RUNTIME_LIBRARY MultiThreaded)
 endif()
