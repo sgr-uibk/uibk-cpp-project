@@ -4,37 +4,18 @@ project(TankGame VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
-
-find_package(SDL2)
-find_package(SDL2_image)
-
-if(NOT SDL2_FOUND)
-    FetchContent_Declare(
-            SDL2
-            GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-            GIT_TAG release-2.28.3
-    )
-    FetchContent_MakeAvailable(SDL2)
-endif()
-
-if(NOT SDL2_image_FOUND)
-    FetchContent_Declare(
-            SDL2_image
-            GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
-            GIT_TAG release-2.6.2
-    )
-    FetchContent_MakeAvailable(SDL2_image)
-endif()
+find_package(SDL2 REQUIRED CONFIG)
+find_package(SDL2_image REQUIRED CONFIG)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 add_executable(TankGame ${SOURCES})
 
-target_link_libraries(TankGame PRIVATE SDL2::SDL2 SDL2::SDL2main SDL2_image)
+# Link the libraries
+target_link_libraries(TankGame PRIVATE SDL2::SDL2 SDL2::SDL2main SDL2_image::SDL2_image)
 
 # OpenGL for SDL2 (optional)
 if(UNIX)
-    find_package(OpenGL)
+    find_package(OpenGL REQUIRED)
     target_link_libraries(TankGame PRIVATE OpenGL::GL)
 elseif(WIN32)
     target_link_libraries(TankGame PRIVATE OpenGL32)
