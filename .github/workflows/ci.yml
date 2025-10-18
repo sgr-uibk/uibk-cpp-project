@@ -43,20 +43,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Cache vcpkg
-        uses: actions/cache@v4
-        with:
-          path: |
-            vcpkg/downloads
-            vcpkg/packages
-          key: vcpkg-windows-${{ runner.os }}-${{ hashFiles('**/vcpkg.json') }}
-          restore-keys: |
-            vcpkg-windows-${{ runner.os }}-
-
       - name: Set Up vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg.git
-          cd vcpkg; .\bootstrap-vcpkg.bat
+          vcpkg\bootstrap-vcpkg.bat
+
+      - name: Install Dependencies
+        run: |
+          cd vcpkg
           $env:VCPKG_ROOT = $(pwd)
           $env:PATH = "$env:VCPKG_ROOT;$env:PATH"
           vcpkg integrate install
@@ -71,7 +65,6 @@ jobs:
       - name: CMake Build
         run: | 
           cmake --build build --config Release
-          dir
           dir build
 
       - name: Upload Artifacts
@@ -79,5 +72,5 @@ jobs:
         with:
           name: TankGame-${{github.job}}
           path: |
-            build/TankGame/Release/*
+            build/Release/*
             assets/*

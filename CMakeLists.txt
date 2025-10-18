@@ -20,3 +20,7 @@ if(UNIX)
 elseif(WIN32)
     target_link_libraries(TankGame PRIVATE OpenGL32)
 endif()
+
+if(WIN32) # link executable against static runtime
+    set(MSVC_RUNTIME_LIBRARY MultiThreaded)
+endif()
