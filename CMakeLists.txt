@@ -22,7 +22,8 @@ if(NOT SDL3_mixer_FOUND) # not in vcpkg
     FetchContent_Declare(
             SDL3_mixer
             GIT_REPOSITORY https://github.com/libsdl-org/SDL_mixer
-            GIT_TAG release-2.8.1
+            # there is no stable release for SDL3, so use main
+            GIT_TAG main
     )
     FetchContent_MakeAvailable(SDL3_mixer)
 endif()

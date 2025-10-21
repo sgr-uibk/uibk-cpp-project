@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - simon
-      - main
   pull_request:
 
 jobs:
@@ -15,20 +14,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: CMake Setup
-        uses: jwlawson/actions-setup-cmake@v2
+      - name: Set Up vcpkg
+        run: |
+          sudo apt install -y libltdl-dev
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
 
       - name: Install Dependencies
         run: |
-          sudo echo "deb http://deb.debian.org/debian/ trixie main" >> /etc/apt/sources.list
-          sudo echo "deb-src http://deb.debian.org/debian/ trixie main" >> /etc/apt/sources.list
-          sudo apt-get update
-          apt search sdl3
-          apt search sdl2
-          sudo apt-get install -y libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev libsdl3-mixer-dev
+          vcpkg/vcpkg integrate install
+          vcpkg/vcpkg install
+
+      - name: CMake Setup
+        uses: jwlawson/actions-setup-cmake@v2
 
       - name: CMake Configure
-        run: cmake -S . -B build
+        run: cmake -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
 
       - name: CMake Build
         run: cmake --build build
@@ -51,7 +52,7 @@ jobs:
       - name: Set Up vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg.git
-          vcpkg\bootstrap-vcpkg.bat
+          .\vcpkg\bootstrap-vcpkg.bat
 
       - name: Install Dependencies
         run: |
@@ -64,11 +65,11 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
 
       - name: CMake Configure
-        run: | 
+        run: |
           cmake -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
 
       - name: CMake Build
-        run: | 
+        run: |
           cmake --build build --config Release
           dir build
 
