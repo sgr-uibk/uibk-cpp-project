@@ -1,97 +1,138 @@
-#include <SDL.h>
-#include <SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#include <SDL3/SDL_oldnames.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3_image/SDL_image.h>
+#include <SDL3/SDL_video.h>
+#include <cstdlib>
 #include <iostream>
 #include <vector>
 
-bool checkCollision(const SDL_Rect &a, const SDL_Rect &b)
+bool checkCollision(const SDL_FRect &a, const SDL_FRect &b)
 {
-	return (a.x < b.x + b.w &&
-	        a.x + a.w > b.x &&
-	        a.y < b.y + b.h &&
-	        a.y + a.h > b.y);
+	return (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y);
+}
+
+struct GameTextures
+{
+	SDL_Texture *tank;
+};
+
+class Main
+{
+  public:
+	Main();
+	~Main();
+	GameTextures loadTextures();
+	SDL_Window *pWindow;
+	SDL_Renderer *pRenderer;
+};
+
+Main::Main()
+{
+	bool bSuccess = true;
+
+	bSuccess = SDL_SetAppMetadata("TankGame", "0.1", "at.ac.uibk.advancedcpp.team8.tankgame");
+	if(!bSuccess)
+	{
+		SDL_Log("Failed to set app metadata!\n");
+		goto END_FAIL;
+	}
+
+	bSuccess = SDL_Init(SDL_INIT_VIDEO);
+	if(!bSuccess)
+	{
+		SDL_Log("Failed to initialize SDL! Error: %s\n", SDL_GetError());
+		goto END_FAIL;
+	}
+
+END:
+	return;
+
+END_FAIL:
+	char const *errstr = SDL_GetError();
+	SDL_Log("Last Error: %s\n", errstr);
+	throw errstr;
+}
+
+GameTextures Main::loadTextures()
+{
+	GameTextures textures = {};
+	textures.tank = IMG_LoadTexture(pRenderer, "../assets/tank.png");
+	if(!textures.tank)
+	{
+		SDL_Log("Failed to Load Texture. Error %s\n", SDL_GetError());
+	}
+	textures.tank = textures.tank;
+
+	return textures;
+}
+
+Main::~Main()
+{
+	SDL_DestroyWindow(pWindow);
+	SDL_DestroyRenderer(pRenderer);
+
+	pWindow = nullptr;
+	pRenderer = nullptr;
+
+	SDL_Quit();
 }
 
 int main(int argc, char *argv[])
 {
-	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
-	{
-		std::cerr << "SDL Init Error: " << SDL_GetError() << "\n";
-		return 1;
-	}
-
-	if(!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG))
-	{
-		std::cerr << "SDL_image Init Error: " << IMG_GetError() << "\n";
-		SDL_Quit();
-		return 1;
-	}
+	Main sdl;
 
 	const int WINDOW_WIDTH = 800;
 	const int WINDOW_HEIGHT = 600;
-	const int BORDER_THICKNESS = 20; // wall thickness
+	const int WALL_THICKNESS = 20;
 
-	SDL_Window *window = SDL_CreateWindow("TankGame",
-	                                      SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-	                                      WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
-	if(!window)
+	sdl.pWindow =
+		SDL_CreateWindow("Tank Game", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE | SDL_WINDOW_MOUSE_FOCUS);
+	if(!sdl.pWindow)
 	{
-		std::cerr << "SDL CreateWindow Error: " << SDL_GetError() << "\n";
-		IMG_Quit();
-		SDL_Quit();
-		return 1;
+		SDL_Log("SDL CreateWindow Error: %s\n", SDL_GetError());
+		return EXIT_FAILURE;
 	}
 
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	if(!renderer)
+	sdl.pRenderer = SDL_CreateRenderer(sdl.pWindow, NULL);
+	if(!sdl.pRenderer)
 	{
 		std::cerr << "SDL CreateRenderer Error: " << SDL_GetError() << "\n";
-		SDL_DestroyWindow(window);
-		IMG_Quit();
-		SDL_Quit();
-		return 1;
+		return EXIT_FAILURE;
 	}
 
-	SDL_Texture *tankTexture = IMG_LoadTexture(renderer, "../assets/tank.png");
-	if(!tankTexture)
-	{
-		std::cerr << "IMG_LoadTexture Error: " << IMG_GetError() << "\n";
-		SDL_DestroyRenderer(renderer);
-		SDL_DestroyWindow(window);
-		IMG_Quit();
-		SDL_Quit();
-		return 1;
-	}
+	GameTextures textures = sdl.loadTextures();
 
-	double tankX = 368.0;
-	double tankY = 268.0;
-	SDL_Rect tankRect{(int)tankX, (int)tankY, 64, 64};
+	float tankX = 368.0f;
+	float tankY = 268.0f;
+	SDL_FRect tankRect{tankX, tankY, 64, 64};
 	double tankAngle = 0.0;
 
 	bool running = true;
 	SDL_Event event;
 
-	std::vector<SDL_Rect> walls;
+	std::vector<SDL_FRect> walls;
 
 	// Outer and inner walls
-	walls.push_back({0, 0, WINDOW_WIDTH, BORDER_THICKNESS});
-	walls.push_back({0, WINDOW_HEIGHT - BORDER_THICKNESS, WINDOW_WIDTH, BORDER_THICKNESS});
-	walls.push_back({0, 0, BORDER_THICKNESS, WINDOW_HEIGHT});
-	walls.push_back({WINDOW_WIDTH - BORDER_THICKNESS, 0, BORDER_THICKNESS, WINDOW_HEIGHT});
+	walls.push_back({0, 0, WINDOW_WIDTH, WALL_THICKNESS});
+	walls.push_back({0, WINDOW_HEIGHT - WALL_THICKNESS, WINDOW_WIDTH, WALL_THICKNESS});
+	walls.push_back({0, 0, WALL_THICKNESS, WINDOW_HEIGHT});
+	walls.push_back({WINDOW_WIDTH - WALL_THICKNESS, 0, WALL_THICKNESS, WINDOW_HEIGHT});
 
-
-	walls.push_back({200, 100, BORDER_THICKNESS, 400}); // vertical
-	walls.push_back({400, 200, 200, BORDER_THICKNESS}); // horizontal
-	walls.push_back({600, 50, BORDER_THICKNESS, 300}); // vertical
+	walls.push_back({200, 100, WALL_THICKNESS, 400}); // vertical
+	walls.push_back({400, 200, 200, WALL_THICKNESS}); // horizontal
+	walls.push_back({600, 50, WALL_THICKNESS, 300});  // vertical
 
 	while(running)
 	{
 		while(SDL_PollEvent(&event))
 		{
-			if(event.type == SDL_QUIT)
+			if(event.type == SDL_EVENT_QUIT)
 				running = false;
 		}
 
-		const Uint8 *state = SDL_GetKeyboardState(nullptr);
+		const bool *state = SDL_GetKeyboardState(nullptr);
 		const double moveSpeed = 5.0;
 
 		int moveX = 0;
@@ -122,7 +163,7 @@ int main(int argc, char *argv[])
 		}
 
 		// temporary rectangle for collision detection
-		SDL_Rect newTankRect = {(int)newTankX, (int)newTankY, tankRect.w, tankRect.h};
+		SDL_FRect newTankRect = {static_cast<float>(newTankX), static_cast<float>(newTankY), tankRect.w, tankRect.h};
 
 		// check collisions against walls
 		bool collision = false;
@@ -172,26 +213,25 @@ int main(int argc, char *argv[])
 		tankRect.y = (int)tankY;
 
 		// white background
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-		SDL_RenderClear(renderer);
+		SDL_SetRenderDrawColor(sdl.pRenderer, 255, 255, 255, 255);
+		SDL_RenderClear(sdl.pRenderer);
 
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		SDL_SetRenderDrawColor(sdl.pRenderer, 0, 0, 0, 255);
 		for(auto &wall : walls)
 		{
-			SDL_RenderFillRect(renderer, &wall);
+			SDL_RenderFillRect(sdl.pRenderer, &wall);
 		}
 
-		SDL_RenderCopyEx(renderer, tankTexture, nullptr, &tankRect, tankAngle, nullptr, SDL_FLIP_NONE);
+		SDL_RenderTextureRotated(sdl.pRenderer, textures.tank, nullptr, &tankRect, tankAngle, nullptr, SDL_FLIP_NONE);
 
-		SDL_RenderPresent(renderer);
+		SDL_RenderPresent(sdl.pRenderer);
 
 		SDL_Delay(16);
 	}
 
-	SDL_DestroyTexture(tankTexture);
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
-	IMG_Quit();
+	SDL_DestroyTexture(textures.tank);
+	SDL_DestroyRenderer(sdl.pRenderer);
+	SDL_DestroyWindow(sdl.pWindow);
 	SDL_Quit();
 	return 0;
 }

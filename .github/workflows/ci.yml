@@ -20,8 +20,12 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          sudo echo "deb http://deb.debian.org/debian/ trixie main" >> /etc/apt/sources.list
+          sudo echo "deb-src http://deb.debian.org/debian/ trixie main" >> /etc/apt/sources.list
           sudo apt-get update
-          sudo apt-get install -y libsdl2-dev libsdl2-image-dev
+          apt search sdl3
+          apt search sdl2
+          sudo apt-get install -y libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev libsdl3-mixer-dev
 
       - name: CMake Configure
         run: cmake -S . -B build

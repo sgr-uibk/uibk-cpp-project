@@ -10,19 +10,28 @@ if(WIN32) # link executable against static runtime
     set(CMAKE_CXX_RUNTIME_LIBRARY MultiThreaded)
 endif()
 
-find_package(SDL2 REQUIRED CONFIG)
-find_package(SDL2_image REQUIRED CONFIG)
+# Output to build/Debug or build/Release
+find_package(SDL3 REQUIRED CONFIG)
+find_package(SDL3_image REQUIRED CONFIG)
+find_package(SDL3_ttf REQUIRED CONFIG)
+find_package(SDL3_mixer QUIET)
+if(NOT SDL3_mixer_FOUND) # not in vcpkg
+    message(STATUS "SDL3_mixer not found, fetching from GitHub...")
+
+    include(FetchContent)
+    FetchContent_Declare(
+            SDL3_mixer
+            GIT_REPOSITORY https://github.com/libsdl-org/SDL_mixer
+            GIT_TAG release-2.8.1
+    )
+    FetchContent_MakeAvailable(SDL3_mixer)
+endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 add_executable(TankGame ${SOURCES})
 
-# Link the libraries
-target_link_libraries(TankGame PRIVATE SDL2::SDL2 SDL2::SDL2main SDL2_image::SDL2_image)
-
-# OpenGL for SDL2 (optional)
-if(UNIX)
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(TankGame PRIVATE OpenGL::GL)
-elseif(WIN32)
-    target_link_libraries(TankGame PRIVATE OpenGL32)
-endif()
+target_link_libraries(TankGame PRIVATE
+    SDL3_image::SDL3_image
+    SDL3_ttf::SDL3_ttf
+    SDL3::SDL3 # main lib as last entry
+)
