@@ -4,25 +4,21 @@ project(TankGame VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if(WIN32) # link executable against static runtime
-    set(MSVC_RUNTIME_LIBRARY MultiThreaded)
-    set(CMAKE_C_RUNTIME_LIBRARY MultiThreaded)
-    set(CMAKE_CXX_RUNTIME_LIBRARY MultiThreaded)
-endif()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-find_package(SDL2 REQUIRED CONFIG)
-find_package(SDL2_image REQUIRED CONFIG)
+include(FetchContent)
+set(FETCHCONTENT_TRY_FIND_PACKAGE_MODE ALWAYS)
+FetchContent_Declare(
+    SFML
+    GIT_REPOSITORY https://github.com/SFML/SFML.git
+    GIT_TAG        3.0.2
+    GIT_SHALLOW    ON
+    FIND_PACKAGE_ARGS NAMES SFML COMPONENTS Graphics Window System
+)
+FetchContent_MakeAvailable(SFML)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 add_executable(TankGame ${SOURCES})
 
-# Link the libraries
-target_link_libraries(TankGame PRIVATE SDL2::SDL2 SDL2::SDL2main SDL2_image::SDL2_image)
-
-# OpenGL for SDL2 (optional)
-if(UNIX)
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(TankGame PRIVATE OpenGL::GL)
-elseif(WIN32)
-    target_link_libraries(TankGame PRIVATE OpenGL32)
-endif()
+target_compile_features(TankGame PRIVATE cxx_std_20)
+target_link_libraries(TankGame PRIVATE SFML::Graphics)

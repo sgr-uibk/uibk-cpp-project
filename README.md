@@ -56,16 +56,22 @@ For references:
 
 
 
-How to setup the project
+## How to Build
 
-Configure cmake file:
-`cmake ..`
+### Build for Windows
+    
+    git clone https://github.com/microsoft/vcpkg.git
+    cd vcpkg
+    .\bootstrap-vcpkg.bat
+    set VCPKG_ROOT=%cd%
+    set PATH=%VCPKG_ROOT%;%PATH%
+    vcpkg integrate install
+    cd ..
+    cmake -DCMAKE_TOOLCHAIN_FILE="%CD%/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
+    cmake --build build --config Release
 
-Build the project:
-`cmake --build .`
+### Build for Linux (Ubtuntu in this example)
 
-Copy assets into the build directory:
-`cp -r ../assets ./`
-
-Start the game:
-`./TankGame`
+    sudo apt update && sudo apt install -y libsfml-dev cmake build-essential
+    cmake -S . -B build
+    cmake --build build --config Release

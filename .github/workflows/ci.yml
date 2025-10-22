@@ -15,19 +15,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Install Dependencies
+        run: |
+          sudo apt update && sudo apt install -y \
+          libfreetype6-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+          libudev-dev libgl1-mesa-dev libflac-dev libogg-dev libvorbis-dev \
+          libvorbisenc2 libvorbisfile3 libpthread-stubs0-dev
+
       - name: CMake Setup
         uses: jwlawson/actions-setup-cmake@v2
 
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsdl2-dev libsdl2-image-dev
-
       - name: CMake Configure
-        run: cmake -S . -B build
+        run: |
+          cmake -S . -B build
 
       - name: CMake Build
-        run: cmake --build build
+        run: cmake --build build --config Release
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -47,7 +50,7 @@ jobs:
       - name: Set Up vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg.git
-          vcpkg\bootstrap-vcpkg.bat
+          .\vcpkg\bootstrap-vcpkg.bat
 
       - name: Install Dependencies
         run: |
@@ -60,11 +63,11 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
 
       - name: CMake Configure
-        run: | 
+        run: |
           cmake -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
 
       - name: CMake Build
-        run: | 
+        run: |
           cmake --build build --config Release
           dir build
 
