@@ -1,4 +1,5 @@
-// main.cpp
+#include "HealthBar.h"
+
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <cmath>
@@ -22,7 +23,6 @@ int main()
 	constexpr float tankW = 64.f, tankH = 64.f;
 	tankSprite.setScale({tankW / tankTexture.getSize().x, tankH / tankTexture.getSize().y});
 	tankSprite.setPosition({368.f + tankW / 2.f, 268.f + tankH / 2.f});
-	const float tankMoveSpeed = 5.f;
 
 	std::vector<sf::RectangleShape> walls;
 	auto addWall = [&](float x, float y, float w, float h) {
@@ -41,6 +41,22 @@ int main()
 	addWall(200, 100, WALL_THICKNESS, 400); // vertical
 	addWall(400, 200, 200, WALL_THICKNESS); // horizontal
 	addWall(600, 50, WALL_THICKNESS, 300);  // vertical
+
+	// HUD setup
+	sf::Font hudFont;
+	if(!hudFont.openFromFile("../assets/LiberationSans-Regular.ttf"))
+	{
+		return -1;
+	}
+	HealthBar hud(220.f, 28.f, hudFont);
+	hud.setFont(hudFont);
+	hud.setPositionScreen({20.f, 20.f});
+	hud.setMaxHealth(150.f);
+	hud.setHealth(150.f);
+
+	sf::View worldView = window.getDefaultView();
+	sf::View hudView = window.getDefaultView();
+	sf::Clock frameClock;
 
 	while(window.isOpen())
 	{
@@ -65,7 +81,9 @@ int main()
 		sf::Vector2f moveVec{static_cast<float>(d - a), static_cast<float>(s - w)};
 
 		if(moveVec != sf::Vector2f({0.f, 0.f}))
-		{ // there was movement
+		{
+			constexpr float tankMoveSpeed = 5.f;
+			// there was movement
 			// new center coordinates
 			sf::Vector2f const TankPosNew = tankSprite.getPosition() + moveVec.normalized() * tankMoveSpeed;
 			// we need top-left coordinates for the Rect
@@ -82,8 +100,12 @@ int main()
 			}
 
 			if(!collision)
-			{ // no collision, can apply
+			{ // no collision, let them move there
 				tankSprite.setPosition(TankPosNew);
+			}
+			else
+			{	// player crashed against something, deal them damage
+				hud.setHealth(hud.getHealth() - 1);
 			}
 
 			// face towards movement direction (0 deg = up, right hand side coordinate system)
@@ -92,11 +114,20 @@ int main()
 			tankSprite.setRotation(sf::radians(angRad));
 		}
 
-		// Draw
+		float frameTimeSec = frameClock.restart().asSeconds();
+
+		// Draw world
+		window.setView(worldView);
 		window.clear(sf::Color::White);
 		for(auto &wall : walls)
 			window.draw(wall);
 		window.draw(tankSprite);
+
+		// Draw hud
+		hud.update(frameTimeSec);
+		window.setView(hudView);
+		window.draw(hud);
+
 		window.display();
 	}
 
