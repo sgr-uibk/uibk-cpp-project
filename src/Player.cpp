@@ -1,23 +1,25 @@
 #include "Player.h"
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "Map.h"
 
-Player::Player(const std::string &name,
-               const sf::Color &color,
+Player::Player(std::string name,
+               sf::Color const &color,
                Map &map,
-               float maxHealth)
-	: m_name(name)
-	  , m_color(color)
-	  , m_health(maxHealth)
-	  , m_maxHealth(std::max(1.f, maxHealth))
-	  , m_map(map)
-	  , m_healthyTex("../assets/tank_healthy.png")
-	  , m_damagedTex("../assets/tank_damaged.png")
-	  , m_destroyedTex("../assets/tank_destroyed.png")
-	  , m_sprite(m_healthyTex)
-	  , m_onHealthChanged(nullptr)
+               int const maxHealth)
+	: m_name(std::move(name)),
+	  m_color(color),
+	  m_maxHealth(maxHealth),
+	  m_health(maxHealth), m_midThreshold(3 * maxHealth / 4),
+	  m_lowThreshold(maxHealth / 4),
+	  m_map(map),
+	  m_healthyTex("../assets/tank_healthy.png"),
+	  m_damagedTex("../assets/tank_damaged.png"),
+	  m_deadTex("../assets/tank_dead.png"),
+	  m_sprite(m_healthyTex),
+	  m_onHealthChanged(nullptr)
 {
 	updateSprite();
 	m_sprite.setPosition({368.f + tankW / 2.f, 268.f + tankH / 2.f});
@@ -68,30 +70,33 @@ void Player::movement(const sf::Vector2f &delta)
 
 }
 
-void Player::takeDamage(float amount)
+void Player::takeDamage(int amount)
 {
-	if(m_health <= 0 || amount <= 0.f)
+	if(m_health <= 0 || amount <= 0)
 		return;
 	setHealthInternal(m_health - amount);
 }
 
-void Player::heal(float amount)
+void Player::heal(int amount)
 {
-	if(amount <= 0.f)
+	if(amount <= 0)
 		return;
 	setHealthInternal(m_health + amount);
 }
 
 void Player::die()
 {
-	updateSprite(&m_destroyedTex); // damaging
+	updateSprite(&m_deadTex); // damaging
 	auto color = m_sprite.getColor();
-	color.a *= 0.5f; // fade alpha value to distinguish from living players
+	color.a /= 2; // fade alpha value to distinguish from living players
 	m_sprite.setColor(color);
 }
 
 void Player::revive()
 {
+	if(m_health > 0)
+		return;
+
 	setHealthInternal(m_maxHealth);
 	m_sprite.setTexture(m_healthyTex);
 	m_sprite.setColor(m_color);
@@ -109,12 +114,12 @@ void Player::updateSprite(sf::Texture const *const tex)
 	m_sprite.setScale({tankW / texSize.x, tankH / texSize.y});
 }
 
-float Player::getHealth() const
+int Player::getHealth() const
 {
 	return m_health;
 }
 
-float Player::getMaxHealth() const
+int Player::getMaxHealth() const
 {
 	return m_maxHealth;
 }
@@ -144,21 +149,24 @@ sf::Vector2f Player::getPosition() const
 	return m_sprite.getPosition();
 }
 
-void Player::setHealthInternal(float hp)
+void Player::setHealthInternal(int health)
 {
-	float clamped = std::clamp(hp, 0.f, m_maxHealth);
-	float const ratio_old = m_health / m_maxHealth;
-	float const ratio_new = clamped / m_maxHealth;
+	int const clamped = std::clamp(health, 0, m_maxHealth);
 	if(clamped == m_health)
 		return;
 
-	m_health = clamped;
-	if(m_health <= 0.f)
-		die();
-	else if(ratio_new <= 0.6f && ratio_old > 0.6f)
+	int const thresh_mid = m_maxHealth / 2;
+	int const thresh_high = 3 * m_maxHealth / 4;
+
+	if(health <= thresh_mid && m_health > thresh_mid)
 		updateSprite(&m_damagedTex); // damaging
-	else if(ratio_new > 0.6f && ratio_old < 0.6f)
+	else if(health >= thresh_high && m_health < thresh_high)
 		updateSprite(&m_healthyTex); // healing
+
+	m_health = clamped;
+	if(m_health == 0)
+		die();
+
 
 	if(m_onHealthChanged)
 		m_onHealthChanged(m_health, m_maxHealth);

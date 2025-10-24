@@ -1,11 +1,9 @@
-#include "HealthBar.h"
-
 #include <SFML/Graphics.hpp>
-#include <vector>
 #include <cmath>
 
 #include "Map.h"
 #include "Player.h"
+#include "HealthBar.h"
 
 int main()
 {
@@ -17,21 +15,15 @@ int main()
 
 	Map map{WINDOW_WIDTH, WINDOW_HEIGHT};
 
-	Player player("BlueTank", sf::Color(80, 180, 255), map, 150.f);
+	Player player("BlueTank", sf::Color(90, 170, 255), map, 150.f);
+	Player enemy("RedTank", sf::Color(255, 170, 90), map, 120.f);
+	enemy.setPosition({90, 90});
 
-	// HUD setup, TODO move into class
-	sf::Font hudFont;
-	if(!hudFont.openFromFile("../assets/LiberationSans-Regular.ttf"))
-		return -1;
-	HealthBar hud(220.f, 28.f, hudFont);
-	hud.setFont(hudFont);
-	hud.setPositionScreen({20.f, 20.f});
-	hud.setMaxHealth(150.f);
-	hud.setHealth(150.f);
+	HealthBar healthbar({20.f, 20.f}, {220.f, 28.f});
 
-	player.setHealthCallback([&hud](float current, float max) {
-		hud.setMaxHealth(max);
-		hud.setHealth(current);
+	player.setHealthCallback([&healthbar](int current, int max) {
+		healthbar.setMaxHealth(max);
+		healthbar.setHealth(current);
 	});
 
 	sf::View worldView = window.getDefaultView();
@@ -61,20 +53,31 @@ int main()
 		sf::Vector2f moveVec{static_cast<float>(d - a), static_cast<float>(s - w)};
 		player.movement(moveVec);
 
+#ifdef SFML_DEBUG
+		bool const h = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::H);
+		if(h)
+			player.heal(1);
+
+		bool const r = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::R);
+		if(r)
+			player.revive();
+#endif
+
 		float frameDelta = frameClock.restart().asSeconds();
 		player.update(frameDelta);
-		hud.update(frameDelta);
+		healthbar.update(frameDelta);
 
 		// Draw world
-		window.setView(window.getDefaultView());
+		window.setView(worldView);
 		window.clear(sf::Color::White);
 
 		map.draw(window);
 		player.draw(window);
+		enemy.draw(window);
 
 		// Draw hud
 		window.setView(hudView);
-		window.draw(hud);
+		window.draw(healthbar);
 
 		window.display();
 	}

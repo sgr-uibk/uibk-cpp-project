@@ -3,28 +3,28 @@
 #include <functional>
 #include <string>
 
-class Map;
+#include "Map.h"
 
 class Player
 {
 public:
-	using HealthCallback = std::function<void(float current, float max)>;
+	using HealthCallback = std::function<void(int current, int max)>;
 
-	Player(const std::string &name, const sf::Color &color, Map &map, float maxHealth = 100.f);
+	Player(std::string name, const sf::Color &color, Map &map, int maxHealth = 100);
 
 	// gameplay
 	void update(float dt);
 	void draw(sf::RenderWindow &window) const;
 	void movement(const sf::Vector2f &delta);
-	void takeDamage(float amount); // also handles player dying
-	void heal(float amount);
+	void takeDamage(int amount);
+	void heal(int amount);
 	void die();
 	void revive(); // restore dead player to full health
 	void updateSprite(sf::Texture const *tex = nullptr);
 
 	// accessors
-	float getHealth() const;
-	float getMaxHealth() const;
+	int getHealth() const;
+	int getMaxHealth() const;
 	const std::string &getName() const;
 	const sf::Sprite &getSprite() const;
 
@@ -36,18 +36,20 @@ public:
 	sf::Vector2f getPosition() const;
 
 private:
-	void setHealthInternal(float hp);
+	void setHealthInternal(int health);
 
 	std::string m_name;
 	sf::Color m_color;
-	float m_health;
-	float m_maxHealth;
+	int m_maxHealth;
+	int m_health;
+	int m_midThreshold;
+	int m_lowThreshold;
 	Map const &m_map; // needed for checking wall collisions
 
 	static constexpr float tankW = 64.f, tankH = 64.f;
 	sf::Texture m_healthyTex;
 	sf::Texture m_damagedTex;
-	sf::Texture m_destroyedTex;
+	sf::Texture m_deadTex;
 	sf::Sprite m_sprite; // sprite is constructed after textures
 
 	HealthCallback m_onHealthChanged;
