@@ -1,6 +1,6 @@
 #include "Map.h"
 
-Map::Map(float width, float height, float wall_thickness)
+Map::Map(sf::Vector2u dimensions, float wallThickness)
 {
 	auto addWall = [&](float x, float y, float w, float h) {
 		sf::RectangleShape r({w, h});
@@ -8,16 +8,18 @@ Map::Map(float width, float height, float wall_thickness)
 		r.setFillColor(sf::Color::Black);
 		m_walls.push_back(r);
 	};
+	unsigned const width = dimensions.x;
+	unsigned const height = dimensions.y;
 
 	// Outer and inner walls
-	addWall(0, 0, width, wall_thickness);
-	addWall(0, height - wall_thickness, width, wall_thickness);
-	addWall(0, 0, wall_thickness, height);
-	addWall(width - wall_thickness, 0, wall_thickness, height);
+	addWall(0, 0, width, wallThickness);
+	addWall(0, height - wallThickness, width, wallThickness);
+	addWall(0, 0, wallThickness, height);
+	addWall(width - wallThickness, 0, wallThickness, height);
 
-	addWall(200, 100, wall_thickness, 400); // vertical
-	addWall(400, 200, 200, wall_thickness); // horizontal
-	addWall(600, 50, wall_thickness, 300); // vertical
+	addWall(200, 100, wallThickness, 400); // vertical
+	addWall(400, 200, 200, wallThickness); // horizontal
+	addWall(600, 50, wallThickness, 300); // vertical
 }
 
 bool Map::isCollidingWithWalls(sf::FloatRect const &it) const

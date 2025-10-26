@@ -7,7 +7,7 @@ class Map {
 	std::vector<sf::RectangleShape> m_walls;
 
 public:
-	Map(float width, float height, float wall_thickness = 20.f);
+	Map(sf::Vector2u dimensions, float wallThickness = 20.f);
 	bool isCollidingWithWalls(sf::FloatRect const& it) const;
 	const std::vector<sf::RectangleShape>& getWalls() const;
 	void draw(sf::RenderWindow& window) const;

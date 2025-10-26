@@ -13,12 +13,27 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/SFML/SFML.git
     GIT_TAG        3.0.2
     GIT_SHALLOW    ON
-    FIND_PACKAGE_ARGS NAMES SFML COMPONENTS Graphics Window System
+    FIND_PACKAGE_ARGS NAMES SFML COMPONENTS Graphics Network
 )
 FetchContent_MakeAvailable(SFML)
 
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-add_executable(TankGame ${SOURCES})
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG        1.16.0
+    GIT_SHALLOW    ON
+    FIND_PACKAGE_ARGS NAMES spdlog
+)
+FetchContent_MakeAvailable(spdlog)
 
-target_compile_features(TankGame PRIVATE cxx_std_20)
-target_link_libraries(TankGame PRIVATE SFML::Graphics)
+add_executable(TankGame    src/main.cpp src/GameWorld.cpp src/HealthBar.cpp src/Player.cpp src/Map.cpp)
+add_executable(LobbyServer src/LobbyServer.cpp)
+add_executable(LobbyClient src/LobbyClient.cpp)
+
+target_compile_features(TankGame    PRIVATE cxx_std_20)
+target_compile_features(LobbyServer PRIVATE cxx_std_20)
+target_compile_features(LobbyClient PRIVATE cxx_std_20)
+
+target_link_libraries(TankGame    PRIVATE SFML::Graphics spdlog::spdlog)
+target_link_libraries(LobbyServer PRIVATE SFML::Graphics SFML::Network spdlog::spdlog)
+target_link_libraries(LobbyClient PRIVATE SFML::Graphics SFML::Network spdlog::spdlog)
