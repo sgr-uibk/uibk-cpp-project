@@ -3,10 +3,10 @@ $port = $(Get-Random -Maximum 45535) + 20000
 
 # Start processes and remember their objects
 $server = Start-Process -FilePath .\LobbyServer.exe -ArgumentList $Port -PassThru
-$clientA = Start-Process -FilePath .\LobbyClient.exe -ArgumentList "A",$Port -PassThru
-$clientB = Start-Process -FilePath .\LobbyClient.exe -ArgumentList "B",$Port -PassThru
-$clientC = Start-Process -FilePath .\LobbyClient.exe -ArgumentList "C",$Port -PassThru
-$clientD = Start-Process -FilePath .\LobbyClient.exe -ArgumentList "D",$Port -PassThru
+$clientA = Start-Process -FilePath .\LobbyClient.exe -ArgumentList "Client A",$Port -PassThru
+$clientB = Start-Process -FilePath .\LobbyClient.exe -ArgumentList "Client B",$Port -PassThru
+$clientC = Start-Process -FilePath .\LobbyClient.exe -ArgumentList "Client C",$Port -PassThru
+$clientD = Start-Process -FilePath .\LobbyClient.exe -ArgumentList "Client D",$Port -PassThru
 
 echo "Started LobbyServer ($($server.Id):$port) and clients (Ids $($clientA.Id),$($clientB.Id),$($clientC.Id),$($clientD.Id))"
 

@@ -2,13 +2,14 @@
 #include <SFML/Network.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <random>
 
 int main(int argc, char **argv)
 {
-	auto logger = spdlog::stdout_color_mt(argv[0]);
-	spdlog::set_pattern("[%L %n(%P): %s!%# %T] %v");
 	std::string const playerName = (argc >= 2) ? argv[1] : "Unnamed client";
 	uint16_t const port = (argc == 3) ? atoi(argv[2]) : PORT_TCP;
+
+	auto logger = makeLogger(playerName);
 
 	sf::IpAddress const localhost{0x7f'00'00'01};
 	sf::TcpSocket sockLobby;
@@ -67,8 +68,9 @@ int main(int argc, char **argv)
 				msg >> rad;
 				sf::Angle direction = sf::radians(rad);
 
-				SPDLOG_LOGGER_INFO(logger, "My spawn point is ({},{}), direction angle = {}deg", spawnPoint.x, spawnPoint.y,
-				             direction.asDegrees());
+				SPDLOG_LOGGER_INFO(logger, "My spawn point is ({},{}), direction angle = {}deg", spawnPoint.x,
+				                   spawnPoint.y,
+				                   direction.asDegrees());
 
 				break;
 			}
@@ -80,11 +82,12 @@ int main(int argc, char **argv)
 	// TODO tie in the unreliable protocol here, messages need to be sent over that.
 
 	// simulate battle
-	srand48(clientId);
+	std::mt19937 mt(clientId);
 	unsigned flips = 0;
 	while(++flips)
 	{
-		if(lrand48() % 2)
+		uint64_t const randval = mt();
+		if(randval % 2)
 		{
 			SPDLOG_LOGGER_INFO(logger, "Died after {} flips", flips);
 			break;

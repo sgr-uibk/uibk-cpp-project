@@ -8,13 +8,13 @@ PORT=$(( (RANDOM % 45535) + 20000 ))
 ./LobbyServer "$PORT" &
 PID_SERVER=$!
 
-./LobbyClient A "$PORT" &
+./LobbyClient "Client A" "$PORT" &
 PID_A=$!
-./LobbyClient B "$PORT" &
+./LobbyClient "Client B" "$PORT" &
 PID_B=$!
-./LobbyClient C "$PORT" &
+./LobbyClient "Client C" "$PORT" &
 PID_C=$!
-./LobbyClient D "$PORT" &
+./LobbyClient "Client D" "$PORT" &
 PID_D=$!
 
 echo "Started LobbyServer ($PID_SERVER:$PORT) and clients ($PID_A,$PID_B,$PID_C,$PID_D)"

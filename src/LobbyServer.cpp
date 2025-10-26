@@ -16,8 +16,7 @@ struct LobbyPlayer
 
 int main(int argc, char**argv)
 {
-	auto logger = spdlog::stdout_color_mt(argv[0]);
-	spdlog::set_pattern("[%L %n(%P): %s!%# %T] %v");
+	auto logger = makeLogger(argv[0]);
 	sf::TcpListener listener;
 	uint16_t const port = (argc == 2) ? atoi(argv[1]) : PORT_TCP;
 	if(listener.listen(port) != sf::Socket::Status::Done)
@@ -31,7 +30,7 @@ int main(int argc, char**argv)
 	std::array<LobbyPlayer, MAX_PLAYERS> players;
 	uint32_t nextClientId = 1;
 
-	SPDLOG_LOGGER_INFO(logger, "Lobby server listening on TCP port {}", PORT_TCP);
+	SPDLOG_LOGGER_INFO(logger, "Lobby server listening on TCP port {}", port);
 
 	while(true)
 	{
@@ -43,8 +42,6 @@ int main(int argc, char**argv)
 				LobbyPlayer p{};
 				if(listener.accept(p.socket) == sf::Socket::Status::Done)
 				{
-					p.socket.setBlocking(false);
-					p.id = nextClientId++;
 					if(nextClientId > MAX_PLAYERS)
 					{
 						SPDLOG_LOGGER_INFO(logger, "Lobby has reached the maximum of {} members. Rejecting.",
@@ -52,6 +49,8 @@ int main(int argc, char**argv)
 						listener.close();
 						assert(!multiSock.isReady(listener));
 					}
+					p.socket.setBlocking(false);
+					p.id = nextClientId++;
 					if(sf::Packet pktJoinRequest; p.socket.receive(pktJoinRequest) == sf::Socket::Status::Done)
 					{
 						uint32_t protoVer;

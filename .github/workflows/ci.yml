@@ -41,8 +41,9 @@ jobs:
 
       - name: Run Tests
         run: |
-          .github/workflows/lobby_test.sh
+          "${{github.workspace}}/.github/workflows/lobby_test.sh"
         shell: bash
+        working-directory: build
         timeout-minutes: 2
 
   windows-build:
@@ -69,12 +70,11 @@ jobs:
 
       - name: CMake Configure
         run: |
-          cmake -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
+          cmake -DCMAKE_TOOLCHAIN_FILE="${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
 
       - name: CMake Build
         run: |
           cmake --build build --config Release
-          dir build
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -86,6 +86,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          .github\workflows\lobby_test.ps1
+          "${{github.workspace}}\.github\workflows\lobby_test.ps1"
         shell: powershell
+        working-directory: build
         timeout-minutes: 2
