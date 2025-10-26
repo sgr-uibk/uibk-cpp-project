@@ -39,6 +39,12 @@ jobs:
             build/TankGame
             assets/*
 
+      - name: Run Tests
+        run: |
+          .github/workflows/lobby_test.sh
+        shell: bash
+        timeout-minutes: 2
+
   windows-build:
     runs-on: windows-latest
 
@@ -77,3 +83,9 @@ jobs:
           path: |
             build/Release/*
             assets/*
+
+      - name: Run Tests
+        run: |
+          .github\workflows\lobby_test.ps1
+        shell: powershell
+        timeout-minutes: 2

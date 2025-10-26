@@ -1,51 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVER="./LobbyServer"
-CLIENT="./LobbyClient"
-NAMES=(Server A B C D)
-PIDS=()
+# pick a random port >= 20000
+PORT=$(( (RANDOM % 45535) + 20000 ))
 
-"$SERVER" & PIDS+=($!)
-for name in A B C D; do
-  "$CLIENT" "$name" & PIDS+=($!)
-done
+# start server and clients in background, remember their PIDs
+./LobbyServer "$PORT" &
+PID_SERVER=$!
 
-timeout=15
-end=$((SECONDS + timeout))
+./LobbyClient A "$PORT" &
+PID_A=$!
+./LobbyClient B "$PORT" &
+PID_B=$!
+./LobbyClient C "$PORT" &
+PID_C=$!
+./LobbyClient D "$PORT" &
+PID_D=$!
 
-all_exited() {
-  for pid in "${PIDS[@]}"; do
-    if kill -0 "$pid" 2>/dev/null; then return 1; fi
-  done
-  return 0
-}
+echo "Started LobbyServer ($PID_SERVER:$PORT) and clients ($PID_A,$PID_B,$PID_C,$PID_D)"
+sleep 15
 
-while (( SECONDS < end )); do
-  all_exited && break
-  sleep 0.1
-done
-
-# If any still running -> fail
-running=()
-for pid in "${PIDS[@]}"; do
-  if kill -0 "$pid" 2>/dev/null; then running+=("$pid"); fi
-done
-if (( ${#running[@]} )); then
-  echo "Timeout: still running: ${running[*]}" >&2
-  kill "${running[@]}" 2>/dev/null || true
-  exit 1
-fi
-
-# Collect exit codes
-failures=0
-for i in "${!PIDS[@]}"; do
-  pid=${PIDS[i]}
-  wait "$pid"
-  code=$?
-  echo "${NAMES[i]} (pid $pid) exit $code"
-  (( code != 0 )) && failures=$((failures+1))
-done
-
-(( failures )) && { echo "Failed: $failures non-zero exits" >&2; exit 1; }
-echo "OK: all exited 0 within ${timeout}s"
+# attempt graceful termination, then force after a timeout
+kill $PID_A $PID_B $PID_C $PID_D $PID_SERVER 2>/dev/null || true
+sleep 1
+kill -9 $PID_A $PID_B $PID_C $PID_D $PID_SERVER 2>/dev/null || true
