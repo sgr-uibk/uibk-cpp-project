@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include "Utilities.h"
 
 struct LobbyPlayer
 {
@@ -16,7 +16,7 @@ struct LobbyPlayer
 
 int main(int argc, char**argv)
 {
-	auto logger = makeLogger(argv[0]);
+	auto logger = createConsoleAndFileLogger("Server L");
 	sf::TcpListener listener;
 	uint16_t const port = (argc == 2) ? atoi(argv[1]) : PORT_TCP;
 	if(listener.listen(port) != sf::Socket::Status::Done)

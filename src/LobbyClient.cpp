@@ -1,4 +1,5 @@
 #include "Networking.h"
+#include "Utilities.h"
 #include <SFML/Network.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -8,8 +9,7 @@ int main(int argc, char **argv)
 {
 	std::string const playerName = (argc >= 2) ? argv[1] : "Unnamed client";
 	uint16_t const port = (argc == 3) ? atoi(argv[2]) : PORT_TCP;
-
-	auto logger = makeLogger(playerName);
+	const auto logger = createConsoleAndFileLogger(playerName);
 
 	sf::IpAddress const localhost{0x7f'00'00'01};
 	sf::TcpSocket sockLobby;

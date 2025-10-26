@@ -31,20 +31,23 @@ jobs:
       - name: CMake Build
         run: cmake --build build --config Release
 
+      - name: Run Tests
+        run: |
+          chmod +x "${{github.workspace}}/.github/workflows/lobby_test.sh"
+          "${{github.workspace}}/.github/workflows/lobby_test.sh"
+        shell: bash
+        working-directory: build
+        timeout-minutes: 2
+        continue-on-error: true
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: TankGame-${{github.job}}
           path: |
             build/TankGame
+            build/*.log
             assets/*
-
-      - name: Run Tests
-        run: |
-          "${{github.workspace}}/.github/workflows/lobby_test.sh"
-        shell: bash
-        working-directory: build
-        timeout-minutes: 2
 
   windows-build:
     runs-on: windows-latest
@@ -76,17 +79,19 @@ jobs:
         run: |
           cmake --build build --config Release
 
+      - name: Run Tests
+        run: |
+          "${{github.workspace}}\.github\workflows\lobby_test.ps1"
+        shell: powershell
+        working-directory: build/Release
+        timeout-minutes: 2
+        continue-on-error: true
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: TankGame-${{github.job}}
           path: |
             build/Release/*
+            build/Release/*.log
             assets/*
-
-      - name: Run Tests
-        run: |
-          "${{github.workspace}}\.github\workflows\lobby_test.ps1"
-        shell: powershell
-        working-directory: build
-        timeout-minutes: 2

@@ -1,20 +1,12 @@
 #pragma once
 #include <cstdint>
 #include <SFML/Network.hpp>
-#include <spdlog/logger.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 
 constexpr uint16_t PORT_TCP = 25101;
 constexpr uint16_t PORT_UDP = 25101;
 constexpr uint8_t MAX_PLAYERS = 4;
 constexpr uint32_t PROTOCOL_VERSION = 1;
 
-inline std::shared_ptr<spdlog::logger> makeLogger(std::string const& name)
-{
-	auto logger = spdlog::stdout_color_mt(name);
-	logger->set_pattern("[%L %n(%P): %s!%# %T] %^%v%$");
-	return logger;
-}
 
 enum class ReliablePktType : uint8_t
 {
