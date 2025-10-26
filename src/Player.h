@@ -2,8 +2,16 @@
 #include <SFML/Graphics.hpp>
 #include <functional>
 #include <string>
+#include <SFML/Audio/Sound.hpp>
+#include <SFML/Audio/SoundBuffer.hpp>
 
+#include "Cooldown.h"
 #include "Map.h"
+
+namespace spdlog
+{
+class logger;
+}
 
 class Player
 {
@@ -21,6 +29,7 @@ public:
 	void die();
 	void revive(); // restore dead player to full health
 	void updateSprite(sf::Texture const *tex = nullptr);
+	void shoot();
 
 	// accessors
 	int getHealth() const;
@@ -52,5 +61,10 @@ private:
 	sf::Texture m_deadTex;
 	sf::Sprite m_sprite; // sprite is constructed after textures
 
+	sf::SoundBuffer m_shootSoundBuf;
+	sf::Sound m_shootSound;
+	Cooldown m_shootCooldown;
+
+	std::shared_ptr<spdlog::logger> const m_logger;
 	HealthCallback m_onHealthChanged;
 };
