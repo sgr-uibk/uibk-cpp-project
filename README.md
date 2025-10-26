@@ -73,6 +73,7 @@ Clone this repository using `git clone ...` and open a shell inside its director
 Run:
 ```powershell
 git lfs install # (only once)
+git lfs checkout # to be safe
 cmake -DCMAKE_TOOLCHAIN_FILE="%CD%/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
 cmake --build build --config Release
 dir build
@@ -91,6 +92,7 @@ sudo apt install -y \
 Clone this repository using `git clone ...` and open a shell inside its directory.
 ```shell
 git lfs install # (only once)
+git lfs checkout # to be safe
 cmake -S . -B build
 cmake --build build --config Release
 ls build

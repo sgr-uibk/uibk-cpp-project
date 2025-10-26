@@ -2,8 +2,10 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 #include "Map.h"
+#include "Utilities.h"
 
 Player::Player(std::string name,
                sf::Color const &color,
@@ -12,22 +14,28 @@ Player::Player(std::string name,
 	: m_name(std::move(name)),
 	  m_color(color),
 	  m_maxHealth(maxHealth),
-	  m_health(maxHealth), m_midThreshold(3 * maxHealth / 4),
+	  m_health(maxHealth),
+	  m_midThreshold(3 * maxHealth / 4),
 	  m_lowThreshold(maxHealth / 4),
 	  m_map(map),
 	  m_healthyTex("../assets/tank_healthy.png"),
 	  m_damagedTex("../assets/tank_damaged.png"),
 	  m_deadTex("../assets/tank_dead.png"),
 	  m_sprite(m_healthyTex),
+	  m_shootSoundBuf("../assets/audio/tank_firing.ogg"),
+	  m_shootSound(m_shootSoundBuf),
+	  m_shootCooldown(2.f),
+	  m_logger(createConsoleLogger(m_name)),
 	  m_onHealthChanged(nullptr)
 {
 	updateSprite();
 	m_sprite.setPosition({368.f + tankW / 2.f, 268.f + tankH / 2.f});
 }
 
-void Player::update(float /*dt*/)
+void Player::update(float const dt)
 {
 	// Manage item cooldowns
+	m_shootCooldown.update(dt);
 	// Send keepalive ?
 	// Consume fuel ?
 }
@@ -67,7 +75,6 @@ void Player::movement(const sf::Vector2f &delta)
 	// atan2 preserves signs as it takes a 2D vector, which atan can't as it only takes the ratio.
 	float const angRad = std::atan2(delta.x, -delta.y);
 	m_sprite.setRotation(sf::radians(angRad));
-
 }
 
 void Player::takeDamage(int amount)
@@ -112,6 +119,21 @@ void Player::updateSprite(sf::Texture const *const tex)
 	auto const texSize = m_sprite.getTexture().getSize();
 	m_sprite.setOrigin({texSize.x / 2.f, texSize.y / 2.f}); // center the origin
 	m_sprite.setScale({tankW / texSize.x, tankH / texSize.y});
+}
+
+void Player::shoot()
+{
+	// Can we shoot again yet ?
+	if(m_shootCooldown.try_trigger())
+	{
+		// Yes, so spawn a projectile
+		// TODO implement projectiles
+		sf::Vector2f const pos = m_sprite.getPosition();
+		SPDLOG_LOGGER_INFO(m_logger, "Would spawn a projectile at ({},{}), moving to {}deg at {} px/s", pos.x, pos.y,
+		                   m_sprite.getRotation().asDegrees(), 123);
+		m_shootSound.play();
+	}
+
 }
 
 int Player::getHealth() const
@@ -166,7 +188,6 @@ void Player::setHealthInternal(int health)
 	m_health = clamped;
 	if(m_health == 0)
 		die();
-
 
 	if(m_onHealthChanged)
 		m_onHealthChanged(m_health, m_maxHealth);

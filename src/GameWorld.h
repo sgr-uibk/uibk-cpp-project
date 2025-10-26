@@ -1,5 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio/Music.hpp>
+
 #include "Map.h"
 #include "Player.h"
 #include "HealthBar.h"
@@ -8,7 +10,7 @@
 // Note: The server uses this class too, so no graphics related code in here!
 class GameWorld {
 public:
-	GameWorld(sf::Vector2u windowDimensions);
+	explicit GameWorld(sf::Vector2u windowDimensions);
 
 	void update(float dt);
 	void draw(sf::RenderWindow& window) const;
@@ -26,4 +28,6 @@ private:
 
 	sf::View m_worldView;
 	sf::View m_hudView;
+
+	sf::Music m_battleMusic;
 };

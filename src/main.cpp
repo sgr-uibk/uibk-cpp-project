@@ -1,14 +1,18 @@
 #include <SFML/Graphics.hpp>
-#include <cmath>
-
 #include "HealthBar.h"
 #include "GameWorld.h"
+#include <SFML/Audio.hpp>
+#include <spdlog/spdlog.h>
+
+#include "Utilities.h"
 
 int main()
 {
-	sf::Vector2u const windowDimensions = {800, 600};
+	char constexpr gameName[] = "Tank Game";
+	sf::Vector2u constexpr windowDimensions = {800, 600};
+	std::shared_ptr<spdlog::logger> const logger = createConsoleLogger(gameName);
 
-	sf::RenderWindow window(sf::VideoMode(windowDimensions), "Tank Game", sf::Style::Resize);
+	sf::RenderWindow window(sf::VideoMode(windowDimensions), gameName, sf::Style::Resize);
 	window.setFramerateLimit(60);
 	window.setMinimumSize(windowDimensions);
 	window.setMaximumSize(std::optional(sf::Vector2u{3840, 2160}));
