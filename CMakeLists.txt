@@ -26,7 +26,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-add_executable(TankGame    src/main.cpp src/GameWorld.cpp src/HealthBar.cpp src/Player.cpp src/Map.cpp src/Utilities.cpp)
+add_executable(TankGame    src/main.cpp src/GameWorld.cpp src/HealthBar.cpp src/Player.cpp src/Map.cpp src/Utilities.cpp src/Menu.cpp)
 add_executable(LobbyServer src/LobbyServer.cpp src/Utilities.cpp)
 add_executable(LobbyClient src/LobbyClient.cpp src/Utilities.cpp)
 
