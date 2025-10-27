@@ -1,11 +1,13 @@
 #include "GameWorld.h"
 
+#include "ResourceManager.h"
+
 GameWorld::GameWorld(sf::Vector2u windowDimensions)
 	: m_windowDimensions(windowDimensions),
 	  m_map(windowDimensions),
 	  m_player("BlueTank", sf::Color(90, 170, 255), m_map, 150),
 	  m_healthbar({20.f, 20.f}, {220.f, 28.f}),
-	  m_battleMusic("../assets/audio/battle_loop.ogg")
+	  m_battleMusic(MusicManager::inst().load("audio/battle_loop.ogg"))
 {
 	m_worldView = sf::View(sf::FloatRect({0, 0}, sf::Vector2<float>(windowDimensions)));
 	m_hudView = m_worldView; // copy

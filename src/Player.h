@@ -56,12 +56,12 @@ private:
 	Map const &m_map; // needed for checking wall collisions
 
 	static constexpr float tankW = 64.f, tankH = 64.f;
-	sf::Texture m_healthyTex;
-	sf::Texture m_damagedTex;
-	sf::Texture m_deadTex;
+	sf::Texture &m_healthyTex;
+	sf::Texture &m_damagedTex;
+	sf::Texture &m_deadTex;
 	sf::Sprite m_sprite; // sprite is constructed after textures
 
-	sf::SoundBuffer m_shootSoundBuf;
+	sf::SoundBuffer &m_shootSoundBuf;
 	sf::Sound m_shootSound;
 	Cooldown m_shootCooldown;
 
