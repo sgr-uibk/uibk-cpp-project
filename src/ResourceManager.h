@@ -9,9 +9,29 @@
 class AssetPathResolver
 {
 public:
-	explicit AssetPathResolver(std::vector<std::string> tryRoots = {"./assets", "../assets", "../../assets"});
+	explicit AssetPathResolver(std::vector<std::string> const &tryRoots = {"./assets", "../assets", "../../assets"})
+	{
+		for(std::string const &possibleRoot : tryRoots)
+		{
+			std::filesystem::path abs = std::filesystem::absolute(possibleRoot);
+			if(std::filesystem::exists(abs) && std::filesystem::is_directory(abs))
+			{
+				// That exists, take it!
+				m_assetsRoot = std::move(abs);
+				return;
+			}
+		}
+		throw std::runtime_error("None of the candidate directories exist.");
+	}
 
-	std::filesystem::path resolveRelative(const std::string &rel) const;
+	std::filesystem::path resolveRelative(const std::string &rel) const
+	{
+		// the / is the path append operator :)
+		std::filesystem::path abs = std::filesystem::absolute(m_assetsRoot / rel);
+		if(!std::filesystem::exists(abs))
+			throw std::runtime_error("Asset can't be found at " + abs.string());
+		return abs;
+	}
 
 	const std::filesystem::path &getAssetsRoot() const
 	{
@@ -19,11 +39,10 @@ public:
 	}
 
 private:
-	std::vector<std::string> m_candidates;
 	std::filesystem::path m_assetsRoot;
 };
 
-extern AssetPathResolver g_assetPathResolver;
+inline AssetPathResolver g_assetPathResolver;
 
 // Generic resource manager for types that have a loadFromFile method (sf::Texture, sf::SoundBuffer),
 // as well as sf::Font, sf::Music that have a openFromFile method. (Note that the ResourceManager must outlive the
