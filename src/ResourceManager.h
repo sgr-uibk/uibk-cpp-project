@@ -6,6 +6,46 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 
+class AssetPathResolver
+{
+public:
+	explicit AssetPathResolver(std::vector<std::string> tryRoots = {"./assets", "../assets", "../../assets"})
+		: m_candidates(std::move(tryRoots))
+	{
+		for(auto &possibleRoot : m_candidates)
+		{
+			std::filesystem::path abs = std::filesystem::absolute(possibleRoot);
+			if(std::filesystem::exists(abs) && std::filesystem::is_directory(abs))
+			{
+				// That exists, take it!
+				m_assetsRoot = std::move(abs);
+				return;
+			}
+		}
+		throw std::runtime_error("None of the candidate directories exist.");
+	}
+
+	std::filesystem::path resolveRelative(const std::string &rel) const
+	{
+		// the / is the path append operator :)
+		std::filesystem::path abs = std::filesystem::absolute(m_assetsRoot / rel);
+		if(!std::filesystem::exists(abs))
+			throw std::runtime_error("Asset can't be found at " + abs.string());
+		return abs;
+	}
+
+	const std::filesystem::path &getAssetsRoot() const
+	{
+		return m_assetsRoot;
+	}
+
+private:
+	std::vector<std::string> m_candidates;
+	std::filesystem::path m_assetsRoot;
+};
+
+static AssetPathResolver s_assetPathResolver{};
+
 // Generic resource manager for types that have a loadFromFile method
 // (sf::Texture, sf::Font, sf::SoundBuffer)
 
@@ -14,6 +54,7 @@
 
 // Can't directly store the Resources in a unordered_map<R> as lazy loading causes rehashes,
 // and that kills the R& already given to the clients.
+
 template <typename R>
 class ResourceManager
 {
@@ -22,17 +63,25 @@ public:
 	ResourceManager(const ResourceManager &) = delete;
 	ResourceManager &operator=(const ResourceManager &) = delete;
 
-	R &load(const std::string &key, const std::string &filename)
+	// This is a Meyers Singleton, see https://en.wikipedia.org/wiki/Singleton_pattern
+	static ResourceManager &inst()
+	{
+		static ResourceManager s_instance;
+		return s_instance;
+	}
+
+	R &load(const std::string &key)
 	{
 		// Was the resource already loaded ?
 		auto it = m_map.find(key);
 		if(it != m_map.end() && it->second)
 			return *it->second; // then return a ref to the unique_ptr
 
-		// Not in hashtable, go find it
+		// Not in hashtable, go find it after expanding the asset path
+		auto fullPath = s_assetPathResolver.resolveRelative(key);
 		std::unique_ptr<R> res = std::make_unique<R>();
-		if(!res->loadFromFile(filename))
-			throw std::runtime_error("Failed to load resource: " + filename);
+		if(!res->loadFromFile(fullPath))
+			throw std::runtime_error("Failed to load resource: " + fullPath.string());
 
 		// The resource now lives in the map and we return a reference to it
 		auto [newIt, bInserted] = m_map.emplace(key, std::move(res));
@@ -58,7 +107,6 @@ private:
 class MusicManager
 {
 public:
-
 	// Return shared_ptr s.t. caller can own music while playing
 	// TODO I still can't imagine the client outliving the MusicManager,
 	// but the difference in naming makes it ugly to shove it into the above templated manager...
