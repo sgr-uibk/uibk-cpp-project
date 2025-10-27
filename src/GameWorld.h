@@ -29,5 +29,5 @@ private:
 	sf::View m_worldView;
 	sf::View m_hudView;
 
-	sf::Music m_battleMusic;
+	sf::Music &m_battleMusic;
 };

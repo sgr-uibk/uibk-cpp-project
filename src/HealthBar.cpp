@@ -1,6 +1,7 @@
 #include "HealthBar.h"
 #include <algorithm>
 #include <cmath>
+#include "ResourceManager.h"
 
 HealthBar::HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth)
 	: m_maxHealth(maxHealth),
@@ -11,9 +12,10 @@ HealthBar::HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth)
 	  m_midColor(240, 200, 64),
 	  m_lowColor(220, 60, 60),
 	  m_size(size),
-	  m_text(m_font),
-	  m_font("../assets/LiberationSans-Regular.ttf")
+	  m_font(ResourceManager<sf::Font>::inst().load("LiberationSans-Regular.ttf")),
+	  m_text(m_font)
 {
+
 	// Appearance inherited from Shape
 	m_bg.setSize(m_size);
 	m_bg.setFillColor(sf::Color(50, 50, 50, 200));

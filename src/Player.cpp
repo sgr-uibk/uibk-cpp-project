@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Map.h"
+#include "ResourceManager.h"
 #include "Utilities.h"
 
 Player::Player(std::string name,
@@ -18,11 +19,11 @@ Player::Player(std::string name,
 	  m_midThreshold(3 * maxHealth / 4),
 	  m_lowThreshold(maxHealth / 4),
 	  m_map(map),
-	  m_healthyTex("../assets/tank_healthy.png"),
-	  m_damagedTex("../assets/tank_damaged.png"),
-	  m_deadTex("../assets/tank_dead.png"),
+	  m_healthyTex(TextureManager::inst().load("tank_healthy.png")),
+	  m_damagedTex(TextureManager::inst().load("tank_damaged.png")),
+	  m_deadTex(TextureManager::inst().load("tank_dead.png")),
 	  m_sprite(m_healthyTex),
-	  m_shootSoundBuf("../assets/audio/tank_firing.ogg"),
+	  m_shootSoundBuf(SoundBufferManager::inst().load("audio/tank_firing.ogg")),
 	  m_shootSound(m_shootSoundBuf),
 	  m_shootCooldown(2.f),
 	  m_logger(createConsoleLogger(m_name)),
