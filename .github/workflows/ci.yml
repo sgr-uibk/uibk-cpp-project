@@ -66,21 +66,11 @@ jobs:
         run: |
           git lfs install
 
-      - name: Set Up vcpkg
-        run: |
-          if (-not (Test-Path vcpkg)) { git clone --depth 1 https://github.com/microsoft/vcpkg.git }
-          cd ${{github.workspace}}/vcpkg
-          ./bootstrap-vcpkg.bat
-          $env:VCPKG_ROOT = $(pwd)
-          $env:PATH = "$env:VCPKG_ROOT;$env:PATH"
-          vcpkg integrate install
-          dir
-
       - name: Cache build deps
         uses: actions/cache@v4
         with:
           path: build/_deps
-          key: deps-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'CMakeLists.txt') }}
+          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt') }}
           restore-keys: |
             deps-${{ runner.os }}-
 
@@ -89,11 +79,11 @@ jobs:
 
       - name: CMake Configure
         run: |
-          cmake -DCMAKE_TOOLCHAIN_FILE="${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
+          cmake -S . -B build
 
       - name: CMake Build
         run: |
-          cmake --build build --config Release
+          cmake --build build --config Release -j ${{ env.NUMBER_OF_PROCESSORS }}
 
       - name: Run Tests
         run: |
