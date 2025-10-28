@@ -2,7 +2,7 @@
 
 GameWorld::GameWorld(sf::Vector2u windowDimensions)
 	: m_windowDimensions(windowDimensions)
-	  , m_map(windowDimensions)
+	  , m_map()
 	  , m_player("BlueTank", sf::Color(90, 170, 255), m_map, 150)
 	  , m_healthbar({20.f, 20.f}, {220.f, 28.f})
 {
@@ -13,6 +13,9 @@ GameWorld::GameWorld(sf::Vector2u windowDimensions)
 		m_healthbar.setMaxHealth(max);
 		m_healthbar.setHealth(current);
 	});
+
+	if(!loadMap("../assets/maps/map1.txt"))
+        std::cerr << "Failed to load map1.txt\n";
 }
 
 void GameWorld::update(float dt)
@@ -40,6 +43,24 @@ void GameWorld::update(float dt)
 	sf::Vector2f ppos = m_player.getPosition();
 	m_worldView.setCenter(ppos);
 }
+
+bool GameWorld::loadMap(const std::string& filename, float tileSize)
+{
+	if(!m_map.loadTextures("../assets/tiles"))
+        return false;
+
+    bool success = m_map.loadFromFile(filename, tileSize);
+    if(!success)
+    {
+        std::cerr << "Failed to load map: " << filename << std::endl;
+        return false;
+    }
+
+    m_player.setPosition(m_map.getPlayerSpawn());
+
+    return true;
+}
+
 
 void GameWorld::draw(sf::RenderWindow &window) const
 {

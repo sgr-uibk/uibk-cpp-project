@@ -1,4 +1,6 @@
 #pragma once
+#include <iostream>
+#include <fstream>
 #include <SFML/Graphics.hpp>
 #include "Map.h"
 #include "Player.h"
@@ -12,6 +14,8 @@ public:
 
 	void update(float dt);
 	void draw(sf::RenderWindow& window) const;
+
+	bool loadMap(const std::string& filename, float tileSize = 48.f);
 
 	// Expose player for networking...?
 	Player& getLocalPlayer() { return m_player; }
