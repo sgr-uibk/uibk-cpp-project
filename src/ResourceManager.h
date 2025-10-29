@@ -1,5 +1,7 @@
 #pragma once
 #include <cassert>
+#include <mutex>
+#include <shared_mutex>
 #include <SFML/Audio/Music.hpp>
 #include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -58,12 +60,10 @@ template <typename R>
 class ResourceManager
 {
 public:
-	// Need unique ownership, can't copy the Manager!
 	ResourceManager(const ResourceManager &) = delete;
 	ResourceManager &operator=(const ResourceManager &) = delete;
-	ResourceManager() = default; // Needed for the default construction of the static member below...
+	ResourceManager() = default;
 
-	// This is a Meyers Singleton, see https://en.wikipedia.org/wiki/Singleton_pattern
 	static ResourceManager &inst()
 	{
 		static ResourceManager s_instance;
@@ -72,31 +72,43 @@ public:
 
 	R &load(const std::string &key)
 	{
-		// Was the resource already loaded ?
-		auto it = m_map.find(key);
-		if(it != m_map.end() && it->second)
-			return *it->second; // then return a ref to the unique_ptr
+		{
+			// Was the resource already loaded ?
+			std::shared_lock readLock(m_mutex);
+			auto it = m_map.find(key);
+			if (it != m_map.end() && it->second)
+				return *it->second;
+		}
 
 		// Not in hashtable, go find it after expanding the asset path
 		auto fullPath = g_assetPathResolver.resolveRelative(key);
-		std::unique_ptr<R> res = std::make_unique<R>(fullPath);
+		auto newRes = std::make_unique<R>(fullPath);
 
-		// The resource now lives in the map and we return a reference to it
-		auto [newIt, bInserted] = m_map.emplace(key, std::move(res));
-		assert(bInserted); // It wasn't present before
-		return *newIt->second;
+		{ // now take exclusive lock to insert (and re-check to avoid races)
+			std::unique_lock writeLock(m_mutex);
+			auto it = m_map.find(key);
+			if (it != m_map.end() && it->second) {
+				// Another thread inserted while we were building resource
+				return *it->second;
+			}
+			auto [newIt, inserted] = m_map.emplace(key, std::move(newRes));
+			assert(inserted);
+			return *newIt->second;
+		}
 	}
 
 	R &get(const std::string &key)
 	{
+		std::shared_lock readLock(m_mutex);
 		auto it = m_map.find(key);
-		if(it == m_map.end() || !it->second)
+		if (it == m_map.end() || !it->second)
 			throw std::out_of_range("Resource not loaded: " + key);
 		return *it->second;
 	}
 
 private:
 	std::unordered_map<std::string, std::unique_ptr<R>> m_map;
+	mutable std::shared_mutex m_mutex;
 };
 
 using TextureManager = ResourceManager<sf::Texture>;
