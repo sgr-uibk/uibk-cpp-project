@@ -14,8 +14,8 @@ public:
 	void setPlayer(PlayerState &p);
 
 	std::array<PlayerState, MAX_PLAYERS> &getPlayers();
-	const MapState &map() const;
-	MapState &map();
+	PlayerState &getPlayerById(size_t id);
+	[[nodiscard]] MapState &getMap();
 
 	// serialization (full snapshot)
 	void serialize(sf::Packet &pkt) const;

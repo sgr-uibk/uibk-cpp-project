@@ -1,7 +1,7 @@
 #include "PlayerClient.h"
 #include "ResourceManager.h"
 
-PlayerClient::PlayerClient(const PlayerState &state, const sf::Color &color)
+PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
 	: m_state(state),
 	  m_color(color),
 	  m_healthyTex(TextureManager::inst().load("tank_healthy.png")),

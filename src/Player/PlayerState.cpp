@@ -4,13 +4,24 @@
 #include <algorithm>
 #include <spdlog/logger.h>
 
-PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, int m_maxHealth)
+PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth)
 	:
 	m_id(id),
 	m_pos(pos),
-	m_maxHealth(m_maxHealth),
-	m_health(m_maxHealth)
+	m_rot(rot),
+	m_maxHealth(maxHealth),
+	m_health(maxHealth)
 {
+}
+
+PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, int maxHealth)
+	: PlayerState(id, pos, sf::degrees(0), maxHealth)
+{
+}
+
+PlayerState::PlayerState(sf::Packet pkt)
+{
+	deserialize(pkt);
 }
 
 void PlayerState::update(float)

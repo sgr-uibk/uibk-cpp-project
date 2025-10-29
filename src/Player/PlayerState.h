@@ -8,7 +8,9 @@
 struct PlayerState
 {
 	PlayerState() = default;
+	PlayerState(sf::Packet pkt);
 	PlayerState(uint32_t id, sf::Vector2f pos, int maxHealth = 100);
+	PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth = 100);
 
 	// Simulation
 	void update(float dt);
@@ -34,5 +36,5 @@ struct PlayerState
 	sf::Angle m_rot;
 	int m_maxHealth;
 	int m_health = m_maxHealth;
-	static constexpr sf::Vector2f logicalDimensions = {32,32};
+	static constexpr sf::Vector2f logicalDimensions = {32, 32};
 };

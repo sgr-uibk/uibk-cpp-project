@@ -9,7 +9,7 @@ class PlayerClient
 public:
 	using HealthCallback = std::function<void(int current, int max)>;
 
-	PlayerClient(const PlayerState &state, const sf::Color &color);
+	PlayerClient(PlayerState &state, const sf::Color &color);
 	PlayerClient(const PlayerClient&) = default;
 
 	void update(float dt);
@@ -29,7 +29,7 @@ public:
 private:
 	void updateSprite();
 	static constexpr sf::Vector2f tankDimensions = {64,64};
-	PlayerState m_state;
+	PlayerState &m_state;
 
 	// visuals
 	sf::Color m_color;

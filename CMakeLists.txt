@@ -32,10 +32,8 @@ set(TEST_ROOT ${CMAKE_SOURCE_DIR}/test)
 file(GLOB STATE_SRCS src/*/*State.cpp)
 file(GLOB CLIENT_SRCS src/*/*Client.cpp)
 
-add_executable(GameServer ${TEST_ROOT}/GameServer.cpp ${STATE_SRCS} src/Utilities.cpp)
-add_executable(GameClient ${TEST_ROOT}/GameClient.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp)
-add_executable(LobbyServer ${TEST_ROOT}/LobbyServer.cpp src/Utilities.cpp)
-add_executable(LobbyClient ${TEST_ROOT}/LobbyClient.cpp src/Utilities.cpp)
+add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp)
+add_executable(Server ${TEST_ROOT}/Server.cpp ${STATE_SRCS} src/Utilities.cpp)
 
 add_library(common_deps INTERFACE)
 target_link_libraries(common_deps
@@ -44,7 +42,5 @@ target_link_libraries(common_deps
     SFML::Network
     spdlog::spdlog
 )
-target_link_libraries(LobbyServer PRIVATE common_deps)
-target_link_libraries(LobbyClient PRIVATE common_deps)
-target_link_libraries(GameServer PRIVATE common_deps)
-target_link_libraries(GameClient PRIVATE common_deps)
+target_link_libraries(Client PRIVATE common_deps)
+target_link_libraries(Server PRIVATE common_deps)

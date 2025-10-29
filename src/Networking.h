@@ -3,12 +3,28 @@
 #include <SFML/Network.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 
-constexpr uint16_t PORT_TCP = 25101;
-constexpr uint16_t PORT_UDP = 25101;
-constexpr uint8_t MAX_PLAYERS = 4;
+constexpr uint16_t PORT_TCP = 25106;
+// It's a publicly registered, well-known port for multiplayer network traffic.
+// https://learn.microsoft.com/en-us/gaming/gdk/docs/features/console/networking/game-mesh/preferred-local-udp-multiplayer-port-networking
+constexpr uint16_t PORT_UDP = 3074;
 constexpr uint32_t PROTOCOL_VERSION = 1;
 constexpr float UNRELIABLE_TICK_RATE = 1.f / 20;
 typedef uint32_t EntityId;
+
+
+constexpr uint8_t MAX_PLAYERS = 4;
+constexpr std::array ALL_PLAYER_COLORS{
+	sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta
+};
+static_assert(ALL_PLAYER_COLORS.size() >= MAX_PLAYERS,
+              "Using more players defined player colors. You should add the missing ones.");
+
+constexpr auto PLAYER_COLORS = [] {
+	std::array<sf::Color, MAX_PLAYERS> colors{};
+	for(std::size_t i = 0; i < MAX_PLAYERS; ++i)
+		colors[i] = ALL_PLAYER_COLORS[i];
+	return colors;
+}();
 
 enum class ReliablePktType : uint8_t
 {

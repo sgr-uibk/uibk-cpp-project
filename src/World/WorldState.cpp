@@ -1,8 +1,11 @@
 #include <algorithm>
 #include "WorldState.h"
 
+#include <spdlog/spdlog.h>
+
 WorldState::WorldState(sf::Vector2f mapSize)
-	: m_map(mapSize)
+	: m_map(mapSize),
+	  m_players()
 {
 }
 
@@ -23,12 +26,14 @@ std::array<PlayerState, MAX_PLAYERS> &WorldState::getPlayers()
 	return m_players;
 }
 
-MapState &WorldState::map()
+PlayerState &WorldState::getPlayerById(size_t id)
 {
-	return m_map;
+	if(id == 0)
+		SPDLOG_ERROR("ID 0 is reserved for the server!");
+	return m_players[id-1];
 }
 
-const MapState &WorldState::map() const
+MapState &WorldState::getMap()
 {
 	return m_map;
 }

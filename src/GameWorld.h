@@ -2,8 +2,8 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio/Music.hpp>
 
-#include "Map.h"
-#include "Player.h"
+#include "Map/Map.h"
+#include "Player/Player.h"
 #include "HealthBar.h"
 
 // This class owns all objects relevant for the local player
