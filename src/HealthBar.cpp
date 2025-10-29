@@ -15,7 +15,6 @@ HealthBar::HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth)
 	  m_font(ResourceManager<sf::Font>::inst().load("LiberationSans-Regular.ttf")),
 	  m_text(m_font)
 {
-
 	// Appearance inherited from Shape
 	m_bg.setSize(m_size);
 	m_bg.setFillColor(sf::Color(50, 50, 50, 200));

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - simon
+      - simon-networking
   pull_request:
 
 jobs:
