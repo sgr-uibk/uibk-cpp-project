@@ -1,10 +1,6 @@
 #include "MapState.h"
 #include "Networking.h"
 
-MapState::MapState() : m_size({800,600})
-{
-}
-
 MapState::MapState(sf::Vector2f size) : m_size(size)
 {
 	unsigned const width = size.x;
