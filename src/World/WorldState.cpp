@@ -1,8 +1,8 @@
 #include <algorithm>
 #include "WorldState.h"
 
-WorldState::WorldState(sf::Vector2u mapSize)
-	: m_map(sf::Vector2f(mapSize))
+WorldState::WorldState(sf::Vector2f mapSize)
+	: m_map(mapSize)
 {
 }
 

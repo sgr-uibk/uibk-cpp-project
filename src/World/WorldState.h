@@ -8,7 +8,7 @@
 class WorldState
 {
 public:
-	explicit WorldState(sf::Vector2u mapSize);
+	explicit WorldState(sf::Vector2f mapSize);
 
 	void update(float dt);
 	void setPlayer(PlayerState &p);

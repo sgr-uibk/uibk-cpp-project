@@ -13,7 +13,6 @@ struct PlayerState
 	// Simulation
 	void update(float dt);
 	void moveOn(MapState const &map, sf::Vector2f posDelta);
-	void setPosition(sf::Vector2f pos);
 	void setRotation(sf::Angle);
 	void takeDamage(int amount);
 	void heal(int amount);
