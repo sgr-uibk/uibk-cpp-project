@@ -10,11 +10,9 @@
 #include "Utilities.h"
 #include "Networking.h"
 
-using namespace std::literals;
-
 static constexpr unsigned short SERVER_PORT = 54000u;
 static constexpr unsigned short CLIENT_PORT = 54001u;
-static constexpr sf::Vector2u WINDOW_DIM{800, 600};
+static constexpr sf::Vector2f WINDOW_DIM{800, 600};
 
 int main()
 {

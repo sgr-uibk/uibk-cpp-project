@@ -44,7 +44,7 @@ int main()
 	std::array players{pcThePlayer, pcEnemy2, pcEnemy3, pcEnemy4};
 
 	// local predicted state
-	WorldClient worldClient(WINDOW_DIM, 1, players);
+	WorldClient worldClient(sf::Vector2f(WINDOW_DIM), 1, players);
 
 	sf::Clock frameClock;
 	while(window.isOpen())
@@ -76,7 +76,7 @@ int main()
 		unsigned short srcPort;
 		if(socket.receive(pktSnap, srcAddr, srcPort) == sf::Socket::Status::Done)
 		{
-			WorldState snapshot{WINDOW_DIM};
+			WorldState snapshot{sf::Vector2f(WINDOW_DIM)};
 			snapshot.deserialize(pktSnap);
 			worldClient.applyServerSnapshot(snapshot);
 			auto const ops = worldClient.getOwnPlayerState();

@@ -2,13 +2,13 @@
 
 #include <cmath>
 
-WorldClient::WorldClient(sf::Vector2u dimensions, EntityId ownPlayerId, std::array<PlayerClient, MAX_PLAYERS> &players)
+WorldClient::WorldClient(sf::Vector2f dimensions, EntityId ownPlayerId, std::array<PlayerClient, MAX_PLAYERS> &players)
 	: m_state(dimensions),
 	  m_mapClient(m_state.map()),
 	  m_players(players),
 	  m_ownPlayerId(ownPlayerId)
 {
-	m_worldView = sf::View(sf::FloatRect({0, 0}, static_cast<sf::Vector2f>(dimensions)));
+	m_worldView = sf::View(sf::FloatRect({0, 0}, dimensions));
 	m_hudView = sf::View(m_worldView);
 }
 
