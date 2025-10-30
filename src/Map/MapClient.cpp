@@ -1,13 +1,7 @@
 #include "MapClient.h"
 
-MapClient::MapClient(const MapState &state)
+MapClient::MapClient(MapState &state) : m_state(state)
 {
-	setMapState(state);
-}
-
-void MapClient::setMapState(const MapState &state)
-{
-	m_state = state;
 }
 
 void MapClient::draw(sf::RenderWindow &window) const
