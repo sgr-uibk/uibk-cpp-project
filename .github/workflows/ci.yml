@@ -3,8 +3,11 @@ name: CMake Build
 on:
   push:
     branches:
-      - simon
       - main
+      - simon
+      - simon-networking
+      - julian
+      - max
   pull_request:
 
 jobs:
