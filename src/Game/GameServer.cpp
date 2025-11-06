@@ -81,10 +81,8 @@ void GameServer::processPackets()
 		case UnreliablePktType::MOVE: {
 			uint32_t clientId;
 			sf::Vector2f posDelta;
-			sf::Angle rot;
 			rxPkt >> clientId;
 			rxPkt >> posDelta;
-			rxPkt >> rot; // TODO the server does not care about it - ok to remove ?
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{

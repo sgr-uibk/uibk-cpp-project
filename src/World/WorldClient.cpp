@@ -53,8 +53,6 @@ std::optional<sf::Packet> WorldClient::update()
 	bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
 
 	const sf::Vector2f posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
-	float const angRad = std::atan2(posDelta.x, -posDelta.y);
-	sf::Angle const rot = sf::radians(angRad);
 
 	for(auto &pc : m_players)
 		pc.update(frameDelta);
@@ -69,7 +67,6 @@ std::optional<sf::Packet> WorldClient::update()
 		sf::Packet pkt = createPkt(UnreliablePktType::MOVE);
 		pkt << m_ownPlayerId;
 		pkt << posDelta;
-		pkt << rot;
 		m_tickClock.restart();
 		return std::optional(pkt);
 	}
