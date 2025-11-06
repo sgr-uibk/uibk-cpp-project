@@ -21,6 +21,9 @@ public:
 	Player& getLocalPlayer() { return m_player; }
 	const Map& getMap() const { return m_map; }
 
+	// not const, because it get changed in updateView
+	sf::View& getWorldView() { return m_worldView; }
+
 private:
 	sf::Vector2u m_windowDimensions;
 

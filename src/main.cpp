@@ -46,9 +46,7 @@ int main()
     GameWorld gameWorld{baseResolution};
     sf::Clock frameClock;
 
-    sf::View gameView(sf::FloatRect({0.f, 0.f}, {(float)baseResolution.x, (float)baseResolution.y}));
-
-    updateView(window, gameView, baseResolution);
+    updateView(window, gameWorld.getWorldView(), baseResolution);
 
     sf::Vector2u lastSize = window.getSize();
 
@@ -70,14 +68,14 @@ int main()
         if (currentSize != lastSize)
         {
             lastSize = currentSize;
-            updateView(window, gameView, baseResolution);
+            updateView(window, const_cast<sf::View&>(gameWorld.getWorldView()), baseResolution);
         }
 
         float const dt = frameClock.restart().asSeconds();
         gameWorld.update(dt);
 
         window.clear(sf::Color::Black);
-        window.setView(gameView);
+        window.setView(gameWorld.getWorldView());
 
         gameWorld.draw(window);
 
