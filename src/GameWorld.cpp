@@ -6,7 +6,7 @@ GameWorld::GameWorld(sf::Vector2u windowDimensions)
 	  , m_player("BlueTank", sf::Color(90, 170, 255), m_map, 150)
 	  , m_healthbar({20.f, 20.f}, {220.f, 28.f})
 {
-	m_worldView = sf::View(sf::FloatRect({0, 0}, sf::Vector2<float>(windowDimensions)));
+	//m_worldView = sf::View(sf::FloatRect({0, 0}, sf::Vector2<float>(windowDimensions)));
 	m_hudView = m_worldView; // copy
 
 	m_player.setHealthCallback([this](int current, int max) {
@@ -64,8 +64,7 @@ bool GameWorld::loadMap(const std::string& filename, float tileSize)
 
 void GameWorld::draw(sf::RenderWindow &window) const
 {
-	window.setView(m_worldView);
-	window.clear(sf::Color::White);
+	//window.setView(m_worldView);
 	m_map.draw(window);
 	m_player.draw(window);
 
