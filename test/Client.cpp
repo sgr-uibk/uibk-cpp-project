@@ -23,27 +23,28 @@ int main(int argc, char **argv)
 	LobbyClient lobbyClient(playerName, {serverAddr, lobbyPort});
 
 	lobbyClient.connect();
-	sf::sleep(sf::seconds(1));
-	lobbyClient.sendReady();
-	SPDLOG_LOGGER_INFO(logger, "I'm ready, waiting for GAME_START...");
-	std::array<PlayerState, MAX_PLAYERS> initialPlayerStates = lobbyClient.waitForGameStart();
 
 	sf::RenderWindow window(sf::VideoMode(WINDOW_DIM), "TankGame Client", sf::Style::Resize);
 	window.setFramerateLimit(60);
-	WorldClient worldClient(window, lobbyClient.m_clientId, initialPlayerStates);
-	lobbyClient.m_lobbySock.setBlocking(false); // make reliable channel pollable
-	GameClient gameClient(worldClient, lobbyClient, logger);
 
-	// Battle loop
 	while(window.isOpen())
 	{
-		gameClient.handleUserInputs(window);
-		gameClient.syncFromServer();
-		if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
-			break; // game ended
-	}
+		sf::sleep(sf::seconds(1));
+		lobbyClient.sendReady();
+		SPDLOG_LOGGER_INFO(logger, "I'm ready, waiting for GAME_START...");
+		std::array<PlayerState, MAX_PLAYERS> initialPlayerStates = lobbyClient.waitForGameStart();
 
-	// TODO: loop back to lobby
-	SPDLOG_LOGGER_INFO(logger, "Client shutting down.");
-	return 0;
+		WorldClient worldClient(window, lobbyClient.m_clientId, initialPlayerStates);
+		lobbyClient.m_lobbySock.setBlocking(false); // make reliable channel pollable
+		GameClient gameClient(worldClient, lobbyClient, logger);
+
+		// Battle loop
+		while(true)
+		{
+			gameClient.handleUserInputs(window);
+			gameClient.syncFromServer();
+			if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
+				break; // game ended
+		}
+	}
 }

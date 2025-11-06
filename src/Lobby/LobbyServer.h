@@ -29,6 +29,7 @@ public:
 private:
     void acceptNewClient();
     void handleClient(LobbyPlayer&);
+    void resetClientsReadiness();
 
     sf::TcpListener m_listener;
     sf::SocketSelector m_multiSock;

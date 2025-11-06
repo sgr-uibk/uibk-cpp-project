@@ -22,7 +22,7 @@ constexpr std::array<sf::Vector2f, 4> ALL_SPAWN_POINTS = {{{100, 100}, {150, 450
 static_assert(ALL_PLAYER_COLORS.size() >= MAX_PLAYERS,
               "Using more players than defined player colors. You should add the missing ones.");
 static_assert(ALL_SPAWN_POINTS.size() >= MAX_PLAYERS,
-			  "Using more players than defined default map spawn points. You should add the missing ones.");
+              "Using more players than defined default map spawn points. You should add the missing ones.");
 
 // TODO: template this
 constexpr auto PLAYER_COLORS = [] {

@@ -111,9 +111,15 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::waitForGameStart()
 	while(true)
 	{
 		sf::Packet startPkt;
-		if(checkedReceive(m_lobbySock, startPkt) != sf::Socket::Status::Done)
+		auto const st = checkedReceive(m_lobbySock, startPkt);
+		switch(st)
 		{
-			SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive GAME_START");
+		case sf::Socket::Status::Done:
+			break;
+		case sf::Socket::Status::NotReady:
+			continue;
+		default:
+			SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive GAME_START: {}", (int)st);
 			std::exit(1);
 		}
 

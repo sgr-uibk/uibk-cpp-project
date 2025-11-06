@@ -148,7 +148,7 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 WorldState LobbyServer::startGame(WorldState &worldState)
 {
 	static std::mt19937_64 rng{}; // deterministic spawn points
-	std::vector<sf::Vector2f> spawns = worldState.getMap().getSpawns();
+	auto spawns = worldState.getMap().getSpawns();
 	std::shuffle(spawns.begin(), spawns.end(), rng);
 	for(auto const &c : m_slots)
 	{
@@ -182,8 +182,16 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 	return worldState;
 }
 
+void LobbyServer::resetClientsReadiness()
+{
+	m_cReady = 0;
+	for(auto &c : m_slots)
+		c.bReady = false;
+}
+
 void LobbyServer::endGame(EntityId winner)
 {
+	resetClientsReadiness();
 	sf::Packet gameEndPkt = createPkt(ReliablePktType::GAME_END);
 	gameEndPkt << winner;
 	for(auto &p : m_slots)

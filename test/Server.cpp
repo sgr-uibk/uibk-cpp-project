@@ -28,7 +28,6 @@ int main(int argc, char **argv)
 		lobbyServer.startGame(gameServer.m_world);
 		SPDLOG_LOGGER_INFO(logger, "Game started. Switching to UDP loop.");
 		PlayerState *winningPlayer = gameServer.matchLoop();
-		SPDLOG_LOGGER_INFO(logger, "Game Ended, winner {}. returning to lobby", winningPlayer->m_id);
 		if(winningPlayer)
 			lobbyServer.endGame(winningPlayer->m_id);
 		else

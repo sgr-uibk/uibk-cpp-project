@@ -28,7 +28,7 @@ void GameClient::handleUserInputs(sf::RenderWindow &window) const
 		// WorldClient.update() produces tick-rate-limited packets, so now is the right time to send.
 		if(checkedSend(m_lobby.m_gameSock, outPktOpt.value(), m_gameServer.ip, m_gameServer.port) !=
 		   sf::Socket::Status::Done)
-		SPDLOG_LOGGER_ERROR(m_logger, "UDP send failed");
+			SPDLOG_LOGGER_ERROR(m_logger, "UDP send failed");
 	}
 }
 
@@ -67,7 +67,10 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 			EntityId winnerId;
 			reliablePkt >> winnerId;
 			// TODO save the player names somewhere, so that we can print the winner here
-			SPDLOG_LOGGER_INFO(m_logger, "Battle is over, winner id {}, returning to lobby.", winnerId);
+			if(m_lobby.m_clientId == winnerId)
+				SPDLOG_LOGGER_INFO(m_logger, "I won the game!", winnerId);
+			else
+				SPDLOG_LOGGER_INFO(m_logger, "Battle is over, winner id {}, returning to lobby.", winnerId);
 			return true;
 		}
 		default:
