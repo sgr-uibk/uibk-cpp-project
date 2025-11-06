@@ -1,6 +1,7 @@
 #include "LobbyServer.h"
 #include <cassert>
 #include <memory>
+#include <random>
 #include <spdlog/spdlog.h>
 
 LobbyServer::LobbyServer(uint16_t tcpPort, const std::shared_ptr<spdlog::logger> &logger)
@@ -99,7 +100,7 @@ void LobbyServer::acceptNewClient()
 	joinAckPkt << p.id;
 	SPDLOG_LOGGER_INFO(m_logger, "This client gets id: {}. ", p.id);
 	if(checkedSend(p.tcpSocket, joinAckPkt) != sf::Socket::Status::Done)
-	SPDLOG_LOGGER_ERROR(m_logger, "Failed to send JOIN_ACK to {} (id {})", p.name, p.id);
+		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send JOIN_ACK to {} (id {})", p.name, p.id);
 
 	// All good from server side. Make the client valid.
 	p.bValid = true;
@@ -146,18 +147,18 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 
 WorldState LobbyServer::startGame(WorldState &worldState)
 {
-	std::srand(0); // deterministic spawn points
+	static std::mt19937_64 rng{}; // deterministic spawn points
+	std::vector<sf::Vector2f> spawns = worldState.getMap().getSpawns();
+	std::shuffle(spawns.begin(), spawns.end(), rng);
 	for(auto const &c : m_slots)
 	{
 		if(!c.bValid)
 			continue;
 
-		// Every player gets a random spawn point,
-		// TODO: choose from a set of possible spawn points (map feature)
-		sf::Vector2f const spawn = {float(rand()) / float(RAND_MAX / WINDOW_DIM.x),
-		                            float(rand()) / float(RAND_MAX / WINDOW_DIM.y)};
-		sf::Angle const rot = sf::degrees(float(rand()) / float(RAND_MAX / 360));
-		PlayerState ps(c.id, spawn);
+		// Every player gets a random spawn point and rotation
+		sf::Angle const rot = sf::degrees(float(rng()) / float(rng.max() / 360));
+		PlayerState ps(c.id, spawns[c.id - 1]);
+
 		ps.m_rot = rot;
 		worldState.setPlayer(ps);
 	}
@@ -176,9 +177,9 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 		if(!p.bValid)
 			continue;
 		if(checkedSend(p.tcpSocket, startPkt) != sf::Socket::Status::Done)
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send GAME_START to {} (id {})", p.name, p.id);
+			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send GAME_START to {} (id {})", p.name, p.id);
 	}
-	return std::move(worldState);
+	return worldState;
 }
 
 void LobbyServer::endGame(EntityId winner)

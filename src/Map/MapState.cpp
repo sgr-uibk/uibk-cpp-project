@@ -1,7 +1,9 @@
 #include "MapState.h"
 #include "Networking.h"
 
-MapState::MapState(sf::Vector2f size) : m_size(size)
+MapState::MapState(sf::Vector2f size)
+	: m_spawns(SPAWN_POINTS),
+	  m_size(size)
 {
 	unsigned const width = size.x;
 	unsigned const height = size.y;
@@ -29,6 +31,11 @@ void MapState::addWall(float x, float y, float w, float h)
 const std::vector<sf::RectangleShape> &MapState::getWalls() const
 {
 	return m_walls;
+}
+
+std::array<sf::Vector2f, MAX_PLAYERS> MapState::getSpawns() const
+{
+	return m_spawns;
 }
 
 bool MapState::isColliding(const sf::RectangleShape &r) const

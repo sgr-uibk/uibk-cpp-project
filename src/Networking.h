@@ -15,19 +15,28 @@ constexpr sf::Vector2u WINDOW_DIM{800, 600};
 constexpr sf::Vector2f WINDOW_DIMf{WINDOW_DIM};
 typedef uint32_t EntityId;
 
+constexpr uint8_t MAX_PLAYERS = 2;
+constexpr std::array ALL_PLAYER_COLORS{sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta};
+constexpr std::array<sf::Vector2f, 4> ALL_SPAWN_POINTS = {{{100, 100}, {150, 450}, {300, 400}, {650, 80}}};
 
-constexpr uint8_t MAX_PLAYERS = 4;
-constexpr std::array ALL_PLAYER_COLORS{
-	sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta
-};
 static_assert(ALL_PLAYER_COLORS.size() >= MAX_PLAYERS,
               "Using more players than defined player colors. You should add the missing ones.");
+static_assert(ALL_SPAWN_POINTS.size() >= MAX_PLAYERS,
+			  "Using more players than defined default map spawn points. You should add the missing ones.");
 
+// TODO: template this
 constexpr auto PLAYER_COLORS = [] {
 	std::array<sf::Color, MAX_PLAYERS> colors{};
 	for(std::size_t i = 0; i < MAX_PLAYERS; ++i)
 		colors[i] = ALL_PLAYER_COLORS[i];
 	return colors;
+}();
+
+constexpr auto SPAWN_POINTS = [] {
+	std::array<sf::Vector2f, MAX_PLAYERS> spawns{};
+	for(std::size_t i = 0; i < MAX_PLAYERS; ++i)
+		spawns[i] = ALL_SPAWN_POINTS[i];
+	return spawns;
 }();
 
 struct Endpoint // TODO, often this can be replaced by e.g. sf::TcpSocket.getRemote*()
