@@ -9,7 +9,7 @@ class WorldClient
 public:
 	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players);
 
-	sf::Packet update();
+	std::optional<sf::Packet> update();
 	void draw(sf::RenderWindow &window) const;
 
 	[[nodiscard]] PlayerState getOwnPlayerState() const
@@ -19,12 +19,13 @@ public:
 
 	void applyServerSnapshot(const WorldState &snapshot);
 	WorldState &getState();
-	void pollInputs();
+	void pollEvents();
 
 	bool m_bAcceptInput;
 
 	sf::Clock m_frameClock;
 	sf::Clock m_tickClock;
+
 private:
 	sf::RenderWindow &m_window;
 

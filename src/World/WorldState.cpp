@@ -4,52 +4,52 @@
 #include <spdlog/spdlog.h>
 
 WorldState::WorldState(sf::Vector2f mapSize)
-	: m_map(mapSize),
-	  m_players()
+    : m_map(mapSize),
+      m_players()
 {
 }
 
 void WorldState::update(float dt)
 {
-	for(auto &p : m_players)
-		p.update(dt);
+    for (auto& p : m_players)
+        p.update(dt);
 }
 
-void WorldState::setPlayer(PlayerState &p)
+void WorldState::setPlayer(PlayerState const& p)
 {
-	size_t const idx = p.m_id - 1;
-	m_players[idx] = p;
+    size_t const idx = p.m_id - 1;
+    m_players[idx] = p;
 }
 
-std::array<PlayerState, MAX_PLAYERS> &WorldState::getPlayers()
+std::array<PlayerState, MAX_PLAYERS>& WorldState::getPlayers()
 {
-	return m_players;
+    return m_players;
 }
 
-PlayerState &WorldState::getPlayerById(size_t id)
+PlayerState& WorldState::getPlayerById(size_t id)
 {
-	if(id == 0)
-		SPDLOG_ERROR("ID 0 is reserved for the server!");
-	return m_players[id-1];
+    if (id == 0)
+        SPDLOG_ERROR("ID 0 is reserved for the server!");
+    return m_players[id - 1];
 }
 
-MapState &WorldState::getMap()
+MapState& WorldState::getMap()
 {
-	return m_map;
+    return m_map;
 }
 
-void WorldState::serialize(sf::Packet &pkt) const
+void WorldState::serialize(sf::Packet& pkt) const
 {
-	for(uint32_t i = 0; i < MAX_PLAYERS; ++i)
-	{
-		m_players[i].serialize(pkt);
-	}
+    for (uint32_t i = 0; i < MAX_PLAYERS; ++i)
+    {
+        m_players[i].serialize(pkt);
+    }
 }
 
-void WorldState::deserialize(sf::Packet &pkt)
+void WorldState::deserialize(sf::Packet& pkt)
 {
-	for(uint32_t i = 0; i < MAX_PLAYERS; ++i)
-	{
-		m_players[i].deserialize(pkt);
-	}
+    for (uint32_t i = 0; i < MAX_PLAYERS; ++i)
+    {
+        m_players[i].deserialize(pkt);
+    }
 }

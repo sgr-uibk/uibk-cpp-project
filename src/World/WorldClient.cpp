@@ -3,6 +3,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
+#include "Utilities.h"
+
 template <std::size_t N, std::size_t... I>
 static std::array<PlayerClient, N> make_players_impl(
 	std::array<PlayerState, N> &states,
@@ -42,7 +44,7 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId,
 	m_tickClock.start();
 }
 
-sf::Packet WorldClient::update()
+std::optional<sf::Packet> WorldClient::update()
 {
 	float const frameDelta = m_frameClock.restart().asSeconds();
 	bool const w = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W);
@@ -50,10 +52,12 @@ sf::Packet WorldClient::update()
 	bool const a = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
 	bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
 
-	sf::Packet pkt;
 	const sf::Vector2f posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
 	float const angRad = std::atan2(posDelta.x, -posDelta.y);
 	sf::Angle const rot = sf::radians(angRad);
+
+	for(auto &pc : m_players)
+		pc.update(frameDelta);
 
 	// TODO: Disabled to explicitly show the server delay
 	//m_players[m_ownPlayerId-1].applyLocalMove(m_state.map(), posDelta);
@@ -62,17 +66,15 @@ sf::Packet WorldClient::update()
 	if(posDelta != sf::Vector2f{0, 0} && m_bAcceptInput
 	   && m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_RATE))
 	{
-		pkt << uint8_t(UnreliablePktType::MOVE);
+		sf::Packet pkt = createPkt(UnreliablePktType::MOVE);
 		pkt << m_ownPlayerId;
 		pkt << posDelta;
 		pkt << rot;
 		m_tickClock.restart();
+		return std::optional(pkt);
 	}
 
-	for(auto &pc : m_players)
-		pc.update(frameDelta);
-
-	return pkt;
+	return std::nullopt;
 }
 
 void WorldClient::draw(sf::RenderWindow &window) const
@@ -105,7 +107,7 @@ WorldState &WorldClient::getState()
 	return m_state;
 }
 
-void WorldClient::pollInputs()
+void WorldClient::pollEvents()
 {
 	while(const std::optional event = m_window.pollEvent())
 	{

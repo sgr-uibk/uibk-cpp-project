@@ -31,9 +31,10 @@ set(TEST_ROOT ${CMAKE_SOURCE_DIR}/test)
 
 file(GLOB STATE_SRCS src/*/*State.cpp)
 file(GLOB CLIENT_SRCS src/*/*Client.cpp)
+file(GLOB SERVER_SRCS src/*/*Server.cpp)
 
 add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp)
-add_executable(Server ${TEST_ROOT}/Server.cpp ${STATE_SRCS} src/Utilities.cpp)
+add_executable(Server ${TEST_ROOT}/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp)
 
 add_library(common_deps INTERFACE)
 target_link_libraries(common_deps
