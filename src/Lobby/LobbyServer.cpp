@@ -70,7 +70,7 @@ void LobbyServer::acceptNewClient()
 	p.tcpSocket.setBlocking(false);
 
 	sf::Packet joinReqPkt;
-	if(p.tcpSocket.receive(joinReqPkt) != sf::Socket::Status::Done)
+	if(checkedReceive(p.tcpSocket, joinReqPkt) != sf::Socket::Status::Done)
 	{
 	ABORT_CONN:
 		p.tcpSocket.disconnect();
@@ -98,8 +98,8 @@ void LobbyServer::acceptNewClient()
 	sf::Packet joinAckPkt = createPkt(ReliablePktType::JOIN_ACK);
 	joinAckPkt << p.id;
 	SPDLOG_LOGGER_INFO(m_logger, "This client gets id: {}. ", p.id);
-	if(p.tcpSocket.send(joinAckPkt) != sf::Socket::Status::Done)
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send JOIN_ACK to {} (id {})", p.name, p.id);
+	if(checkedSend(p.tcpSocket, joinAckPkt) != sf::Socket::Status::Done)
+	SPDLOG_LOGGER_ERROR(m_logger, "Failed to send JOIN_ACK to {} (id {})", p.name, p.id);
 
 	// All good from server side. Make the client valid.
 	p.bValid = true;
@@ -113,7 +113,7 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 {
 	// TODO assuming tcpSocket is nonblocking, what do we get in case of nothing ?
 	sf::Packet rxPkt;
-	switch(auto const status = p.tcpSocket.receive(rxPkt))
+	switch(auto const status = checkedReceive(p.tcpSocket, rxPkt))
 	{
 	case sf::Socket::Status::Disconnected:
 		SPDLOG_LOGGER_INFO(m_logger, "Player {} (id {}) left lobby", p.name, p.id);
@@ -175,8 +175,19 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 	{
 		if(!p.bValid)
 			continue;
-		if(p.tcpSocket.send(startPkt) != sf::Socket::Status::Done)
-			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send GAME_START to {} (id {})", p.name, p.id);
+		if(checkedSend(p.tcpSocket, startPkt) != sf::Socket::Status::Done)
+		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send GAME_START to {} (id {})", p.name, p.id);
 	}
 	return std::move(worldState);
+}
+
+void LobbyServer::endGame(EntityId winner)
+{
+	sf::Packet gameEndPkt = createPkt(ReliablePktType::GAME_END);
+	gameEndPkt << winner;
+	for(auto &p : m_slots)
+	{
+		if(auto st = checkedSend(p.tcpSocket, gameEndPkt); st != sf::Socket::Status::Done)
+			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send GAME_END to {} (id {}): {}", p.name, p.id, (int)st);
+	}
 }

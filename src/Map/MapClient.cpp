@@ -1,6 +1,6 @@
 #include "MapClient.h"
 
-MapClient::MapClient(MapState &state) : m_state(state)
+MapClient::MapClient(MapState const &state) : m_state(state)
 {
 }
 

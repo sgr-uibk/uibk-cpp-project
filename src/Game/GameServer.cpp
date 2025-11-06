@@ -72,7 +72,7 @@ void GameServer::processPackets()
 	sf::Packet rxPkt;
 	std::optional<sf::IpAddress> srcAddrOpt;
 	uint16_t srcPort;
-	if(m_gameSock.receive(rxPkt, srcAddrOpt, srcPort) == sf::Socket::Status::Done)
+	if(checkedReceive(m_gameSock, rxPkt, srcAddrOpt, srcPort) == sf::Socket::Status::Done)
 	{
 		uint8_t type;
 		rxPkt >> type;
@@ -99,8 +99,9 @@ void GameServer::processPackets()
 			break;
 		}
 		default:
+			std::string srcAddr = srcAddrOpt.has_value() ? srcAddrOpt.value().toString() : std::string("?");
 			SPDLOG_LOGGER_WARN(m_logger, "Unhandled unreliable packet type: {}, src={}:{}",
-			                   type, srcAddrOpt.value().toString(), srcPort);
+			                   type, srcAddr, srcPort);
 		}
 	}
 }
@@ -123,8 +124,10 @@ void GameServer::floodWorldState()
 	{
 		if(!p.bValid)
 			continue;
-		if(m_gameSock.send(snapPkt, p.udpAddr, p.gamePort) != sf::Socket::Status::Done)
+		if(checkedSend(m_gameSock, snapPkt, p.udpAddr, p.gamePort) != sf::Socket::Status::Done)
+		{
 			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send snapshot to {}:{}",
-		                    p.udpAddr.toString(), p.gamePort);
+			                    p.udpAddr.toString(), p.gamePort);
+		}
 	}
 }

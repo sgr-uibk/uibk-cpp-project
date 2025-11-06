@@ -56,7 +56,7 @@ void LobbyClient::connect()
 	joinPkt << PROTOCOL_VERSION;
 	joinPkt << m_name;
 	joinPkt << m_gameSock.getLocalPort();
-	if(m_lobbySock.send(joinPkt) != sf::Socket::Status::Done)
+	if(checkedSend(m_lobbySock, joinPkt) != sf::Socket::Status::Done)
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send JOIN_REQ");
 		std::exit(1);
@@ -66,7 +66,7 @@ void LobbyClient::connect()
 #ifdef SFML_SYSTEM_LINUX
 	errno = 0;
 #endif
-	sf::Socket::Status error = m_lobbySock.receive(joinAckPkt);
+	sf::Socket::Status error = checkedReceive(m_lobbySock, joinAckPkt);
 	if(error == sf::Socket::Status::Done)
 	{
 		uint8_t type;
@@ -98,7 +98,7 @@ void LobbyClient::sendReady()
 	sf::Packet readyPkt = createPkt(ReliablePktType::LOBBY_READY);
 	readyPkt << m_clientId;
 
-	if(m_lobbySock.send(readyPkt) != sf::Socket::Status::Done)
+	if(checkedSend(m_lobbySock, readyPkt) != sf::Socket::Status::Done)
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send LOBBY_READY");
 	}
@@ -111,7 +111,7 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::waitForGameStart()
 	while(true)
 	{
 		sf::Packet startPkt;
-		if(m_lobbySock.receive(startPkt) != sf::Socket::Status::Done)
+		if(checkedReceive(m_lobbySock, startPkt) != sf::Socket::Status::Done)
 		{
 			SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive GAME_START");
 			std::exit(1);

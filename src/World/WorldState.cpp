@@ -33,7 +33,7 @@ PlayerState& WorldState::getPlayerById(size_t id)
     return m_players[id - 1];
 }
 
-MapState& WorldState::getMap()
+MapState const& WorldState::getMap() const
 {
     return m_map;
 }
@@ -52,4 +52,12 @@ void WorldState::deserialize(sf::Packet& pkt)
     {
         m_players[i].deserialize(pkt);
     }
+}
+
+// The map is static, it's not serialized in snapshots, therefore don't assign it.
+// TODO: For "Dynamic Map elements": Make m_map mutable, included map in snapshots, then remove this operator
+WorldState& WorldState::operator=(const WorldState& other)
+{
+    this->m_players = other.m_players;
+    return *this;
 }

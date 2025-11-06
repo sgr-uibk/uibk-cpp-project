@@ -1,7 +1,9 @@
 #pragma once
 #include <cstdint>
+#include <iostream>
 #include <SFML/Network.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <spdlog/spdlog.h>
 
 constexpr uint16_t PORT_TCP = 25106;
 // It's a publicly registered, well-known port for multiplayer network traffic.
@@ -19,7 +21,7 @@ constexpr std::array ALL_PLAYER_COLORS{
 	sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta
 };
 static_assert(ALL_PLAYER_COLORS.size() >= MAX_PLAYERS,
-              "Using more players defined player colors. You should add the missing ones.");
+              "Using more players than defined player colors. You should add the missing ones.");
 
 constexpr auto PLAYER_COLORS = [] {
 	std::array<sf::Color, MAX_PLAYERS> colors{};
@@ -76,6 +78,59 @@ void expectPkt(sf::Packet &pkt, E expectedType)
 		throw std::runtime_error(message);
 	}
 }
+
+// Data is guaranteed to be fully sent/received even for non-blocking TCP sockets.
+// When a partial transmission occurs, this function blocks until completion.
+inline sf::Socket::Status checkedSend(sf::TcpSocket &sock, sf::Packet &pkt)
+{
+	sf::Socket::Status st;
+	int i = 0;
+	do
+	{
+		st = sock.send(pkt);
+		i++;
+	} while(st == sf::Socket::Status::Partial);
+	if(i > 1)
+		SPDLOG_INFO("Multipart pkt sent with {} parts", i);
+	return st;
+}
+
+inline sf::Socket::Status checkedReceive(sf::TcpSocket &sock, sf::Packet &pkt)
+{
+	sf::Socket::Status st;
+	int i = 0;
+	do
+	{
+		st = sock.receive(pkt);
+		i++;
+	} while(st == sf::Socket::Status::Partial);
+	if(i > 1)
+		SPDLOG_INFO("Multipart pkt received with {} parts", i);
+	return st;
+}
+
+// UDP is datagrams of a defined max size, no partial transfer handling needed.
+inline sf::Socket::Status checkedSend(sf::UdpSocket &sock, sf::Packet &pkt,
+                                      sf::IpAddress const destAddr, uint16_t const port)
+{
+	if(pkt.getDataSize() == 0)
+	{
+		SPDLOG_WARN("Trying to send empty packet");
+		return sf::Socket::Status::Error;
+	}
+	sf::Socket::Status st = sock.send(pkt, destAddr, port);
+	return st;
+}
+
+inline sf::Socket::Status checkedReceive(sf::UdpSocket &sock, sf::Packet &pkt,
+                                         std::optional<sf::IpAddress> &destAddrOpt, uint16_t &port)
+{
+	sf::Socket::Status st = sock.receive(pkt, destAddrOpt, port);
+	if(st != sf::Socket::Status::NotReady && pkt.getDataSize() == 0)
+		SPDLOG_WARN("Received empty packet (status {})", (int)st);
+	return st;
+}
+
 
 inline sf::Packet operator<<(sf::Packet &pkt, const sf::Vector2f &vec)
 {

@@ -22,6 +22,7 @@ public:
     ~LobbyServer();
     void lobbyLoop(); // blocks until all players ready
     WorldState startGame(WorldState& worldState);
+    void endGame(EntityId winner);
 
     std::vector<LobbyPlayer> m_slots; // Vector, clients join sequentially
 
