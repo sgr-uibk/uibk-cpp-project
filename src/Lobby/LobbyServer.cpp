@@ -52,8 +52,12 @@ void LobbyServer::lobbyLoop()
 void LobbyServer::acceptNewClient()
 {
 	sf::TcpSocket newClientSock;
-	if(m_listener.accept(newClientSock) != sf::Socket::Status::Done)
+	sf::Socket::Status st;
+	if(st = m_listener.accept(newClientSock); st != sf::Socket::Status::Done)
+	{
+		SPDLOG_LOGGER_WARN(m_logger, "Accept failed: {}", int(st));
 		return;
+	}
 	assert(newClientSock.getRemoteAddress().has_value()); // Know exists from status done.
 
 	if(m_nextId > MAX_PLAYERS)
@@ -66,12 +70,15 @@ void LobbyServer::acceptNewClient()
 
 	sf::IpAddress const remoteAddr = newClientSock.getRemoteAddress().value();
 	LobbyPlayer p{.id = m_nextId, .udpAddr = remoteAddr, .tcpSocket = std::move(newClientSock)};
-	p.tcpSocket.setBlocking(false);
 
 	sf::Packet joinReqPkt;
-	if(checkedReceive(p.tcpSocket, joinReqPkt) != sf::Socket::Status::Done)
+	if(st = checkedReceive(p.tcpSocket, joinReqPkt); st != sf::Socket::Status::Done)
 	{
+		SPDLOG_LOGGER_WARN(m_logger, "Failed to receive a JOIN_REQUEST pkt {}", int(st));
 	ABORT_CONN:
+#ifdef SFML_SYSTEM_LINUX
+		perror("Error from OS");
+#endif
 		p.tcpSocket.disconnect();
 		return;
 	}
@@ -103,6 +110,8 @@ void LobbyServer::acceptNewClient()
 	// All good from server side. Make the client valid.
 	p.bValid = true;
 	m_nextId++;
+	// Add the client to the pool, now that registration is over, continue non-blocking.
+	p.tcpSocket.setBlocking(false);
 	m_multiSock.add(p.tcpSocket);
 	SPDLOG_LOGGER_INFO(m_logger, "Player {} (id {}) joined lobby", p.name, p.id);
 	m_slots.push_back(std::move(p));
