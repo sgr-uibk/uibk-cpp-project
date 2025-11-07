@@ -1,0 +1,91 @@
+// server.cpp
+#include <thread>
+#include <chrono>
+#include <iostream>
+#include <SFML/Network.hpp>
+#include <spdlog/spdlog.h>
+
+#include "World/WorldState.h"
+#include "Player/PlayerState.h"
+#include "Utilities.h"
+#include "Networking.h"
+#include "Map/MapLoader.h"
+
+static constexpr unsigned short SERVER_PORT = 54000u;
+static constexpr unsigned short CLIENT_PORT = 54001u;
+static constexpr sf::Vector2f WINDOW_DIM{800, 600};
+
+int main()
+{
+	std::shared_ptr<spdlog::logger> const logger = createConsoleLogger("Unreliable Server");
+	MapState map(WINDOW_DIM);
+	MapLoader::loadMap(map, "../assets/maps/map1.txt", WINDOW_DIM);
+	WorldState world(map);
+
+	std::vector<PlayerState> players;
+	for (int i = 1; i <= 4; ++i) {
+		sf::Vector2f spawn = map.getPlayerSpawn(i);
+
+		if (spawn.x < 0.f && spawn.y < 0.f)
+			break;
+
+		PlayerState p(i, spawn, 100);
+		world.setPlayer(p);
+		players.push_back(p);
+	}
+
+	sf::UdpSocket socket;
+	if(socket.bind(SERVER_PORT) != sf::Socket::Status::Done)
+	{
+		SPDLOG_LOGGER_ERROR(logger, "bind on port {} failed", SERVER_PORT);
+		return 1;
+	}
+	socket.setBlocking(false);
+
+	sf::IpAddress clientAddr = sf::IpAddress::LocalHost;
+	unsigned short clientPort = CLIENT_PORT;
+
+	sf::Clock tickClk;
+	while(true)
+	{
+		sf::Packet rxPkt;
+		std::optional<sf::IpAddress> srcAddrOpt;
+		unsigned short srcPort;
+		if(socket.receive(rxPkt, srcAddrOpt, srcPort) == sf::Socket::Status::Done)
+		{
+			uint8_t type;
+			rxPkt >> type;
+			if(static_cast<UnreliablePktType>(type) == UnreliablePktType::MOVE)
+			{
+				sf::Vector2f posDelta;
+				rxPkt >> posDelta;
+				sf::Angle rot;
+				rxPkt >> rot;
+				if(!world.getPlayers().empty())
+				{
+					PlayerState &ps = world.getPlayers()[0];
+					ps.moveOn(world.map(), posDelta);
+					SPDLOG_LOGGER_INFO(logger, "player: pos=({},{}), rotDeg={}, h={}",
+					                   ps.m_pos.x, ps.m_pos.y, ps.m_rot.asDegrees(), ps.m_health);
+				}
+			}
+			// remember this client
+			clientAddr = srcAddrOpt.value();
+			clientPort = srcPort;
+		}
+
+		// fixed-timestep world update
+		float dt = tickClk.restart().asSeconds();
+		if(dt < UNRELIABLE_TICK_RATE)
+			std::this_thread::sleep_for(std::chrono::duration<float>(UNRELIABLE_TICK_RATE - dt));
+		world.update(UNRELIABLE_TICK_RATE);
+
+		// broadcast snapshot to clients
+		sf::Packet snap;
+		world.serialize(snap);
+		if(socket.send(snap, clientAddr, clientPort) != sf::Socket::Status::Done)
+			SPDLOG_LOGGER_ERROR(logger, "Failed to broadcast snapshot!");
+	}
+
+	return 0;
+}

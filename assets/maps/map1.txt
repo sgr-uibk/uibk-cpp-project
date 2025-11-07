@@ -1,8 +1,8 @@
 ################################
 #gggggggggggggggggggggggggsssss#
-#ggggg#ggggggggggggggggggggssss#
-#ggPgg#ggggggggwggggggggggggsss#
-#gggggggggggggwwwwgggggggggggss#
+#ggggggggg4ggggggggggggggggssss#
+#gg1gggggggggggwggggggggggggsss#
+#ggggggggg2gggwwwwgggggggggggss#
 #gggg#gggggggggwwwggggggggggggs#
 #gggg#gggggggggggwggggggggggggg#
 #gggg###gggggggggggggg#gggggggg#
@@ -17,7 +17,7 @@
 #sggggggg#gggggsggggggggggggggg#
 #ssgggggggggggggggggggggggggggg#
 #sgggggggggggggggg###gggggggggg#
-#ggggggggggggggggg#g#gggggggggg#
+#gggggg3gggggggggg#g#gggggggggg#
 #ggggggggggggggggg###gggggggggg#
 #gggggggwgggggggggggggggggggggg#
 #ggggg#wwwggggggggggggggggggggg#

@@ -14,7 +14,7 @@ struct LobbyPlayer
 	sf::TcpSocket socket;
 };
 
-int main(int argc, char**argv)
+int main(int argc, char **argv)
 {
 	auto logger = createConsoleAndFileLogger("Server L");
 	sf::TcpListener listener;
@@ -45,7 +45,7 @@ int main(int argc, char**argv)
 					if(nextClientId > MAX_PLAYERS)
 					{
 						SPDLOG_LOGGER_INFO(logger, "Lobby has reached the maximum of {} members. Rejecting.",
-						             MAX_PLAYERS);
+						                   MAX_PLAYERS);
 						listener.close();
 						assert(!multiSock.isReady(listener));
 					}
@@ -58,7 +58,7 @@ int main(int argc, char**argv)
 						if(protoVer != PROTOCOL_VERSION)
 						{
 							SPDLOG_LOGGER_ERROR(logger, "Protocol version mismatch: Expected {}, got {}.",
-							              PROTOCOL_VERSION, protoVer);
+							                    PROTOCOL_VERSION, protoVer);
 							goto ABORT_CONNECTION;
 						}
 						pktJoinRequest >> p.name;
@@ -118,7 +118,7 @@ int main(int argc, char**argv)
 						}
 						break;
 					}
-				default:
+					default:
 						SPDLOG_LOGGER_WARN(logger, "Got an unhandled Pkt type in Lobby");
 					}
 				cReady += p.bReady;
@@ -140,8 +140,10 @@ int main(int argc, char**argv)
 	{
 		pktGameStart.clear();
 
-		sf::Vector2f spawnPoint = {float(rand()) / float(RAND_MAX / 600),
-		                           float(rand()) / float(RAND_MAX / 800)};
+		sf::Vector2f spawnPoint = {
+			float(rand()) / float(RAND_MAX / 600),
+			float(rand()) / float(RAND_MAX / 800)
+		};
 		sf::Angle direction = sf::degrees(float(rand()) / float(RAND_MAX / 360));
 
 		pktGameStart << (uint8_t)ReliablePktType::GAME_START;

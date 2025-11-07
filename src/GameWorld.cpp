@@ -1,21 +1,26 @@
 #include "GameWorld.h"
 
+#include "ResourceManager.h"
+
 GameWorld::GameWorld(sf::Vector2u windowDimensions)
-	: m_windowDimensions(windowDimensions)
-	  , m_map()
-	  , m_player("BlueTank", sf::Color(90, 170, 255), m_map, 150)
-	  , m_healthbar({20.f, 20.f}, {220.f, 28.f})
+	: m_windowDimensions(windowDimensions),
+	  m_map(),
+	  m_player("BlueTank", sf::Color(90, 170, 255), m_map, 150),
+	  m_healthbar({20.f, 20.f}, {220.f, 28.f}),
+	  m_battleMusic(MusicManager::inst().load("audio/battle_loop.ogg"))
 {
 	//m_worldView = sf::View(sf::FloatRect({0, 0}, sf::Vector2<float>(windowDimensions)));
 	m_hudView = m_worldView; // copy
 
-	m_player.setHealthCallback([this](int current, int max) {
+	m_player.setHealthCallback([this](int const health, int const max) {
 		m_healthbar.setMaxHealth(max);
-		m_healthbar.setHealth(current);
+		m_healthbar.setHealth(health);
 	});
 
 	if(!loadMap("../assets/maps/map1.txt"))
         std::cerr << "Failed to load map1.txt\n";
+
+	m_battleMusic.play();
 }
 
 void GameWorld::update(float dt)
@@ -27,6 +32,9 @@ void GameWorld::update(float dt)
 
 	const sf::Vector2f moveVec{static_cast<float>(d - a), static_cast<float>(s - w)};
 	m_player.movement(moveVec);
+
+	if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Space))
+		m_player.shoot();
 
 #ifdef SFML_DEBUG
 	if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::H))

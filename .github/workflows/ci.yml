@@ -3,8 +3,11 @@ name: CMake Build
 on:
   push:
     branches:
-      - simon
       - main
+      - simon
+      - simon-networking
+      - julian
+      - max
   pull_request:
 
 jobs:
@@ -18,18 +21,19 @@ jobs:
           lfs: true
 
       - name: Install Dependencies
-        run: |
-          sudo apt update && sudo apt install -y \
-          libfreetype6-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
-          libudev-dev libgl1-mesa-dev libflac-dev libogg-dev libvorbis-dev \
-          libvorbisenc2 libvorbisfile3 libpthread-stubs0-dev git-lfs
-          git lfs install
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: | 
+            libfreetype6-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev libudev-dev libgl1-mesa-dev
+            libflac-dev libogg-dev libvorbis-dev libvorbisenc2 libvorbisfile3 libpthread-stubs0-dev git-lfs
+          version: 1.0
 
       - name: CMake Setup
         uses: jwlawson/actions-setup-cmake@v2
 
       - name: CMake Configure
         run: |
+          git lfs install
           cmake -S . -B build
 
       - name: CMake Build
@@ -49,9 +53,9 @@ jobs:
         with:
           name: TankGame-${{github.job}}
           path: |
-            build/TankGame
-            build/*.log
             assets/*
+            build/*
+            !build/*[Mm]ake*
 
   windows-build:
     runs-on: windows-latest
@@ -66,28 +70,24 @@ jobs:
         run: |
           git lfs install
 
-      - name: Set Up vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          .\vcpkg\bootstrap-vcpkg.bat
-
-      - name: Install Dependencies
-        run: |
-          cd vcpkg
-          $env:VCPKG_ROOT = $(pwd)
-          $env:PATH = "$env:VCPKG_ROOT;$env:PATH"
-          vcpkg integrate install
+      - name: Cache build deps
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            deps-${{ runner.os }}-
 
       - name: CMake Setup
         uses: jwlawson/actions-setup-cmake@v2
 
       - name: CMake Configure
         run: |
-          cmake -DCMAKE_TOOLCHAIN_FILE="${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
+          cmake -S . -B build
 
       - name: CMake Build
         run: |
-          cmake --build build --config Release
+          cmake --build build --config Release -j ${{ env.NUMBER_OF_PROCESSORS }}
 
       - name: Run Tests
         run: |
@@ -103,5 +103,5 @@ jobs:
           name: TankGame-${{github.job}}
           path: |
             build/Release/*
-            build/Release/*.log
+            build/*.log
             assets/*

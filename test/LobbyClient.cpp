@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 	uint16_t const port = (argc == 3) ? atoi(argv[2]) : PORT_TCP;
 	const auto logger = createConsoleAndFileLogger(playerName);
 
-	sf::IpAddress const localhost{0x7f'00'00'01};
+	sf::IpAddress const localhost = sf::IpAddress::LocalHost;
 	sf::TcpSocket sockLobby;
 	if(sockLobby.connect(localhost, port) != sf::Socket::Status::Done)
 	{

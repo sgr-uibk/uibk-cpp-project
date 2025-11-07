@@ -1,9 +1,13 @@
 #include <SFML/Graphics.hpp>
 #include <cmath>
-#include <optional>
 
 #include "HealthBar.h"
 #include "GameWorld.h"
+
+#include <SFML/Audio.hpp>
+#include <spdlog/spdlog.h>
+
+#include "Utilities.h"
 
 void updateView(sf::RenderWindow& window, sf::View& view, sf::Vector2u baseSize)
 {
@@ -33,15 +37,16 @@ void updateView(sf::RenderWindow& window, sf::View& view, sf::Vector2u baseSize)
     view.setCenter({static_cast<float>(baseSize.x) / 2.f, static_cast<float>(baseSize.y) / 2.f});
 }
 
-
 int main()
 {
-    sf::Vector2u const baseResolution = {800, 600};
+	char constexpr gameName[] = "Tank Game";
+	sf::Vector2u constexpr windowDimensions = {800, 600};
+	std::shared_ptr<spdlog::logger> const logger = createConsoleLogger(gameName);
 
-    sf::RenderWindow window(sf::VideoMode(baseResolution), "Tank Game", sf::Style::Resize);
-    window.setFramerateLimit(60);
-    window.setMinimumSize(baseResolution);
-    window.setMaximumSize(std::optional(sf::Vector2u{3840, 2160}));
+	sf::RenderWindow window(sf::VideoMode(windowDimensions), gameName, sf::Style::Resize);
+	window.setFramerateLimit(60);
+	window.setMinimumSize(windowDimensions);
+	window.setMaximumSize(std::optional(sf::Vector2u{3840, 2160}));
 
     GameWorld gameWorld{baseResolution};
     sf::Clock frameClock;
