@@ -1,9 +1,7 @@
 #include "MapState.h"
 #include "Networking.h"
 
-MapState::MapState(sf::Vector2f size)
-	: m_spawns(SPAWN_POINTS),
-	  m_size(size)
+MapState::MapState(sf::Vector2f size) : m_spawns(SPAWN_POINTS), m_size(size)
 {
 	unsigned const width = size.x;
 	unsigned const height = size.y;
@@ -17,7 +15,7 @@ MapState::MapState(sf::Vector2f size)
 
 	addWall(200, 100, wallThickness, 400); // vertical
 	addWall(400, 200, 200, wallThickness); // horizontal
-	addWall(600, 50, wallThickness, 300); // vertical
+	addWall(600, 50, wallThickness, 300);  // vertical
 }
 
 void MapState::addWall(float x, float y, float w, float h)

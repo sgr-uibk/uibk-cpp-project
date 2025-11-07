@@ -8,7 +8,7 @@
 
 class GameServer
 {
-public:
+  public:
 	explicit GameServer(LobbyServer &lobbyServer, uint16_t gamePort, const std::shared_ptr<spdlog::logger> &logger);
 	~GameServer();
 	// Run the match loop (blocking).
@@ -20,7 +20,7 @@ public:
 	sf::Clock m_tickClock;
 	size_t m_numAlive;
 
-private:
+  private:
 	void processPackets();
 	void floodWorldState();
 

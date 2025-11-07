@@ -5,17 +5,11 @@
 #include <spdlog/logger.h>
 
 PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth)
-	:
-	m_id(id),
-	m_pos(pos),
-	m_rot(rot),
-	m_maxHealth(maxHealth),
-	m_health(maxHealth)
+	: m_id(id), m_pos(pos), m_rot(rot), m_maxHealth(maxHealth), m_health(maxHealth)
 {
 }
 
-PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, int maxHealth)
-	: PlayerState(id, pos, sf::degrees(0), maxHealth)
+PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, int maxHealth) : PlayerState(id, pos, sf::degrees(0), maxHealth)
 {
 }
 
@@ -131,7 +125,6 @@ void PlayerState::deserialize(sf::Packet &pkt)
 	pkt >> m_rot;
 	pkt >> m_health;
 	pkt >> m_maxHealth;
-	//assert(m_health >= 0);
-	//assert(m_maxHealth >= 0);
-
+	// assert(m_health >= 0);
+	// assert(m_maxHealth >= 0);
 }

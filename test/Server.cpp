@@ -34,5 +34,4 @@ int main(int argc, char **argv)
 			lobbyServer.endGame(0);
 	}
 	return 0;
-
 }

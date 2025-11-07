@@ -17,8 +17,7 @@ int main(int argc, char **argv)
 	sf::IpAddress serverAddr = (argc >= 2) ? sf::IpAddress(atoi(argv[2])) : sf::IpAddress::LocalHost;
 	uint16_t const lobbyPort = (argc >= 3) ? atoi(argv[3]) : PORT_TCP;
 	uint16_t gamePort = (argc >= 4) ? atoi(argv[4]) : PORT_UDP;
-	SPDLOG_LOGGER_INFO(logger, "Starting Client. TCP port {}, UDP port {}, name {}",
-	                   lobbyPort, gamePort, playerName);
+	SPDLOG_LOGGER_INFO(logger, "Starting Client. TCP port {}, UDP port {}, name {}", lobbyPort, gamePort, playerName);
 
 	LobbyClient lobbyClient(playerName, {serverAddr, lobbyPort});
 

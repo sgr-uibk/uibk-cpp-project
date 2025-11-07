@@ -6,7 +6,7 @@
 
 class WorldState
 {
-public:
+  public:
 	explicit WorldState(sf::Vector2f mapSize);
 	void update(float dt);
 	void setPlayer(PlayerState const &p);
@@ -21,7 +21,7 @@ public:
 
 	WorldState &operator=(const WorldState &);
 
-private:
+  private:
 	MapState const m_map;
     // Players are not removed on disconnect,
 	// as others can't join in the battle phase anyway.

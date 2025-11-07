@@ -2,12 +2,9 @@
 #include "ResourceManager.h"
 
 PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
-	: m_state(state),
-	  m_color(color),
-	  m_healthyTex(TextureManager::inst().load("tank_healthy.png")),
+	: m_state(state), m_color(color), m_healthyTex(TextureManager::inst().load("tank_healthy.png")),
 	  m_damagedTex(TextureManager::inst().load("tank_damaged.png")),
-	  m_deadTex(TextureManager::inst().load("tank_dead.png")),
-	  m_sprite(m_healthyTex)
+	  m_deadTex(TextureManager::inst().load("tank_dead.png")), m_sprite(m_healthyTex)
 {
 	updateSprite();
 	m_sprite.setPosition(m_state.m_pos);

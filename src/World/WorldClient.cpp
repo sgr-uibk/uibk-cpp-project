@@ -6,32 +6,24 @@
 #include "Utilities.h"
 
 template <std::size_t N, std::size_t... I>
-static std::array<PlayerClient, N> make_players_impl(
-	std::array<PlayerState, N> &states,
-	const std::array<sf::Color, N> &colors,
-	std::index_sequence<I...>)
+static std::array<PlayerClient, N> make_players_impl(std::array<PlayerState, N> &states,
+                                                     const std::array<sf::Color, N> &colors, std::index_sequence<I...>)
 {
 	return {PlayerClient(states[I], colors[I])...};
 }
 
 template <std::size_t N>
-static std::array<PlayerClient, N> make_players(
-	std::array<PlayerState, N> &states,
-	const std::array<sf::Color, N> &colors)
+static std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states,
+                                                const std::array<sf::Color, N> &colors)
 {
 	return make_players_impl<N>(states, colors, std::make_index_sequence<N>{});
 }
 
-WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId,
-                         std::array<PlayerState, MAX_PLAYERS> &players)
-	: m_bAcceptInput(true),
-	  m_window(window),
-	  m_state(sf::Vector2f(window.getSize())),
-	  m_mapClient(m_state.getMap()),
+WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players)
+	: m_bAcceptInput(true), m_window(window), m_state(sf::Vector2f(window.getSize())), m_mapClient(m_state.getMap()),
 	  // Members must be initialized before the constructor body runs,
-	  // so this initializer needs to convert the PlayerStates to PlayerClients *at compile time*
-	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)),
-	  m_ownPlayerId(ownPlayerId)
+      // so this initializer needs to convert the PlayerStates to PlayerClients *at compile time*
+	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId)
 {
 	for(auto &ps : players)
 	{
@@ -58,11 +50,11 @@ std::optional<sf::Packet> WorldClient::update()
 		pc.update(frameDelta);
 
 	// TODO: Disabled to explicitly show the server delay
-	//m_players[m_ownPlayerId-1].applyLocalMove(m_state.map(), posDelta);
-	//m_sprite.setRotation();
+	// m_players[m_ownPlayerId-1].applyLocalMove(m_state.map(), posDelta);
+	// m_sprite.setRotation();
 
-	if(posDelta != sf::Vector2f{0, 0} && m_bAcceptInput
-	   && m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_RATE))
+	if(posDelta != sf::Vector2f{0, 0} && m_bAcceptInput &&
+	   m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_RATE))
 	{
 		sf::Packet pkt = createPkt(UnreliablePktType::MOVE);
 		pkt << m_ownPlayerId;
@@ -82,9 +74,8 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	for(auto const &pc : m_players)
 		pc.draw(window);
 
-	//window.setView(m_hudView);
-	// todo draw HUD with m_hudView
-
+	// window.setView(m_hudView);
+	//  todo draw HUD with m_hudView
 }
 
 void WorldClient::applyServerSnapshot(const WorldState &snapshot)

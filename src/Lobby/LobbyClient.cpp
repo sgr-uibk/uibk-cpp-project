@@ -2,9 +2,7 @@
 #include "../Utilities.h"
 
 LobbyClient::LobbyClient(std::string const &name, Endpoint const lobbyServer)
-	: m_clientId(0),
-	  m_name(name),
-	  m_bReady(false)
+	: m_clientId(0), m_name(name), m_bReady(false)
 {
 	m_logger = createConsoleAndFileLogger(name);
 	if(m_lobbySock.connect(lobbyServer.ip, lobbyServer.port) != sf::Socket::Status::Done)
@@ -25,7 +23,6 @@ LobbyClient::~LobbyClient()
 	m_gameSock.unbind();
 }
 
-
 void LobbyClient::bindGameSocket()
 {
 	auto status = sf::Socket::Status::NotReady;
@@ -42,13 +39,12 @@ void LobbyClient::bindGameSocket()
 	}
 	if(status != sf::Socket::Status::Done)
 	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to bind to any UDP port [{}, {}]",
-		                    m_gameSock.getLocalPort(), m_gameSock.getLocalPort() + MAX_PLAYERS);
+		SPDLOG_LOGGER_ERROR(m_logger, "Failed to bind to any UDP port [{}, {}]", m_gameSock.getLocalPort(),
+		                    m_gameSock.getLocalPort() + MAX_PLAYERS);
 		std::exit(1);
 	}
 	m_gameSock.setBlocking(false);
 }
-
 
 void LobbyClient::connect()
 {
@@ -139,8 +135,8 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::waitForGameStart()
 				sf::Angle rot;
 				startPkt >> rot;
 				states[i] = PlayerState(i + 1, pos, rot);
-				SPDLOG_LOGGER_INFO(m_logger, "My spawn point is ({},{}), direction angle = {}deg",
-				                   pos.x, pos.y, rot.asDegrees());
+				SPDLOG_LOGGER_INFO(m_logger, "My spawn point is ({},{}), direction angle = {}deg", pos.x, pos.y,
+				                   rot.asDegrees());
 			}
 			return states;
 		}

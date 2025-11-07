@@ -10,9 +10,8 @@ std::shared_ptr<spdlog::logger> createConsoleLogger(std::string const &name)
 }
 
 // https://github.com/gabime/spdlog/wiki/Creating-loggers#creating-loggers-with-multiple-sinks
-std::shared_ptr<spdlog::logger> createConsoleAndFileLogger(
-	std::string const &name,
-	spdlog::level::level_enum const logLevel)
+std::shared_ptr<spdlog::logger> createConsoleAndFileLogger(std::string const &name,
+                                                           spdlog::level::level_enum const logLevel)
 {
 	std::string const logFile = name + ".log";
 	std::vector<spdlog::sink_ptr> sinks{

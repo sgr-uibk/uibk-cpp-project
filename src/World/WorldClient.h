@@ -6,7 +6,7 @@
 
 class WorldClient
 {
-public:
+  public:
 	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players);
 
 	std::optional<sf::Packet> update();
@@ -26,7 +26,7 @@ public:
 	sf::Clock m_frameClock;
 	sf::Clock m_tickClock;
 
-private:
+  private:
 	sf::RenderWindow &m_window;
 
 	WorldState m_state;

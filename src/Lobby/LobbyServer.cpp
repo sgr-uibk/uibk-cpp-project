@@ -5,9 +5,7 @@
 #include <spdlog/spdlog.h>
 
 LobbyServer::LobbyServer(uint16_t tcpPort, const std::shared_ptr<spdlog::logger> &logger)
-	:
-	m_logger(logger),
-	m_cReady(0)
+	: m_logger(logger), m_cReady(0)
 {
 	if(m_listener.listen(tcpPort) != sf::Socket::Status::Done)
 	{
@@ -86,8 +84,8 @@ void LobbyServer::acceptNewClient()
 	joinReqPkt >> protoVer;
 	if(protoVer != PROTOCOL_VERSION)
 	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Proto mismatch (client id {} has v{}, need v{})",
-		                    p.id, protoVer, PROTOCOL_VERSION);
+		SPDLOG_LOGGER_ERROR(m_logger, "Proto mismatch (client id {} has v{}, need v{})", p.id, protoVer,
+		                    PROTOCOL_VERSION);
 		p.tcpSocket.disconnect();
 		return;
 	}

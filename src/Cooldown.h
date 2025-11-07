@@ -1,11 +1,10 @@
 #pragma once
 #include <algorithm>
 
-
 // this is a very simple class, keep it header-only, it's always inlined
 class Cooldown
 {
-public:
+  public:
 	Cooldown() = default;
 
 	explicit Cooldown(float const seconds) : m_duration(seconds), m_remaining(0)
@@ -51,7 +50,7 @@ public:
 		return wasReady;
 	}
 
-private:
+  private:
 	float m_duration;
 	float m_remaining;
 };

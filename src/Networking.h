@@ -64,8 +64,7 @@ enum class UnreliablePktType : uint8_t
 	LAST
 };
 
-template <typename E>
-sf::Packet createPkt(E type)
+template <typename E> sf::Packet createPkt(E type)
 {
 	static_assert(std::is_enum_v<E>);
 	sf::Packet pkt;
@@ -73,8 +72,7 @@ sf::Packet createPkt(E type)
 	return pkt;
 }
 
-template <typename E>
-void expectPkt(sf::Packet &pkt, E expectedType)
+template <typename E> void expectPkt(sf::Packet &pkt, E expectedType)
 {
 	static_assert(std::is_enum_v<E>);
 	uint8_t actual;
@@ -82,8 +80,8 @@ void expectPkt(sf::Packet &pkt, E expectedType)
 	E actualEnum = static_cast<E>(actual);
 	if(actual == 0 || expectedType != actualEnum)
 	{
-		std::string const message = "Unexpected packet type " + std::to_string(actual)
-		                            + " (expected " + std::to_string(static_cast<uint8_t>(expectedType)) + ")";
+		std::string const message = "Unexpected packet type " + std::to_string(actual) + " (expected " +
+		                            std::to_string(static_cast<uint8_t>(expectedType)) + ")";
 		throw std::runtime_error(message);
 	}
 }
@@ -119,8 +117,8 @@ inline sf::Socket::Status checkedReceive(sf::TcpSocket &sock, sf::Packet &pkt)
 }
 
 // UDP is datagrams of a defined max size, no partial transfer handling needed.
-inline sf::Socket::Status checkedSend(sf::UdpSocket &sock, sf::Packet &pkt,
-                                      sf::IpAddress const destAddr, uint16_t const port)
+inline sf::Socket::Status checkedSend(sf::UdpSocket &sock, sf::Packet &pkt, sf::IpAddress const destAddr,
+                                      uint16_t const port)
 {
 	if(pkt.getDataSize() == 0)
 	{
@@ -139,7 +137,6 @@ inline sf::Socket::Status checkedReceive(sf::UdpSocket &sock, sf::Packet &pkt,
 		SPDLOG_WARN("Received empty packet (status {})", (int)st);
 	return st;
 }
-
 
 inline sf::Packet operator<<(sf::Packet &pkt, const sf::Vector2f &vec)
 {

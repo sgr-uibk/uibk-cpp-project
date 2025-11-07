@@ -2,13 +2,8 @@
 #include "Lobby/LobbyServer.h"
 #include <spdlog/spdlog.h>
 
-GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort,
-                       std::shared_ptr<spdlog::logger> const &logger)
-	: m_gamePort(gamePort),
-	  m_world(WINDOW_DIMf),
-	  m_numAlive(MAX_PLAYERS),
-	  m_logger(logger),
-	  m_lobby(lobbyServer)
+GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_ptr<spdlog::logger> const &logger)
+	: m_gamePort(gamePort), m_world(WINDOW_DIMf), m_numAlive(MAX_PLAYERS), m_logger(logger), m_lobby(lobbyServer)
 {
 	for(auto const &p : lobbyServer.m_slots)
 	{
@@ -89,8 +84,8 @@ void GameServer::processPackets()
 				PlayerState &ps = m_world.getPlayerById(clientId);
 
 				ps.moveOn(m_world.getMap(), posDelta);
-				SPDLOG_LOGGER_INFO(m_logger, "Recv MOVE id {} pos=({},{}), rotDeg={}", clientId, ps.m_pos.x,
-				                   ps.m_pos.y, ps.m_rot.asDegrees());
+				SPDLOG_LOGGER_INFO(m_logger, "Recv MOVE id {} pos=({},{}), rotDeg={}", clientId, ps.m_pos.x, ps.m_pos.y,
+				                   ps.m_rot.asDegrees());
 			}
 			else
 				SPDLOG_LOGGER_WARN(m_logger, "Dropping packet from invalid player id {}", clientId);
@@ -98,8 +93,7 @@ void GameServer::processPackets()
 		}
 		default:
 			std::string srcAddr = srcAddrOpt.has_value() ? srcAddrOpt.value().toString() : std::string("?");
-			SPDLOG_LOGGER_WARN(m_logger, "Unhandled unreliable packet type: {}, src={}:{}",
-			                   type, srcAddr, srcPort);
+			SPDLOG_LOGGER_WARN(m_logger, "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr, srcPort);
 		}
 	}
 }
@@ -124,8 +118,7 @@ void GameServer::floodWorldState()
 			continue;
 		if(checkedSend(m_gameSock, snapPkt, p.udpAddr, p.gamePort) != sf::Socket::Status::Done)
 		{
-			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send snapshot to {}:{}",
-			                    p.udpAddr.toString(), p.gamePort);
+			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send snapshot to {}:{}", p.udpAddr.toString(), p.gamePort);
 		}
 	}
 }
