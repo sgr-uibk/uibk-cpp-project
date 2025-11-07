@@ -20,6 +20,7 @@ public:
 
 	void applyServerSnapshot(const WorldState &snapshot);
 	WorldState &getState();
+	sf::View& getWorldView();
 
 private:
 	sf::Clock m_tickClock;

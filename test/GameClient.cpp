@@ -15,6 +15,34 @@ static constexpr unsigned short SERVER_PORT = 54000u;
 static constexpr unsigned short CLIENT_PORT = 54001u;
 static constexpr sf::Vector2u WINDOW_DIM{800, 600};
 
+void updateView(sf::RenderWindow& window, sf::View& view, sf::Vector2u baseSize)
+{
+    float windowWidth  = static_cast<float>(window.getSize().x);
+    float windowHeight = static_cast<float>(window.getSize().y);
+    float windowRatio  = windowWidth / windowHeight;
+    float baseRatio    = static_cast<float>(baseSize.x) / static_cast<float>(baseSize.y);
+
+    float viewportX = 0.f;
+    float viewportY = 0.f;
+    float viewportWidth = 1.f;
+    float viewportHeight = 1.f;
+
+    if (windowRatio > baseRatio)
+    {
+        viewportWidth = baseRatio / windowRatio;
+        viewportX = (1.f - viewportWidth) / 2.f;
+    }
+    else
+    {
+        viewportHeight = windowRatio / baseRatio;
+        viewportY = (1.f - viewportHeight) / 2.f;
+    }
+
+    view.setViewport(sf::FloatRect({viewportX, viewportY}, {viewportWidth, viewportHeight}));
+    view.setSize({static_cast<float>(baseSize.x), static_cast<float>(baseSize.y)});
+    view.setCenter({static_cast<float>(baseSize.x) / 2.f, static_cast<float>(baseSize.y) / 2.f});
+}
+
 int main()
 {
 	std::shared_ptr<spdlog::logger> const logger = createConsoleLogger("Unreliable Client");
@@ -52,6 +80,8 @@ int main()
 	// local predicted state
 	//WorldClient worldClient(sf::Vector2f(WINDOW_DIM), 1, players);
 
+	sf::Vector2u lastSize = window.getSize();
+
 	sf::Clock frameClock;
 	while(window.isOpen())
 	{
@@ -66,6 +96,13 @@ int main()
 				if(keyPressed->scancode == sf::Keyboard::Scancode::Escape)
 					window.close();
 			}
+		}
+
+		sf::Vector2u currentSize = window.getSize();
+		if(currentSize != lastSize)
+		{
+			lastSize = currentSize;
+			updateView(window, worldClient.getWorldView(), WINDOW_DIM);
 		}
 
 		float dt = frameClock.restart().asSeconds();

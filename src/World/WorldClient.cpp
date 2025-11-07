@@ -39,21 +39,21 @@ sf::Packet WorldClient::update(float dt)
 	for(auto &pc : m_players)
 		pc.update(dt);
 
-	return pkt;
+	//sf::Vector2f playerPos = m_players[m_ownPlayerId - 1].getState().m_pos;
+	//m_worldView.setCenter(playerPos);
 
+	return pkt;
 }
 
 void WorldClient::draw(sf::RenderWindow &window) const
 {
 	window.setView(m_worldView);
-	window.clear(sf::Color::White);
 	m_mapClient.draw(window);
 	for(auto const &pc : m_players)
 		pc.draw(window);
 
 	//window.setView(m_hudView);
 	// todo draw HUD with m_hudView
-
 }
 
 void WorldClient::applyServerSnapshot(const WorldState &snapshot)
@@ -75,3 +75,5 @@ WorldState &WorldClient::getState()
 {
 	return m_state;
 }
+
+sf::View& WorldClient::getWorldView() { return m_worldView; }
