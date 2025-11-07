@@ -26,8 +26,6 @@ bool MapLoader::loadMap(MapState &state, const std::string &path, sf::Vector2f m
                 default:  type = TileType::Grass; break;
             }
 
-            state.addTile(type, {col * tileSize, row * tileSize}, tileSize);
-
             if(c >= '1' && c <= '4') {
                 int playerId = c - '0';
                 state.setPlayerSpawn(playerId, {col * tileSize, row * tileSize});

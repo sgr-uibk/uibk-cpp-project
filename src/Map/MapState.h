@@ -17,14 +17,10 @@ public:
 	void setPlayerSpawn(int playerId, sf::Vector2f pos);
     sf::Vector2f getPlayerSpawn(int playerId) const;
 
-	void addTile(TileType type, sf::Vector2f pos, float size);
-	std::vector<Tile>& getTiles();
-
 	sf::Vector2f getSize() const;
 
 private:
 	sf::Vector2f m_size;
 	std::vector<sf::RectangleShape> m_walls;
 	std::map<int, sf::Vector2f> m_playerSpawns;
-	std::vector<Tile> m_tiles;
 };

@@ -4,7 +4,7 @@
 
 WorldClient::WorldClient(MapState& mapState, EntityId ownPlayerId, std::array<PlayerClient, MAX_PLAYERS> &players)
 	: m_state(const_cast<MapState&>(mapState)),
-	  m_mapClient(m_state.map()),
+	  m_mapClient(m_state.map(), "../assets/maps/map1.txt", 48.f),
 	  m_players(players),
 	  m_ownPlayerId(ownPlayerId)
 {

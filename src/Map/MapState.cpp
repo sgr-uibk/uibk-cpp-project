@@ -30,7 +30,6 @@ bool MapState::isColliding(const sf::RectangleShape &r) const
 void MapState::reset(sf::Vector2f size)
 {
     m_size = size;
-    m_tiles.clear();
 	m_playerSpawns.clear();
 }
 
@@ -40,17 +39,8 @@ sf::Vector2f MapState::getPlayerSpawn(int playerId) const {
         return {0.f,0.f}; 
 }
 
-void MapState::addTile(TileType type, sf::Vector2f pos, float size)
-{
-    m_tiles.emplace_back(type, pos, size);
-}
-
 void MapState::setPlayerSpawn(int playerId, sf::Vector2f pos) { 
 	m_playerSpawns[playerId] = pos; 
-}
-
-std::vector<Tile> &MapState::getTiles() {
-	return m_tiles;
 }
 
 sf::Vector2f MapState::getSize() const {
