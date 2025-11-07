@@ -20,7 +20,6 @@ int main()
 	std::shared_ptr<spdlog::logger> const logger = createConsoleLogger("Unreliable Server");
 	MapState map(WINDOW_DIM);
 	MapLoader::loadMap(map, "../assets/maps/map1.txt", WINDOW_DIM);
-	WorldState world(map);
 
 	std::vector<PlayerState> players;
 	for (int i = 1; i <= 4; ++i) {
@@ -30,9 +29,12 @@ int main()
 			break;
 
 		PlayerState p(i, spawn, 100);
-		world.setPlayer(p);
 		players.push_back(p);
 	}
+
+	WorldState world(map);
+	for (auto &p : players)
+    	world.setPlayer(p);
 
 	sf::UdpSocket socket;
 	if(socket.bind(SERVER_PORT) != sf::Socket::Status::Done)

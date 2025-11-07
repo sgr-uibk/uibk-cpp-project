@@ -2,8 +2,8 @@
 
 #include <cmath>
 
-WorldClient::WorldClient(const MapState& mapState, EntityId ownPlayerId, std::array<PlayerClient, MAX_PLAYERS> &players)
-	: m_state(mapState),
+WorldClient::WorldClient(MapState& mapState, EntityId ownPlayerId, std::array<PlayerClient, MAX_PLAYERS> &players)
+	: m_state(const_cast<MapState&>(mapState)),
 	  m_mapClient(m_state.map()),
 	  m_players(players),
 	  m_ownPlayerId(ownPlayerId)
@@ -58,13 +58,17 @@ void WorldClient::draw(sf::RenderWindow &window) const
 
 void WorldClient::applyServerSnapshot(const WorldState &snapshot)
 {
-	m_state = snapshot;
+	//m_state = snapshot;
 	// the map is static for now (deserialize does not extract a Map) as serialize doesn't shove one in
 	// m_mapClient.setMapState(m_state.map());
 
-	auto const states = m_state.getPlayers();
-	for(size_t i = 0; i < m_players.size(); ++i)
-		m_players[i].applyServerState(states[i]);
+	const auto &serverPlayers = snapshot.getPlayers();
+
+	for (size_t i = 0; i < m_players.size(); ++i)
+    {
+        if (serverPlayers[i].m_pos.x != 0.f || serverPlayers[i].m_pos.y != 0.f)
+            m_players[i].applyServerState(serverPlayers[i]);
+    }
 }
 
 WorldState &WorldClient::getState()

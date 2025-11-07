@@ -18,6 +18,11 @@ std::array<PlayerState, MAX_PLAYERS> &WorldState::getPlayers()
 	return m_players;
 }
 
+const std::array<PlayerState, MAX_PLAYERS> &WorldState::getPlayers() const
+{
+	return m_players;
+}
+
 MapState &WorldState::map()
 {
 	return m_map;
@@ -30,16 +35,25 @@ const MapState &WorldState::map() const
 
 void WorldState::serialize(sf::Packet &pkt) const
 {
-	for(uint32_t i = 0; i < MAX_PLAYERS; ++i)
-	{
-		m_players[i].serialize(pkt);
-	}
+	for (const auto &p : m_players)
+    {
+        if (p.m_id == 0)
+            continue;
+
+        p.serialize(pkt);
+    }
 }
 
 void WorldState::deserialize(sf::Packet &pkt)
 {
-	for(uint32_t i = 0; i < MAX_PLAYERS; ++i)
-	{
-		m_players[i].deserialize(pkt);
-	}
+	while (!pkt.endOfPacket())
+    {
+        PlayerState temp;
+        temp.deserialize(pkt);
+
+        if (temp.m_id == 0)
+            continue;
+
+        m_players[temp.m_id - 1] = temp;
+    }
 }

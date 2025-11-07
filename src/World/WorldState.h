@@ -8,12 +8,13 @@
 class WorldState
 {
 public:
-	explicit WorldState(const MapState& map) : m_map(map) {}
+	explicit WorldState(MapState& map) : m_map(map) {}
 
 	void update(float dt);
 	void setPlayer(PlayerState &p);
 
 	std::array<PlayerState, MAX_PLAYERS> &getPlayers();
+	const std::array<PlayerState, MAX_PLAYERS>& getPlayers() const;
 	const MapState &map() const;
 	MapState &map();
 
@@ -22,7 +23,7 @@ public:
 	void deserialize(sf::Packet &pkt);
 
 private:
-	MapState m_map;
+	MapState& m_map;
 	// Players are not removed on disconnect,
 	// as others can't join in the battle phase anyway.
 	std::array<PlayerState, MAX_PLAYERS> m_players;

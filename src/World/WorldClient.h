@@ -7,7 +7,7 @@
 class WorldClient
 {
 public:
-	explicit WorldClient(const MapState& mapState, EntityId ownPlayerId, std::array<PlayerClient, MAX_PLAYERS> &players);
+	explicit WorldClient(MapState& mapState, EntityId ownPlayerId, std::array<PlayerClient, MAX_PLAYERS> &players);
 
 	sf::Packet update(float dt);
 	void draw(sf::RenderWindow &window) const;
