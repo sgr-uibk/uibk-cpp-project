@@ -1,22 +1,13 @@
 #include "WorldClient.h"
-
-#include <cmath>
-#include <spdlog/spdlog.h>
-
 #include "Utilities.h"
 
-template <std::size_t N, std::size_t... I>
-static std::array<PlayerClient, N> make_players_impl(std::array<PlayerState, N> &states,
-                                                     const std::array<sf::Color, N> &colors, std::index_sequence<I...>)
-{
-	return {PlayerClient(states[I], colors[I])...};
-}
-
+// https://www.trivialorwrong.com/2015/12/08/meta-sequences-in-c++.html
 template <std::size_t N>
-static std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states,
-                                                const std::array<sf::Color, N> &colors)
+std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states, std::array<sf::Color, N> const &colors)
 {
-	return make_players_impl<N>(states, colors, std::make_index_sequence<N>{});
+	return [&]<std::size_t... I>(std::index_sequence<I...>) {
+		return std::array<PlayerClient, N>{PlayerClient(states[I], colors[I])...};
+	}(std::make_index_sequence<N>{});
 }
 
 WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players)
@@ -44,7 +35,7 @@ std::optional<sf::Packet> WorldClient::update()
 	bool const a = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
 	bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
 
-	const sf::Vector2f posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
+	sf::Vector2f const posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
 
 	for(auto &pc : m_players)
 		pc.update(frameDelta);
@@ -78,7 +69,7 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	//  todo draw HUD with m_hudView
 }
 
-void WorldClient::applyServerSnapshot(const WorldState &snapshot)
+void WorldClient::applyServerSnapshot(WorldState const &snapshot)
 {
 	m_state = snapshot;
 	// the map is static for now (deserialize does not extract a Map) as serialize doesn't shove one in.
@@ -97,13 +88,13 @@ WorldState &WorldClient::getState()
 
 void WorldClient::pollEvents()
 {
-	while(const std::optional event = m_window.pollEvent())
+	while(std::optional const event = m_window.pollEvent())
 	{
 		if(event->is<sf::Event::Closed>())
 		{
 			m_window.close();
 		}
-		else if(const auto *keyPressed = event->getIf<sf::Event::KeyPressed>())
+		else if(auto const *keyPressed = event->getIf<sf::Event::KeyPressed>())
 		{
 			if(keyPressed->scancode == sf::Keyboard::Scancode::Escape)
 				m_window.close();
