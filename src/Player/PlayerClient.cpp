@@ -1,27 +1,32 @@
 #include "PlayerClient.h"
 #include "ResourceManager.h"
 
-PlayerClient::PlayerClient(const PlayerState &state, const sf::Color &color)
-	: m_state(state),
-	  m_color(color),
-	  m_healthyTex(TextureManager::inst().load("tank_healthy.png")),
+PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
+	: m_state(state), m_color(color), m_healthyTex(TextureManager::inst().load("tank_healthy.png")),
 	  m_damagedTex(TextureManager::inst().load("tank_damaged.png")),
-	  m_deadTex(TextureManager::inst().load("tank_dead.png")),
-	  m_sprite(m_healthyTex)
+	  m_deadTex(TextureManager::inst().load("tank_dead.png")), m_sprite(m_healthyTex),
+	  m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_nameText(m_font, m_state.m_name, 14)
 {
 	updateSprite();
 	m_sprite.setPosition(m_state.m_pos);
+
+	m_nameText.setFillColor(sf::Color::White);
+	m_nameText.setOutlineColor(sf::Color::Black);
+	m_nameText.setOutlineThickness(1.f);
+	updateNameText();
 }
 
 void PlayerClient::update(float)
 {
 	// smoothing / interpolation can be inserted here
 	syncSpriteToState();
+	updateNameText();
 }
 
 void PlayerClient::draw(sf::RenderWindow &window) const
 {
 	window.draw(m_sprite);
+	window.draw(m_nameText);
 }
 
 void PlayerClient::applyServerState(const PlayerState &serverState)
@@ -35,7 +40,7 @@ void PlayerClient::applyServerState(const PlayerState &serverState)
 	syncSpriteToState();
 }
 
-void PlayerClient::applyLocalMove(MapState const& map, sf::Vector2f delta)
+void PlayerClient::applyLocalMove(MapState const &map, sf::Vector2f delta)
 {
 	m_state.moveOn(map, delta);
 	// prediction using same logic as server (map pointer should point to local map copy)
@@ -68,4 +73,15 @@ void PlayerClient::syncSpriteToState()
 		m_sprite.setTexture(m_damagedTex);
 	else
 		m_sprite.setTexture(m_healthyTex);
+}
+
+void PlayerClient::updateNameText()
+{
+	sf::FloatRect textBounds = m_nameText.getLocalBounds();
+	sf::Vector2f tankCenter = m_state.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+
+	sf::Vector2f textPos(tankCenter.x - textBounds.size.x / 2.f - textBounds.position.x,
+	                     tankCenter.y - tankDimensions.y / 2.f - 18.f // 18 pixels above tank
+	);
+	m_nameText.setPosition(textPos);
 }

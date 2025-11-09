@@ -6,11 +6,11 @@
 
 class PlayerClient
 {
-public:
+  public:
 	using HealthCallback = std::function<void(int current, int max)>;
 
-	PlayerClient(const PlayerState &state, const sf::Color &color);
-	PlayerClient(const PlayerClient&) = default;
+	PlayerClient(PlayerState &state, const sf::Color &color);
+	PlayerClient(const PlayerClient &) = default;
 
 	void update(float dt);
 	void draw(sf::RenderWindow &window) const;
@@ -24,19 +24,23 @@ public:
 	{
 		return m_state;
 	}
+
 	void registerHealthCallback(HealthCallback cb);
 
-private:
+  private:
 	void updateSprite();
-	static constexpr sf::Vector2f tankDimensions = {64,64};
-	PlayerState m_state;
+	void updateNameText();
+	static constexpr sf::Vector2f tankDimensions = {64, 64};
+	PlayerState &m_state;
 
 	// visuals
 	sf::Color m_color;
-	sf::Texture& m_healthyTex;
-	sf::Texture& m_damagedTex;
-	sf::Texture& m_deadTex;
+	sf::Texture &m_healthyTex;
+	sf::Texture &m_damagedTex;
+	sf::Texture &m_deadTex;
 	sf::Sprite m_sprite;
+	sf::Font &m_font; // must be declared before m_nameText
+	sf::Text m_nameText;
 	HealthCallback m_onHealthChanged;
 
 	void syncSpriteToState();

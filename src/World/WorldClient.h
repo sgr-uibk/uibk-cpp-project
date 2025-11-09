@@ -1,32 +1,75 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include "WorldState.h"
 #include "Player/PlayerClient.h"
 #include "Map/MapClient.h"
+#include "Projectile/ProjectileClient.h"
+#include "Item/ItemClient.h"
 
 class WorldClient
 {
-public:
-	explicit WorldClient(sf::Vector2f dimensions, EntityId ownPlayerId, std::array<PlayerClient, MAX_PLAYERS> &players);
+  public:
+	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players,
+	            sf::Music *battleMusic = nullptr);
 
-	sf::Packet update(float dt);
+	std::optional<sf::Packet> update();
 	void draw(sf::RenderWindow &window) const;
 
-	[[nodiscard]] PlayerState getOwnPlayerState()
+	[[nodiscard]] PlayerState getOwnPlayerState() const
 	{
-		return m_players[m_ownPlayerId-1].getState();
-		//return m_state.getPlayers()[m_ownPlayerId-1];
+		return m_players[m_ownPlayerId - 1].getState();
 	}
 
 	void applyServerSnapshot(const WorldState &snapshot);
 	WorldState &getState();
+	void pollEvents();
 
-private:
+	bool isPaused() const
+	{
+		return m_isPaused;
+	}
+	bool shouldDisconnect() const
+	{
+		return m_shouldDisconnect;
+	}
+
+	bool m_bAcceptInput;
+
+	sf::Clock m_frameClock;
 	sf::Clock m_tickClock;
+
+  private:
+	void drawPauseMenu(sf::RenderWindow &window) const;
+	void handlePauseMenuClick(sf::Vector2f mousePos);
+	void drawHotbar(sf::RenderWindow &window) const;
+
+	sf::RenderWindow &m_window;
+
 	WorldState m_state;
 	MapClient m_mapClient;
 	std::array<PlayerClient, MAX_PLAYERS> m_players;
+	std::vector<ProjectileClient> m_projectiles;
+	std::vector<ItemClient> m_items;
 	EntityId m_ownPlayerId;
 	sf::View m_worldView;
 	sf::View m_hudView;
+
+	enum class PauseMenuState
+	{
+		MAIN,
+		SETTINGS
+	};
+	bool m_isPaused = false;
+	bool m_shouldDisconnect = false;
+	PauseMenuState m_pauseMenuState = PauseMenuState::MAIN;
+	sf::Font m_pauseFont;
+	std::vector<sf::RectangleShape> m_pauseButtons;
+	std::vector<sf::Text> m_pauseButtonTexts;
+
+	bool m_slotChangeRequested = false;
+	int m_requestedSlot = 0;
+	bool m_useItemRequested = false;
+
+	sf::Music *m_battleMusic = nullptr;
 };

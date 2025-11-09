@@ -7,10 +7,9 @@
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
-
 class AssetPathResolver
 {
-public:
+  public:
 	explicit AssetPathResolver(std::vector<std::string> const &tryRoots = {"./assets", "../assets", "../../assets"})
 	{
 		for(std::string const &possibleRoot : tryRoots)
@@ -40,7 +39,7 @@ public:
 		return m_assetsRoot;
 	}
 
-private:
+  private:
 	std::filesystem::path m_assetsRoot;
 };
 
@@ -56,10 +55,9 @@ inline AssetPathResolver g_assetPathResolver;
 // Can't directly store the Resources in a unordered_map<R> as lazy loading causes rehashes,
 // and that kills the R& already given to the clients.
 
-template <typename R>
-class ResourceManager
+template <typename R> class ResourceManager
 {
-public:
+  public:
 	ResourceManager(const ResourceManager &) = delete;
 	ResourceManager &operator=(const ResourceManager &) = delete;
 	ResourceManager() = default;
@@ -76,7 +74,7 @@ public:
 			// Was the resource already loaded ?
 			std::shared_lock readLock(m_mutex);
 			auto it = m_map.find(key);
-			if (it != m_map.end() && it->second)
+			if(it != m_map.end() && it->second)
 				return *it->second;
 		}
 
@@ -84,10 +82,12 @@ public:
 		auto fullPath = g_assetPathResolver.resolveRelative(key);
 		auto newRes = std::make_unique<R>(fullPath);
 
-		{ // now take exclusive lock to insert (and re-check to avoid races)
+		{
+			// now take exclusive lock to insert (and re-check to avoid races)
 			std::unique_lock writeLock(m_mutex);
 			auto it = m_map.find(key);
-			if (it != m_map.end() && it->second) {
+			if(it != m_map.end() && it->second)
+			{
 				// Another thread inserted while we were building resource
 				return *it->second;
 			}
@@ -101,12 +101,12 @@ public:
 	{
 		std::shared_lock readLock(m_mutex);
 		auto it = m_map.find(key);
-		if (it == m_map.end() || !it->second)
+		if(it == m_map.end() || !it->second)
 			throw std::out_of_range("Resource not loaded: " + key);
 		return *it->second;
 	}
 
-private:
+  private:
 	std::unordered_map<std::string, std::unique_ptr<R>> m_map;
 	mutable std::shared_mutex m_mutex;
 };

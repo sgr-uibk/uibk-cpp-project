@@ -4,11 +4,10 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Transformable.hpp>
-#include "Player.h"
 
 class HealthBar : public sf::Drawable, public sf::Transformable
 {
-public:
+  public:
 	HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth = 100);
 	void setMaxHealth(int max);
 	void setHealth(int health);
@@ -22,7 +21,7 @@ public:
 	void update(float dt);
 	void healthCallback(int health, int max);
 
-private:
+  private:
 	// Drawable override
 	void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 	void updateVisuals();

@@ -4,11 +4,11 @@
 
 class MapClient
 {
-public:
+  public:
 	explicit MapClient(MapState &state);
 
 	void draw(sf::RenderWindow &window) const;
 
-private:
+  private:
 	MapState &m_state;
 };
