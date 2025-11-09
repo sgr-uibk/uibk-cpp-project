@@ -31,9 +31,8 @@ PlayerState *GameServer::matchLoop()
 
 		// maintain fixed tick rate updates
 		float dt = m_tickClock.restart().asSeconds();
-		if(dt < UNRELIABLE_TICK_RATE)
-			sf::sleep(sf::seconds(UNRELIABLE_TICK_RATE - dt));
-		m_world.update(UNRELIABLE_TICK_RATE);
+		sf::sleep(sf::seconds(UNRELIABLE_TICK_TIME - dt));
+		m_world.update(UNRELIABLE_TICK_TIME);
 
 		size_t cAlive = 0;
 		PlayerState *pWinner = nullptr;
