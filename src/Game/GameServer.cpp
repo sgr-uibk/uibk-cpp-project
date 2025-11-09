@@ -35,28 +35,22 @@ PlayerState *GameServer::matchLoop()
 			sf::sleep(sf::seconds(UNRELIABLE_TICK_RATE - dt));
 		m_world.update(UNRELIABLE_TICK_RATE);
 
-		floodWorldState();
-
-		int numAlive = 0;
+		size_t cAlive = 0;
 		PlayerState *pWinner = nullptr;
 		for(auto &p : m_world.getPlayers())
-		{
-			if(p.isAlive())
-			{
-				numAlive++;
+			if(cAlive += p.isAlive())
 				pWinner = &p;
-			}
-		}
-		if(numAlive == 1)
+
+		switch(cAlive)
 		{
+		case 1:
 			SPDLOG_LOGGER_INFO(m_logger, "Game ended, winner {}.", pWinner->m_id);
 			return pWinner;
-		}
-		if(numAlive == 0)
-		{
-			// Technically possible that all players die in the same tick
+		case 0: // Technically possible that all players die in the same tick
 			SPDLOG_LOGGER_WARN(m_logger, "Game ended in a draw.");
 			break;
+		default:
+			floodWorldState();
 		}
 	}
 	return nullptr;
@@ -100,15 +94,6 @@ void GameServer::processPackets()
 
 void GameServer::floodWorldState()
 {
-	int numAlive = 0;
-	for(auto &p : m_world.getPlayers())
-		numAlive += p.isAlive();
-	if(numAlive <= 1)
-	{
-		SPDLOG_LOGGER_INFO(m_logger, "Game ended, alive players: {}. Returning to lobby.", numAlive);
-		return;
-	}
-
 	// flood snapshots to all known clients
 	sf::Packet snapPkt = createPkt(UnreliablePktType::SNAPSHOT);
 	m_world.serialize(snapPkt);
