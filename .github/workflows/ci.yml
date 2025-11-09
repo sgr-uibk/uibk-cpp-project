@@ -3,8 +3,11 @@ name: CMake Build
 on:
   push:
     branches:
-      - simon
       - main
+      - simon
+      - simon-networking
+      - julian
+      - max
   pull_request:
 
 jobs:
@@ -30,6 +33,7 @@ jobs:
 
       - name: CMake Configure
         run: |
+          git lfs install
           cmake -S . -B build
 
       - name: CMake Build
@@ -49,9 +53,9 @@ jobs:
         with:
           name: TankGame-${{github.job}}
           path: |
-            build/TankGame
-            build/*.log
             assets/*
+            build/*
+            !build/*[Mm]ake*
 
   windows-build:
     runs-on: windows-latest
@@ -78,16 +82,24 @@ jobs:
           $env:PATH = "$env:VCPKG_ROOT;$env:PATH"
           vcpkg integrate install
 
+      - name: Cache build deps
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            deps-${{ runner.os }}-
+
       - name: CMake Setup
         uses: jwlawson/actions-setup-cmake@v2
 
       - name: CMake Configure
         run: |
-          cmake -DCMAKE_TOOLCHAIN_FILE="${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
+          cmake -S . -B build
 
       - name: CMake Build
         run: |
-          cmake --build build --config Release
+          cmake --build build --config Release -j ${{ env.NUMBER_OF_PROCESSORS }}
 
       - name: Run Tests
         run: |
@@ -103,5 +115,5 @@ jobs:
           name: TankGame-${{github.job}}
           path: |
             build/Release/*
-            build/Release/*.log
+            build/*.log
             assets/*
