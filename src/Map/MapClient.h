@@ -5,10 +5,10 @@
 class MapClient
 {
   public:
-	explicit MapClient(MapState const &state);
+	explicit MapClient(MapState &state);
 
 	void draw(sf::RenderWindow &window) const;
 
   private:
-	MapState const &m_state;
+	MapState &m_state;
 };

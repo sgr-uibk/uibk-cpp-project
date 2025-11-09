@@ -21,6 +21,8 @@ LobbyClient::~LobbyClient()
 {
 	m_lobbySock.disconnect();
 	m_gameSock.unbind();
+	// drop the logger to allow recreating it with the same name later
+	spdlog::drop(m_name);
 }
 
 void LobbyClient::bindGameSocket()
@@ -69,8 +71,17 @@ void LobbyClient::connect()
 		joinAckPkt >> type;
 		if(type == uint8_t(ReliablePktType::JOIN_ACK))
 		{
+			std::string assignedName;
 			joinAckPkt >> m_clientId;
-			SPDLOG_LOGGER_INFO(m_logger, "Joined lobby, got id {}", m_clientId);
+			joinAckPkt >> assignedName;
+
+			if(assignedName != m_name)
+			{
+				SPDLOG_LOGGER_INFO(m_logger, "Name changed from '{}' to '{}' due to duplicate", m_name, assignedName);
+				m_name = assignedName;
+			}
+
+			SPDLOG_LOGGER_INFO(m_logger, "Joined lobby, got id {} with name '{}'", m_clientId, m_name);
 		}
 		else
 		{
@@ -102,20 +113,168 @@ void LobbyClient::sendReady()
 	m_bReady = true;
 }
 
+void LobbyClient::sendUnready()
+{
+	sf::Packet unreadyPkt = createPkt(ReliablePktType::LOBBY_UNREADY);
+	unreadyPkt << m_clientId;
+
+	if(checkedSend(m_lobbySock, unreadyPkt) != sf::Socket::Status::Done)
+	{
+		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send LOBBY_UNREADY");
+	}
+	SPDLOG_LOGGER_INFO(m_logger, "Sent unready packet, clientId {}", m_clientId);
+	m_bReady = false;
+}
+
+void LobbyClient::sendStartGame()
+{
+	sf::Packet startPkt = createPkt(ReliablePktType::START_GAME_REQUEST);
+
+	if(checkedSend(m_lobbySock, startPkt) != sf::Socket::Status::Done)
+	{
+		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send START_GAME_REQUEST");
+	}
+	SPDLOG_LOGGER_INFO(m_logger, "Host requested game start");
+}
+
+bool LobbyClient::pollLobbyUpdate()
+{
+	sf::Packet updatePkt;
+	bool wasBlocking = m_lobbySock.isBlocking();
+	m_lobbySock.setBlocking(false);
+
+	sf::Socket::Status status = checkedReceive(m_lobbySock, updatePkt);
+
+	// restore blocking state
+	m_lobbySock.setBlocking(wasBlocking);
+
+	if(status != sf::Socket::Status::Done)
+	{
+		if(status != sf::Socket::Status::NotReady)
+		{
+			SPDLOG_LOGGER_WARN(m_logger, "pollLobbyUpdate: receive status = {}", static_cast<int>(status));
+		}
+		return false;
+	}
+
+	uint8_t type;
+	updatePkt >> type;
+
+	if(type == uint8_t(ReliablePktType::SERVER_SHUTDOWN))
+	{
+		SPDLOG_LOGGER_WARN(m_logger, "Server is shutting down (host disconnected)");
+		throw ServerShutdownException();
+	}
+
+	if(type != uint8_t(ReliablePktType::LOBBY_UPDATE))
+	{
+		SPDLOG_LOGGER_WARN(m_logger, "Expected LOBBY_UPDATE, got packet type {}", type);
+		return false;
+	}
+
+	// parse lobby update
+	uint32_t numPlayers;
+	updatePkt >> numPlayers;
+
+	m_lobbyPlayers.clear();
+	for(uint32_t i = 0; i < numPlayers; ++i)
+	{
+		LobbyPlayerInfo playerInfo;
+		updatePkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
+		m_lobbyPlayers.push_back(playerInfo);
+		SPDLOG_LOGGER_INFO(m_logger, "  Player {}: '{}' (ready={})", playerInfo.id, playerInfo.name, playerInfo.bReady);
+	}
+
+	SPDLOG_LOGGER_INFO(m_logger, "Received lobby update with {} players", numPlayers);
+	return true;
+}
+
+std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packet& pkt)
+{
+	std::array<PlayerState, MAX_PLAYERS> states{};
+	for(auto& state : states)
+		state.m_id = 0;
+
+	size_t numPlayers;
+	pkt >> numPlayers;
+	SPDLOG_LOGGER_INFO(m_logger, "Received GAME_START for {} players", numPlayers);
+
+	for(unsigned i = 0; i < numPlayers; ++i)
+	{
+		uint32_t playerId;
+		std::string playerName;
+		sf::Vector2f pos;
+		sf::Angle rot;
+		pkt >> playerId >> playerName >> pos >> rot;
+
+		if(playerId > 0 && playerId <= MAX_PLAYERS)
+		{
+			states[playerId - 1] = PlayerState(playerId, pos, rot);
+			states[playerId - 1].m_name = playerName;
+			SPDLOG_LOGGER_INFO(m_logger, "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg",
+			                   playerId, playerName, pos.x, pos.y, rot.asDegrees());
+		}
+		else
+		{
+			SPDLOG_LOGGER_ERROR(m_logger, "Invalid player ID {} in GAME_START", playerId);
+		}
+	}
+	return states;
+}
+
+std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::checkForGameStart()
+{
+	sf::Packet startPkt;
+	bool wasBlocking = m_lobbySock.isBlocking();
+	m_lobbySock.setBlocking(false);
+
+	sf::Socket::Status status = checkedReceive(m_lobbySock, startPkt);
+
+	// restore blocking state
+	m_lobbySock.setBlocking(wasBlocking);
+
+	if(status != sf::Socket::Status::Done)
+		return std::nullopt;
+
+	uint8_t type;
+	startPkt >> type;
+
+	switch(type)
+	{
+	case uint8_t(ReliablePktType::SERVER_SHUTDOWN):
+		SPDLOG_LOGGER_WARN(m_logger, "Server is shutting down (host disconnected)");
+		throw ServerShutdownException();
+
+	case uint8_t(ReliablePktType::LOBBY_UPDATE): {
+		uint32_t numPlayers;
+		startPkt >> numPlayers;
+		m_lobbyPlayers.clear();
+		for(uint32_t i = 0; i < numPlayers; ++i)
+		{
+			LobbyPlayerInfo playerInfo;
+			startPkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
+			m_lobbyPlayers.push_back(playerInfo);
+		}
+		SPDLOG_LOGGER_DEBUG(m_logger, "Received lobby update with {} players while waiting", numPlayers);
+		return std::nullopt;
+	}
+	case uint8_t(ReliablePktType::GAME_START):
+		return parseGameStartPacket(startPkt);
+
+	default:
+		SPDLOG_LOGGER_WARN(m_logger, "Unhandled reliable packet type: {}.", type);
+		return std::nullopt;
+	}
+}
+
 std::array<PlayerState, MAX_PLAYERS> LobbyClient::waitForGameStart()
 {
 	while(true)
 	{
 		sf::Packet startPkt;
-		auto const st = checkedReceive(m_lobbySock, startPkt);
-		switch(st)
+		if(checkedReceive(m_lobbySock, startPkt) != sf::Socket::Status::Done)
 		{
-		case sf::Socket::Status::Done:
-			break;
-		case sf::Socket::Status::NotReady:
-			continue;
-		default:
-			SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive GAME_START: {}", (int)st);
+			SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive GAME_START");
 			std::exit(1);
 		}
 
@@ -123,23 +282,26 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::waitForGameStart()
 		startPkt >> type;
 		switch(type)
 		{
-		case uint8_t(ReliablePktType::GAME_START): {
-			std::array<PlayerState, MAX_PLAYERS> states;
-			size_t numPlayers;
+		case uint8_t(ReliablePktType::SERVER_SHUTDOWN):
+			SPDLOG_LOGGER_WARN(m_logger, "Server is shutting down (host disconnected)");
+			throw ServerShutdownException();
+
+		case uint8_t(ReliablePktType::LOBBY_UPDATE): {
+			uint32_t numPlayers;
 			startPkt >> numPlayers;
-			SPDLOG_LOGGER_INFO(m_logger, "Received GAME_START for {} players", numPlayers);
-			for(unsigned i = 0; i < numPlayers; ++i)
+			m_lobbyPlayers.clear();
+			for(uint32_t i = 0; i < numPlayers; ++i)
 			{
-				sf::Vector2f pos;
-				startPkt >> pos;
-				sf::Angle rot;
-				startPkt >> rot;
-				states[i] = PlayerState(i + 1, pos, rot);
-				SPDLOG_LOGGER_INFO(m_logger, "My spawn point is ({},{}), direction angle = {}deg", pos.x, pos.y,
-				                   rot.asDegrees());
+				LobbyPlayerInfo playerInfo;
+				startPkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
+				m_lobbyPlayers.push_back(playerInfo);
 			}
-			return states;
+			SPDLOG_LOGGER_DEBUG(m_logger, "Received lobby update with {} players while waiting", numPlayers);
+			break;
 		}
+		case uint8_t(ReliablePktType::GAME_START):
+			return parseGameStartPacket(startPkt);
+
 		default:
 			SPDLOG_LOGGER_WARN(m_logger, "Unhandled reliable packet type: {}.", type);
 		}

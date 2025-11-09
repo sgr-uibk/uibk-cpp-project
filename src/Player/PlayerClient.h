@@ -29,6 +29,7 @@ class PlayerClient
 
   private:
 	void updateSprite();
+	void updateNameText();
 	static constexpr sf::Vector2f tankDimensions = {64, 64};
 	PlayerState &m_state;
 
@@ -38,6 +39,8 @@ class PlayerClient
 	sf::Texture &m_damagedTex;
 	sf::Texture &m_deadTex;
 	sf::Sprite m_sprite;
+	sf::Font& m_font;  // must be declared before m_nameText
+	sf::Text m_nameText;
 	HealthCallback m_onHealthChanged;
 
 	void syncSpriteToState();

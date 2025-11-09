@@ -4,7 +4,6 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Transformable.hpp>
-#include "Player.h"
 
 class HealthBar : public sf::Drawable, public sf::Transformable
 {

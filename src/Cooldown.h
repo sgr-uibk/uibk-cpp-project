@@ -50,6 +50,16 @@ class Cooldown
 		return wasReady;
 	}
 
+	[[nodiscard]] float getRemaining() const
+	{
+		return m_remaining;
+	}
+
+	void setRemaining(float seconds)
+	{
+		m_remaining = seconds;
+	}
+
   private:
 	float m_duration;
 	float m_remaining;

@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include <iostream>
 #include <SFML/Network.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <spdlog/spdlog.h>
@@ -15,14 +14,11 @@ constexpr sf::Vector2u WINDOW_DIM{800, 600};
 constexpr sf::Vector2f WINDOW_DIMf{WINDOW_DIM};
 typedef uint32_t EntityId;
 
-constexpr uint8_t MAX_PLAYERS = 2;
+constexpr uint8_t MAX_PLAYERS = 4;
 constexpr std::array ALL_PLAYER_COLORS{sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta};
-constexpr std::array<sf::Vector2f, 4> ALL_SPAWN_POINTS = {{{100, 100}, {150, 450}, {300, 400}, {650, 80}}};
 
 static_assert(ALL_PLAYER_COLORS.size() >= MAX_PLAYERS,
               "Using more players than defined player colors. You should add the missing ones.");
-static_assert(ALL_SPAWN_POINTS.size() >= MAX_PLAYERS,
-              "Using more players than defined default map spawn points. You should add the missing ones.");
 
 // TODO: template this
 constexpr auto PLAYER_COLORS = [] {
@@ -30,13 +26,6 @@ constexpr auto PLAYER_COLORS = [] {
 	for(std::size_t i = 0; i < MAX_PLAYERS; ++i)
 		colors[i] = ALL_PLAYER_COLORS[i];
 	return colors;
-}();
-
-constexpr auto SPAWN_POINTS = [] {
-	std::array<sf::Vector2f, MAX_PLAYERS> spawns{};
-	for(std::size_t i = 0; i < MAX_PLAYERS; ++i)
-		spawns[i] = ALL_SPAWN_POINTS[i];
-	return spawns;
 }();
 
 struct Endpoint // TODO, often this can be replaced by e.g. sf::TcpSocket.getRemote*()
@@ -50,9 +39,12 @@ enum class ReliablePktType : uint8_t
 	JOIN_REQ = 1,
 	JOIN_ACK,
 	LOBBY_READY,
-	LOBBY_UPDATE, // TODO srv -> clients
+	LOBBY_UNREADY,
+	LOBBY_UPDATE, // srv -> clients: broadcast lobby state updates
+	START_GAME_REQUEST, // host requests to start game
 	GAME_START,
 	GAME_END,
+	SERVER_SHUTDOWN,
 	PLAYER_LEFT, // TODO
 	_size
 };
@@ -60,6 +52,9 @@ enum class ReliablePktType : uint8_t
 enum class UnreliablePktType : uint8_t
 {
 	MOVE = 1,
+	SHOOT,
+	SELECT_SLOT,
+	USE_ITEM,
 	SNAPSHOT,
 	LAST
 };
@@ -138,27 +133,27 @@ inline sf::Socket::Status checkedReceive(sf::UdpSocket &sock, sf::Packet &pkt,
 	return st;
 }
 
-inline sf::Packet operator<<(sf::Packet &pkt, const sf::Vector2f &vec)
+inline sf::Packet& operator<<(sf::Packet &pkt, const sf::Vector2f &vec)
 {
 	pkt << vec.x;
 	pkt << vec.y;
 	return pkt;
 }
 
-inline sf::Packet operator>>(sf::Packet &pkt, sf::Vector2f &vec)
+inline sf::Packet& operator>>(sf::Packet &pkt, sf::Vector2f &vec)
 {
 	pkt >> vec.x;
 	pkt >> vec.y;
 	return pkt;
 }
 
-inline sf::Packet operator<<(sf::Packet &pkt, const sf::Angle &ang)
+inline sf::Packet& operator<<(sf::Packet &pkt, const sf::Angle &ang)
 {
 	pkt << ang.asRadians();
 	return pkt;
 }
 
-inline sf::Packet operator>>(sf::Packet &pkt, sf::Angle &ang)
+inline sf::Packet& operator>>(sf::Packet &pkt, sf::Angle &ang)
 {
 	float radians;
 	pkt >> radians;
@@ -166,7 +161,7 @@ inline sf::Packet operator>>(sf::Packet &pkt, sf::Angle &ang)
 	return pkt;
 }
 
-inline sf::Packet operator<<(sf::Packet &pkt, sf::RectangleShape const &rec)
+inline sf::Packet& operator<<(sf::Packet &pkt, sf::RectangleShape const &rec)
 {
 	pkt << rec.getPosition();
 	pkt << rec.getSize();
@@ -174,7 +169,7 @@ inline sf::Packet operator<<(sf::Packet &pkt, sf::RectangleShape const &rec)
 	return pkt;
 }
 
-inline sf::Packet operator>>(sf::Packet &pkt, sf::RectangleShape &rec)
+inline sf::Packet& operator>>(sf::Packet &pkt, sf::RectangleShape &rec)
 {
 	uint32_t colorInt = 0;
 	sf::Vector2f pos, sz;

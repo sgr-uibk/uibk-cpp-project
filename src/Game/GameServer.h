@@ -23,8 +23,10 @@ class GameServer
   private:
 	void processPackets();
 	void floodWorldState();
+	void spawnItems();
 
 	std::shared_ptr<spdlog::logger> m_logger;
 	sf::UdpSocket m_gameSock;
 	LobbyServer &m_lobby;
+	sf::Clock m_itemSpawnClock;
 };

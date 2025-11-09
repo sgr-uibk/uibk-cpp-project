@@ -21,18 +21,22 @@ class LobbyServer
 	~LobbyServer();
 	void lobbyLoop(); // blocks until all players ready
 	WorldState startGame(WorldState &worldState);
-	void endGame(EntityId winner);
+	void requestShutdown();
+	bool isShutdownRequested() const { return m_shutdownRequested; }
 
 	std::vector<LobbyPlayer> m_slots; // Vector, clients join sequentially
 
   private:
 	void acceptNewClient();
 	void handleClient(LobbyPlayer &);
-	void resetClientsReadiness();
+	void broadcastLobbyUpdate();
+	void broadcastServerShutdown();
 
 	sf::TcpListener m_listener;
 	sf::SocketSelector m_multiSock;
 	uint32_t m_nextId = 1;
 	std::shared_ptr<spdlog::logger> m_logger;
 	uint8_t m_cReady;
+	bool m_gameStartRequested = false;
+	bool m_shutdownRequested = false;
 };

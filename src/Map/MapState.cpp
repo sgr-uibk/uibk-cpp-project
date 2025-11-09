@@ -1,7 +1,8 @@
 #include "MapState.h"
 #include "Networking.h"
+#include <spdlog/spdlog.h>
 
-MapState::MapState(sf::Vector2f size) : m_spawns(SPAWN_POINTS), m_size(size)
+MapState::MapState(sf::Vector2f size) : m_size(size)
 {
 	unsigned const width = size.x;
 	unsigned const height = size.y;
@@ -16,6 +17,12 @@ MapState::MapState(sf::Vector2f size) : m_spawns(SPAWN_POINTS), m_size(size)
 	addWall(200, 100, wallThickness, 400); // vertical
 	addWall(400, 200, 200, wallThickness); // horizontal
 	addWall(600, 50, wallThickness, 300);  // vertical
+
+	// predefined spawn points
+	addSpawnPoint({100.f, 100.f});   // Top-left
+	addSpawnPoint({700.f, 100.f});   // Top-right
+	addSpawnPoint({100.f, 500.f});   // Bottom-left
+	addSpawnPoint({700.f, 500.f});   // Bottom-right
 }
 
 void MapState::addWall(float x, float y, float w, float h)
@@ -26,12 +33,17 @@ void MapState::addWall(float x, float y, float w, float h)
 	m_walls.push_back(std::move(r));
 }
 
+void MapState::addSpawnPoint(sf::Vector2f spawn)
+{
+	m_spawns.push_back(spawn);
+}
+
 const std::vector<sf::RectangleShape> &MapState::getWalls() const
 {
 	return m_walls;
 }
 
-std::array<sf::Vector2f, MAX_PLAYERS> MapState::getSpawns() const
+const std::vector<sf::Vector2f> &MapState::getSpawns() const
 {
 	return m_spawns;
 }
@@ -41,8 +53,11 @@ bool MapState::isColliding(const sf::RectangleShape &r) const
 	sf::FloatRect rbox = r.getGlobalBounds();
 	for(auto const &w : m_walls)
 	{
-		if(rbox.findIntersection(w.getGlobalBounds()))
+		sf::FloatRect wbox = w.getGlobalBounds();
+		if(rbox.findIntersection(wbox).has_value())
+		{
 			return true;
+		}
 	}
 	return false;
 }

@@ -22,7 +22,6 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG        v1.16.0
     GIT_SHALLOW    ON
-    FIND_PACKAGE_ARGS NAMES spdlog
 )
 FetchContent_MakeAvailable(spdlog)
 
@@ -33,6 +32,16 @@ file(GLOB STATE_SRCS src/*/*State.cpp)
 file(GLOB CLIENT_SRCS src/*/*Client.cpp)
 file(GLOB SERVER_SRCS src/*/*Server.cpp)
 
+add_executable(TankGame
+    src/main.cpp
+    src/Menu.cpp
+    ${STATE_SRCS}
+    ${CLIENT_SRCS}
+    ${SERVER_SRCS}
+    src/Utilities.cpp
+    src/HealthBar.cpp
+)
+
 add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp)
 add_executable(Server ${TEST_ROOT}/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp)
 
@@ -41,7 +50,9 @@ target_link_libraries(common_deps
     INTERFACE
     SFML::Graphics
     SFML::Network
+    SFML::Audio
     spdlog::spdlog
 )
+target_link_libraries(TankGame PRIVATE common_deps)
 target_link_libraries(Client PRIVATE common_deps)
 target_link_libraries(Server PRIVATE common_deps)

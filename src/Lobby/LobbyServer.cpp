@@ -28,8 +28,19 @@ LobbyServer::~LobbyServer()
 
 void LobbyServer::lobbyLoop()
 {
-	while(m_cReady < MAX_PLAYERS)
+	auto countValidPlayers = [this]() {
+		int count = 0;
+		for(const auto &p : m_slots)
+			if(p.bValid) count++;
+		return count;
+	};
+
+	// wait until host explicitly starts the game
+	while(!m_gameStartRequested && !m_shutdownRequested)
 	{
+		int validPlayers = countValidPlayers();
+
+		// keep processing until host requests start
 		if(!m_multiSock.wait(sf::milliseconds(250)))
 		{
 			sf::sleep(sf::milliseconds(100));
@@ -47,17 +58,30 @@ void LobbyServer::lobbyLoop()
 			handleClient(p);
 		}
 	}
+
+	if(m_shutdownRequested)
+	{
+		SPDLOG_LOGGER_INFO(m_logger, "Server shutdown requested, exiting lobby loop");
+		return;
+	}
+
+	int validPlayers = countValidPlayers();
+	if(validPlayers >= 2 && m_cReady >= validPlayers)
+	{
+		SPDLOG_LOGGER_INFO(m_logger, "Host started game with {} ready players", validPlayers);
+	}
+	else
+	{
+		SPDLOG_LOGGER_WARN(m_logger, "Game start requested but conditions not met (players={}, ready={})",
+		                   validPlayers, m_cReady);
+	}
 }
 
 void LobbyServer::acceptNewClient()
 {
 	sf::TcpSocket newClientSock;
-	sf::Socket::Status st;
-	if(st = m_listener.accept(newClientSock); st != sf::Socket::Status::Done)
-	{
-		SPDLOG_LOGGER_WARN(m_logger, "Accept failed: {}", int(st));
+	if(m_listener.accept(newClientSock) != sf::Socket::Status::Done)
 		return;
-	}
 	assert(newClientSock.getRemoteAddress().has_value()); // Know exists from status done.
 
 	if(m_nextId > MAX_PLAYERS)
@@ -70,22 +94,23 @@ void LobbyServer::acceptNewClient()
 
 	sf::IpAddress const remoteAddr = newClientSock.getRemoteAddress().value();
 	LobbyPlayer p{.id = m_nextId, .udpAddr = remoteAddr, .tcpSocket = std::move(newClientSock)};
+	// keep socket blocking until we receive JOIN_REQ
+	p.tcpSocket.setBlocking(true);
 
 	sf::Packet joinReqPkt;
-	if(st = checkedReceive(p.tcpSocket, joinReqPkt); st != sf::Socket::Status::Done)
+	if(checkedReceive(p.tcpSocket, joinReqPkt) != sf::Socket::Status::Done)
 	{
-		SPDLOG_LOGGER_WARN(m_logger, "Failed to receive a JOIN_REQUEST pkt {}", int(st));
-	ABORT_CONN:
-#ifdef SFML_SYSTEM_LINUX
-		perror("Error from OS");
-#endif
 		p.tcpSocket.disconnect();
 		return;
 	}
+
 	uint8_t type;
 	joinReqPkt >> type;
 	if(type != uint8_t(ReliablePktType::JOIN_REQ))
-		goto ABORT_CONN;
+	{
+		p.tcpSocket.disconnect();
+		return;
+	}
 
 	uint32_t protoVer;
 	joinReqPkt >> protoVer;
@@ -98,23 +123,50 @@ void LobbyServer::acceptNewClient()
 	}
 	joinReqPkt >> p.name;
 	joinReqPkt >> p.gamePort;
-	SPDLOG_LOGGER_INFO(m_logger, "Client id {}, udpPort {} ", p.id, p.gamePort);
+	SPDLOG_LOGGER_INFO(m_logger, "Client id {}, udpPort {}, requested name '{}' ", p.id, p.gamePort, p.name);
 	assert(p.id && p.gamePort);
+
+	// check for duplicate names
+	std::string originalName = p.name;
+	int suffix = 2;
+	bool nameExists = true;
+	while(nameExists)
+	{
+		nameExists = false;
+		for(const auto& existingPlayer : m_slots)
+		{
+			if(existingPlayer.bValid && existingPlayer.name == p.name)
+			{
+				nameExists = true;
+				p.name = originalName + " (" + std::to_string(suffix) + ")";
+				suffix++;
+				break;
+			}
+		}
+	}
+
+	if(p.name != originalName)
+	{
+		SPDLOG_LOGGER_INFO(m_logger, "Name '{}' already taken, assigned name '{}'", originalName, p.name);
+	}
 
 	sf::Packet joinAckPkt = createPkt(ReliablePktType::JOIN_ACK);
 	joinAckPkt << p.id;
-	SPDLOG_LOGGER_INFO(m_logger, "This client gets id: {}. ", p.id);
+	joinAckPkt << p.name;
+	SPDLOG_LOGGER_INFO(m_logger, "This client gets id: {} and name: '{}'", p.id, p.name);
 	if(checkedSend(p.tcpSocket, joinAckPkt) != sf::Socket::Status::Done)
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send JOIN_ACK to {} (id {})", p.name, p.id);
+
+	// set to non-blocking for normal lobby operation
+	p.tcpSocket.setBlocking(false);
 
 	// All good from server side. Make the client valid.
 	p.bValid = true;
 	m_nextId++;
-	// Add the client to the pool, now that registration is over, continue non-blocking.
-	p.tcpSocket.setBlocking(false);
 	m_multiSock.add(p.tcpSocket);
 	SPDLOG_LOGGER_INFO(m_logger, "Player {} (id {}) joined lobby", p.name, p.id);
 	m_slots.push_back(std::move(p));
+	broadcastLobbyUpdate();
 }
 
 void LobbyServer::handleClient(LobbyPlayer &p)
@@ -127,7 +179,23 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 		SPDLOG_LOGGER_INFO(m_logger, "Player {} (id {}) left lobby", p.name, p.id);
 		m_multiSock.remove(p.tcpSocket);
 		p.tcpSocket.disconnect();
+
+		// decrement ready count if player was ready
+		if(p.bReady)
+		{
+			m_cReady--;
+			SPDLOG_LOGGER_INFO(m_logger, "Player was ready, decrementing ready count to {}", m_cReady);
+		}
+
+		// host disconnects -> shut down the server
+		if(p.id == 1)
+		{
+			SPDLOG_LOGGER_WARN(m_logger, "Host (player 1) disconnected, shutting down server");
+			requestShutdown();
+		}
+
 		p.bValid = false;
+		broadcastLobbyUpdate();
 		break;
 
 	case sf::Socket::Status::Done: {
@@ -141,6 +209,30 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 			p.bReady = true;
 			m_cReady++;
 			SPDLOG_LOGGER_INFO(m_logger, "Player {} (id {}) is ready", p.name, p.id);
+			broadcastLobbyUpdate();
+		}
+		else if(type == static_cast<uint8_t>(ReliablePktType::LOBBY_UNREADY))
+		{
+			uint32_t clientId;
+			rxPkt >> clientId;
+			assert(clientId == p.id && p.bReady);
+			p.bReady = false;
+			m_cReady--;
+			SPDLOG_LOGGER_INFO(m_logger, "Player {} (id {}) is now unready", p.name, p.id);
+			broadcastLobbyUpdate();
+		}
+		else if(type == static_cast<uint8_t>(ReliablePktType::START_GAME_REQUEST))
+		{
+			if(p.id == 1)
+			{
+				SPDLOG_LOGGER_INFO(m_logger, "Host {} requested game start", p.name);
+				m_gameStartRequested = true;
+			}
+			else
+			{
+				SPDLOG_LOGGER_WARN(m_logger, "Non-host player {} (id {}) tried to start game - ignoring",
+				                   p.name, p.id);
+			}
 		}
 		break;
 	}
@@ -157,26 +249,42 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 	static std::mt19937_64 rng{}; // deterministic spawn points
 	auto spawns = worldState.getMap().getSpawns();
 	std::shuffle(spawns.begin(), spawns.end(), rng);
+
+	std::vector<LobbyPlayer const*> validPlayers;
 	for(auto const &c : m_slots)
 	{
-		if(!c.bValid)
-			continue;
+		if(c.bValid)
+		{
+			validPlayers.push_back(&c);
 
-		// Every player gets a random spawn point and rotation
-		sf::Angle const rot = sf::degrees(float(rng()) / float(rng.max() / 360));
-		PlayerState ps(c.id, spawns[c.id - 1]);
-
-		ps.m_rot = rot;
-		worldState.setPlayer(ps);
+			// assign spawn point from shuffled list
+			sf::Vector2f const spawn = spawns[validPlayers.size() - 1];
+			sf::Angle const rot = sf::degrees(float(rng()) / float(rng.max() / 360));
+			PlayerState ps(c.id, spawn);
+			ps.m_rot = rot;
+			worldState.setPlayer(ps);
+		}
 	}
 
 	sf::Packet startPkt = createPkt(ReliablePktType::GAME_START);
-	auto const &playerStates = worldState.getPlayers();
-	startPkt << playerStates.size();
-	for(auto const &playerState : playerStates)
+	startPkt << validPlayers.size();
+
+	for(auto const* validPlayer : validPlayers)
 	{
-		startPkt << playerState.getPosition();
-		startPkt << playerState.getRotation();
+		auto const &playerStates = worldState.getPlayers();
+		for(auto const &ps : playerStates)
+		{
+			if(ps.m_id == validPlayer->id)
+			{
+				startPkt << ps.m_id;
+				startPkt << validPlayer->name;
+				startPkt << ps.getPosition();
+				startPkt << ps.getRotation();
+				SPDLOG_LOGGER_DEBUG(m_logger, "  Sending player {} ('{}') spawn: pos=({:.1f},{:.1f}), rot={:.1f}°",
+				                    ps.m_id, validPlayer->name, ps.getPosition().x, ps.getPosition().y, ps.getRotation().asDegrees());
+				break;
+			}
+		}
 	}
 	// Distribute spawn points with GAME_START pkt
 	for(auto &p : m_slots)
@@ -186,24 +294,71 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 		if(checkedSend(p.tcpSocket, startPkt) != sf::Socket::Status::Done)
 			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send GAME_START to {} (id {})", p.name, p.id);
 	}
-	return worldState;
+	return std::move(worldState);
 }
 
-void LobbyServer::resetClientsReadiness()
+void LobbyServer::broadcastLobbyUpdate()
 {
-	m_cReady = 0;
-	for(auto &c : m_slots)
-		c.bReady = false;
-}
+	uint32_t numPlayers = 0;
+	for(const auto &p : m_slots)
+	{
+		if(p.bValid)
+			numPlayers++;
+	}
 
-void LobbyServer::endGame(EntityId winner)
-{
-	resetClientsReadiness();
-	sf::Packet gameEndPkt = createPkt(ReliablePktType::GAME_END);
-	gameEndPkt << winner;
+	sf::Packet updatePkt = createPkt(ReliablePktType::LOBBY_UPDATE);
+	updatePkt << numPlayers;
+
+	for(const auto &p : m_slots)
+	{
+		if(p.bValid)
+		{
+			updatePkt << p.id << p.name << p.bReady;
+		}
+	}
+
 	for(auto &p : m_slots)
 	{
-		if(auto st = checkedSend(p.tcpSocket, gameEndPkt); st != sf::Socket::Status::Done)
-			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send GAME_END to {} (id {}): {}", p.name, p.id, (int)st);
+		if(p.bValid)
+		{
+			if(checkedSend(p.tcpSocket, updatePkt) != sf::Socket::Status::Done)
+			{
+				SPDLOG_LOGGER_WARN(m_logger, "Failed to send LOBBY_UPDATE to {} (id {})", p.name, p.id);
+			}
+		}
+	}
+
+	SPDLOG_LOGGER_DEBUG(m_logger, "Broadcasted lobby update to {} players", numPlayers);
+}
+
+void LobbyServer::requestShutdown()
+{
+	if(m_shutdownRequested)
+		return;
+
+	SPDLOG_LOGGER_INFO(m_logger, "Server shutdown requested");
+	m_shutdownRequested = true;
+
+	broadcastServerShutdown();
+}
+
+void LobbyServer::broadcastServerShutdown()
+{
+	SPDLOG_LOGGER_INFO(m_logger, "Broadcasting SERVER_SHUTDOWN to all clients");
+	sf::Packet shutdownPkt = createPkt(ReliablePktType::SERVER_SHUTDOWN);
+
+	for(auto &p : m_slots)
+	{
+		if(p.bValid)
+		{
+			if(checkedSend(p.tcpSocket, shutdownPkt) != sf::Socket::Status::Done)
+			{
+				SPDLOG_LOGGER_WARN(m_logger, "Failed to send SERVER_SHUTDOWN to {} (id {})", p.name, p.id);
+			}
+			else
+			{
+				SPDLOG_LOGGER_INFO(m_logger, "Sent SERVER_SHUTDOWN to {} (id {})", p.name, p.id);
+			}
+		}
 	}
 }

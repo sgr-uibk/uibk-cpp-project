@@ -1,5 +1,6 @@
 #include "GameServer.h"
 #include "Lobby/LobbyServer.h"
+#include "GameConfig.h"
 #include <spdlog/spdlog.h>
 
 GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_ptr<spdlog::logger> const &logger)
@@ -16,6 +17,7 @@ GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_
 		throw std::runtime_error("Failed to bind UDP port");
 	}
 	m_gameSock.setBlocking(false);
+	m_itemSpawnClock.start();
 }
 
 GameServer::~GameServer()
@@ -35,6 +37,15 @@ PlayerState *GameServer::matchLoop()
 			sf::sleep(sf::seconds(UNRELIABLE_TICK_RATE - dt));
 		m_world.update(UNRELIABLE_TICK_RATE);
 
+		spawnItems();
+
+		m_world.checkProjectilePlayerCollisions();
+		m_world.checkProjectileWallCollisions();
+		m_world.checkPlayerItemCollisions();
+		m_world.checkPlayerPlayerCollisions();
+		m_world.removeInactiveProjectiles();
+		m_world.removeInactiveItems();
+
 		floodWorldState();
 
 		int numAlive = 0;
@@ -45,6 +56,8 @@ PlayerState *GameServer::matchLoop()
 			{
 				numAlive++;
 				pWinner = &p;
+				SPDLOG_LOGGER_DEBUG(m_logger, "Player {} is alive: hp={}, pos=({},{})",
+				                    p.m_id, p.getHealth(), p.getPosition().x, p.getPosition().y);
 			}
 		}
 		if(numAlive == 1)
@@ -64,11 +77,16 @@ PlayerState *GameServer::matchLoop()
 
 void GameServer::processPackets()
 {
-	sf::Packet rxPkt;
-	std::optional<sf::IpAddress> srcAddrOpt;
-	uint16_t srcPort;
-	if(checkedReceive(m_gameSock, rxPkt, srcAddrOpt, srcPort) == sf::Socket::Status::Done)
+	// process ALL available packets
+	while(true)
 	{
+		sf::Packet rxPkt;
+		std::optional<sf::IpAddress> srcAddrOpt;
+		uint16_t srcPort;
+
+		if(checkedReceive(m_gameSock, rxPkt, srcAddrOpt, srcPort) != sf::Socket::Status::Done)
+			break;
+
 		uint8_t type;
 		rxPkt >> type;
 		switch(UnreliablePktType(type))
@@ -88,13 +106,94 @@ void GameServer::processPackets()
 				                   ps.m_rot.asDegrees());
 			}
 			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(m_logger, "Dropping MOVE packet from invalid player id {}", clientId);
+			break;
+		}
+		case UnreliablePktType::SHOOT: {
+			uint32_t clientId;
+			sf::Angle aimAngle;
+			rxPkt >> clientId;
+			rxPkt >> aimAngle;
+			auto const &states = m_world.getPlayers();
+			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
+			{
+				PlayerState &ps = m_world.getPlayerById(clientId);
+
+				if(ps.canShoot())
+				{
+					ps.shoot();
+
+					// spawn projectile at player position
+					sf::Vector2f position = ps.getPosition();
+
+					// calculate velocity from aim angle
+					sf::Vector2f velocity(
+						std::sin(aimAngle.asRadians()) * GameConfig::Projectile::SPEED,
+						-std::cos(aimAngle.asRadians()) * GameConfig::Projectile::SPEED
+					);
+
+					// Apply damage multiplier from powerups
+					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
+					m_world.addProjectile(position, velocity, clientId, damage);
+					SPDLOG_LOGGER_INFO(m_logger, "Player {} shoots at angle {} (damage={})", clientId, aimAngle.asDegrees(), damage);
+				}
+			}
+			else
+				SPDLOG_LOGGER_WARN(m_logger, "Dropping SHOOT packet from invalid player id {}", clientId);
+			break;
+		}
+		case UnreliablePktType::SELECT_SLOT: {
+			uint32_t clientId;
+			int32_t slot;
+			rxPkt >> clientId;
+			rxPkt >> slot;
+			auto const &states = m_world.getPlayers();
+			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
+			{
+				PlayerState &ps = m_world.getPlayerById(clientId);
+				ps.setSelectedSlot(slot);
+				SPDLOG_LOGGER_DEBUG(m_logger, "Player {} selected slot {}", clientId, slot);
+			}
+			else
+				SPDLOG_LOGGER_WARN(m_logger, "Dropping SELECT_SLOT packet from invalid player id {}", clientId);
+			break;
+		}
+		case UnreliablePktType::USE_ITEM: {
+			uint32_t clientId;
+			rxPkt >> clientId;
+			auto const &states = m_world.getPlayers();
+			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
+			{
+				PlayerState &ps = m_world.getPlayerById(clientId);
+				ps.useSelectedItem();
+				SPDLOG_LOGGER_INFO(m_logger, "Player {} used item from slot {}", clientId, ps.getSelectedSlot());
+			}
+			else
+				SPDLOG_LOGGER_WARN(m_logger, "Dropping USE_ITEM packet from invalid player id {}", clientId);
 			break;
 		}
 		default:
 			std::string srcAddr = srcAddrOpt.has_value() ? srcAddrOpt.value().toString() : std::string("?");
 			SPDLOG_LOGGER_WARN(m_logger, "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr, srcPort);
 		}
+	}
+}
+
+void GameServer::spawnItems()
+{
+	if(m_itemSpawnClock.getElapsedTime().asSeconds() > GameConfig::ItemSpawn::SPAWN_INTERVAL &&
+	   m_world.getItems().size() < GameConfig::ItemSpawn::MAX_ITEMS_ON_MAP)
+	{
+		m_itemSpawnClock.restart();
+
+		float x = 100.f + static_cast<float>(rand() % 600);
+		float y = 100.f + static_cast<float>(rand() % 400);
+		sf::Vector2f position(x, y);
+
+		PowerupType type = static_cast<PowerupType>(1 + (rand() % 5));
+
+		m_world.addItem(position, type);
+		SPDLOG_LOGGER_INFO(m_logger, "Spawned powerup type {} at ({}, {})", static_cast<int>(type), x, y);
 	}
 }
 
