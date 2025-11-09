@@ -56,8 +56,8 @@ PlayerState *GameServer::matchLoop()
 			{
 				numAlive++;
 				pWinner = &p;
-				SPDLOG_LOGGER_DEBUG(m_logger, "Player {} is alive: hp={}, pos=({},{})",
-				                    p.m_id, p.getHealth(), p.getPosition().x, p.getPosition().y);
+				SPDLOG_LOGGER_DEBUG(m_logger, "Player {} is alive: hp={}, pos=({},{})", p.m_id, p.getHealth(),
+				                    p.getPosition().x, p.getPosition().y);
 			}
 		}
 		if(numAlive == 1)
@@ -127,15 +127,14 @@ void GameServer::processPackets()
 					sf::Vector2f position = ps.getPosition();
 
 					// calculate velocity from aim angle
-					sf::Vector2f velocity(
-						std::sin(aimAngle.asRadians()) * GameConfig::Projectile::SPEED,
-						-std::cos(aimAngle.asRadians()) * GameConfig::Projectile::SPEED
-					);
+					sf::Vector2f velocity(std::sin(aimAngle.asRadians()) * GameConfig::Projectile::SPEED,
+					                      -std::cos(aimAngle.asRadians()) * GameConfig::Projectile::SPEED);
 
 					// Apply damage multiplier from powerups
 					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
 					m_world.addProjectile(position, velocity, clientId, damage);
-					SPDLOG_LOGGER_INFO(m_logger, "Player {} shoots at angle {} (damage={})", clientId, aimAngle.asDegrees(), damage);
+					SPDLOG_LOGGER_INFO(m_logger, "Player {} shoots at angle {} (damage={})", clientId,
+					                   aimAngle.asDegrees(), damage);
 				}
 			}
 			else

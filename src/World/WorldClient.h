@@ -10,7 +10,8 @@
 class WorldClient
 {
   public:
-	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players, sf::Music* battleMusic = nullptr);
+	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players,
+	            sf::Music *battleMusic = nullptr);
 
 	std::optional<sf::Packet> update();
 	void draw(sf::RenderWindow &window) const;
@@ -24,8 +25,14 @@ class WorldClient
 	WorldState &getState();
 	void pollEvents();
 
-	bool isPaused() const { return m_isPaused; }
-	bool shouldDisconnect() const { return m_shouldDisconnect; }
+	bool isPaused() const
+	{
+		return m_isPaused;
+	}
+	bool shouldDisconnect() const
+	{
+		return m_shouldDisconnect;
+	}
 
 	bool m_bAcceptInput;
 
@@ -48,7 +55,11 @@ class WorldClient
 	sf::View m_worldView;
 	sf::View m_hudView;
 
-	enum class PauseMenuState { MAIN, SETTINGS };
+	enum class PauseMenuState
+	{
+		MAIN,
+		SETTINGS
+	};
 	bool m_isPaused = false;
 	bool m_shouldDisconnect = false;
 	PauseMenuState m_pauseMenuState = PauseMenuState::MAIN;
@@ -60,5 +71,5 @@ class WorldClient
 	int m_requestedSlot = 0;
 	bool m_useItemRequested = false;
 
-	sf::Music* m_battleMusic = nullptr;
+	sf::Music *m_battleMusic = nullptr;
 };

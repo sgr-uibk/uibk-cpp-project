@@ -39,7 +39,7 @@ class PlayerClient
 	sf::Texture &m_damagedTex;
 	sf::Texture &m_deadTex;
 	sf::Sprite m_sprite;
-	sf::Font& m_font;  // must be declared before m_nameText
+	sf::Font &m_font; // must be declared before m_nameText
 	sf::Text m_nameText;
 	HealthCallback m_onHealthChanged;
 

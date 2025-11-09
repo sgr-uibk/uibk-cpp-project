@@ -16,35 +16,47 @@ class WorldState
 
 	std::array<PlayerState, MAX_PLAYERS> &getPlayers();
 	PlayerState &getPlayerById(size_t id);
-	const PlayerState& getPlayerById(size_t id) const;
+	const PlayerState &getPlayerById(size_t id) const;
 	[[nodiscard]] MapState &getMap();
 
-    uint32_t addProjectile(sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId, int damage = 25);
-    void removeProjectile(uint32_t id);
-    void removeInactiveProjectiles();
-    std::vector<ProjectileState>& getProjectiles() { return m_projectiles; }
-    const std::vector<ProjectileState>& getProjectiles() const { return m_projectiles; }
+	uint32_t addProjectile(sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId, int damage = 25);
+	void removeProjectile(uint32_t id);
+	void removeInactiveProjectiles();
+	std::vector<ProjectileState> &getProjectiles()
+	{
+		return m_projectiles;
+	}
+	const std::vector<ProjectileState> &getProjectiles() const
+	{
+		return m_projectiles;
+	}
 
-    uint32_t addItem(sf::Vector2f position, PowerupType type);
-    void removeItem(uint32_t id);
-    void removeInactiveItems();
-    std::vector<ItemState>& getItems() { return m_items; }
-    const std::vector<ItemState>& getItems() const { return m_items; }
+	uint32_t addItem(sf::Vector2f position, PowerupType type);
+	void removeItem(uint32_t id);
+	void removeInactiveItems();
+	std::vector<ItemState> &getItems()
+	{
+		return m_items;
+	}
+	const std::vector<ItemState> &getItems() const
+	{
+		return m_items;
+	}
 
-    void checkProjectilePlayerCollisions();
-    void checkProjectileWallCollisions();
-    void checkPlayerItemCollisions();
-    void checkPlayerPlayerCollisions();
+	void checkProjectilePlayerCollisions();
+	void checkProjectileWallCollisions();
+	void checkPlayerItemCollisions();
+	void checkPlayerPlayerCollisions();
 
-    // serialization (full snapshot)
-    void serialize(sf::Packet& pkt) const;
-    void deserialize(sf::Packet& pkt);
+	// serialization (full snapshot)
+	void serialize(sf::Packet &pkt) const;
+	void deserialize(sf::Packet &pkt);
 
 	WorldState &operator=(const WorldState &);
 
   private:
 	MapState m_map;
-    // Players are not removed on disconnect,
+	// Players are not removed on disconnect,
 	// as others can't join in the battle phase anyway.
 	std::array<PlayerState, MAX_PLAYERS> m_players;
 	std::vector<ProjectileState> m_projectiles;

@@ -21,13 +21,14 @@ static std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &stat
 	return make_players_impl<N>(states, colors, std::make_index_sequence<N>{});
 }
 
-WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players, sf::Music* battleMusic)
+WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players,
+                         sf::Music *battleMusic)
 	: m_bAcceptInput(true), m_window(window), m_state(sf::Vector2f(window.getSize())), m_mapClient(m_state.getMap()),
 	  m_battleMusic(battleMusic),
 	  // Members must be initialized before the constructor body runs,
       // so this initializer needs to convert the PlayerStates to PlayerClients *at compile time*
 	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
-		m_pauseFont(g_assetPathResolver.resolveRelative("Font/LiberationSans-Regular.ttf").string())
+	  m_pauseFont(g_assetPathResolver.resolveRelative("Font/LiberationSans-Regular.ttf").string())
 {
 	for(auto &ps : players)
 	{
@@ -49,7 +50,9 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::ar
 	float startY = windowSize.y / 2.f - 100.f;
 	float spacing = GameConfig::UI::BUTTON_SPACING;
 
-	const std::vector<std::string> buttonLabels = {GameConfig::UI::Text::BUTTON_RESUME, GameConfig::UI::Text::BUTTON_DISCONNECT, GameConfig::UI::Text::BUTTON_SETTINGS};
+	const std::vector<std::string> buttonLabels = {GameConfig::UI::Text::BUTTON_RESUME,
+	                                               GameConfig::UI::Text::BUTTON_DISCONNECT,
+	                                               GameConfig::UI::Text::BUTTON_SETTINGS};
 	for(size_t i = 0; i < buttonLabels.size(); ++i)
 	{
 		sf::RectangleShape button(sf::Vector2f(buttonWidth, buttonHeight));
@@ -65,10 +68,9 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::ar
 		text.setFillColor(sf::Color::White);
 
 		sf::FloatRect textBounds = text.getLocalBounds();
-		text.setPosition(sf::Vector2f(
-			centerX + buttonWidth / 2.f - textBounds.size.x / 2.f,
-			startY + i * (buttonHeight + spacing) + buttonHeight / 2.f - textBounds.size.y / 2.f - 5.f
-		));
+		text.setPosition(
+			sf::Vector2f(centerX + buttonWidth / 2.f - textBounds.size.x / 2.f,
+		                 startY + i * (buttonHeight + spacing) + buttonHeight / 2.f - textBounds.size.y / 2.f - 5.f));
 		m_pauseButtonTexts.push_back(text);
 	}
 }
@@ -96,8 +98,8 @@ std::optional<sf::Packet> WorldClient::update()
 	bool const s = hasFocus && sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S);
 	bool const a = hasFocus && sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
 	bool const d = hasFocus && sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
-	bool const shoot = hasFocus && (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Space)
-	                   || sf::Mouse::isButtonPressed(sf::Mouse::Button::Left));
+	bool const shoot = hasFocus && (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Space) ||
+	                                sf::Mouse::isButtonPressed(sf::Mouse::Button::Left));
 
 	const sf::Vector2f posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
 
@@ -333,10 +335,7 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 		pauseTitle.setCharacterSize(48);
 		pauseTitle.setFillColor(sf::Color::White);
 		sf::FloatRect titleBounds = pauseTitle.getLocalBounds();
-		pauseTitle.setPosition(sf::Vector2f(
-			window.getSize().x / 2.f - titleBounds.size.x / 2.f,
-			80.f
-		));
+		pauseTitle.setPosition(sf::Vector2f(window.getSize().x / 2.f - titleBounds.size.x / 2.f, 80.f));
 		window.draw(pauseTitle);
 
 		sf::Text warningText(m_pauseFont);
@@ -344,10 +343,7 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 		warningText.setCharacterSize(20);
 		warningText.setFillColor(sf::Color(255, 100, 100));
 		sf::FloatRect warningBounds = warningText.getLocalBounds();
-		warningText.setPosition(sf::Vector2f(
-			window.getSize().x / 2.f - warningBounds.size.x / 2.f,
-			160.f
-		));
+		warningText.setPosition(sf::Vector2f(window.getSize().x / 2.f - warningBounds.size.x / 2.f, 160.f));
 		window.draw(warningText);
 
 		for(size_t i = 0; i < m_pauseButtons.size(); ++i)
@@ -363,20 +359,14 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 		settingsTitle.setCharacterSize(40);
 		settingsTitle.setFillColor(sf::Color::White);
 		sf::FloatRect titleBounds = settingsTitle.getLocalBounds();
-		settingsTitle.setPosition(sf::Vector2f(
-			window.getSize().x / 2.f - titleBounds.size.x / 2.f,
-			60.f
-		));
+		settingsTitle.setPosition(sf::Vector2f(window.getSize().x / 2.f - titleBounds.size.x / 2.f, 60.f));
 		window.draw(settingsTitle);
 
 		if(m_battleMusic)
 		{
 			sf::RectangleShape musicButton;
 			musicButton.setSize({GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT});
-			musicButton.setPosition({
-				window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f,
-				120.f
-			});
+			musicButton.setPosition({window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 120.f});
 			musicButton.setFillColor(sf::Color(80, 80, 80));
 			window.draw(musicButton);
 
@@ -387,9 +377,10 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 			musicText.setFillColor(sf::Color::White);
 			sf::FloatRect musicBounds = musicText.getLocalBounds();
 			musicText.setPosition(sf::Vector2f(
-				musicButton.getPosition().x + (GameConfig::UI::MUSIC_BUTTON_WIDTH - musicBounds.size.x) / 2.f - musicBounds.position.x,
-				musicButton.getPosition().y + (GameConfig::UI::MUSIC_BUTTON_HEIGHT - musicBounds.size.y) / 2.f - musicBounds.position.y
-			));
+				musicButton.getPosition().x + (GameConfig::UI::MUSIC_BUTTON_WIDTH - musicBounds.size.x) / 2.f -
+					musicBounds.position.x,
+				musicButton.getPosition().y + (GameConfig::UI::MUSIC_BUTTON_HEIGHT - musicBounds.size.y) / 2.f -
+					musicBounds.position.y));
 			window.draw(musicText);
 		}
 
@@ -398,19 +389,13 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 		keybindsHeader.setCharacterSize(28);
 		keybindsHeader.setFillColor(sf::Color(200, 200, 100));
 		sf::FloatRect headerBounds = keybindsHeader.getLocalBounds();
-		keybindsHeader.setPosition(sf::Vector2f(
-			window.getSize().x / 2.f - headerBounds.size.x / 2.f,
-			190.f
-		));
+		keybindsHeader.setPosition(sf::Vector2f(window.getSize().x / 2.f - headerBounds.size.x / 2.f, 190.f));
 		window.draw(keybindsHeader);
 
 		std::vector<std::string> keybindLabels = {
-			GameConfig::UI::Text::KEYBIND_MOVE,
-			GameConfig::UI::Text::KEYBIND_SHOOT,
-			GameConfig::UI::Text::KEYBIND_USE_ITEM,
-			GameConfig::UI::Text::KEYBIND_SELECT_HOTBAR,
-			GameConfig::UI::Text::KEYBIND_PAUSE
-		};
+			GameConfig::UI::Text::KEYBIND_MOVE, GameConfig::UI::Text::KEYBIND_SHOOT,
+			GameConfig::UI::Text::KEYBIND_USE_ITEM, GameConfig::UI::Text::KEYBIND_SELECT_HOTBAR,
+			GameConfig::UI::Text::KEYBIND_PAUSE};
 
 		for(size_t i = 0; i < keybindLabels.size(); ++i)
 		{
@@ -419,19 +404,14 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 			keybindText.setCharacterSize(20);
 			keybindText.setFillColor(sf::Color(200, 200, 200));
 			sf::FloatRect textBounds = keybindText.getLocalBounds();
-			keybindText.setPosition(sf::Vector2f(
-				window.getSize().x / 2.f - textBounds.size.x / 2.f,
-				235.f + i * 32.f
-			));
+			keybindText.setPosition(sf::Vector2f(window.getSize().x / 2.f - textBounds.size.x / 2.f, 235.f + i * 32.f));
 			window.draw(keybindText);
 		}
 
 		sf::RectangleShape backButton;
 		backButton.setSize({GameConfig::UI::BUTTON_WIDTH, GameConfig::UI::BUTTON_HEIGHT});
-		backButton.setPosition({
-			window.getSize().x / 2.f - GameConfig::UI::BUTTON_WIDTH / 2.f,
-			window.getSize().y - 120.f
-		});
+		backButton.setPosition(
+			{window.getSize().x / 2.f - GameConfig::UI::BUTTON_WIDTH / 2.f, window.getSize().y - 120.f});
 		backButton.setFillColor(sf::Color(80, 80, 80));
 		window.draw(backButton);
 
@@ -440,10 +420,11 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 		backText.setCharacterSize(24);
 		backText.setFillColor(sf::Color::White);
 		sf::FloatRect backBounds = backText.getLocalBounds();
-		backText.setPosition(sf::Vector2f(
-			backButton.getPosition().x + (GameConfig::UI::BUTTON_WIDTH - backBounds.size.x) / 2.f - backBounds.position.x,
-			backButton.getPosition().y + (GameConfig::UI::BUTTON_HEIGHT - backBounds.size.y) / 2.f - backBounds.position.y
-		));
+		backText.setPosition(
+			sf::Vector2f(backButton.getPosition().x + (GameConfig::UI::BUTTON_WIDTH - backBounds.size.x) / 2.f -
+		                     backBounds.position.x,
+		                 backButton.getPosition().y + (GameConfig::UI::BUTTON_HEIGHT - backBounds.size.y) / 2.f -
+		                     backBounds.position.y));
 		window.draw(backText);
 	}
 }
@@ -481,8 +462,7 @@ void WorldClient::handlePauseMenuClick(sf::Vector2f mousePos)
 		{
 			sf::FloatRect musicButtonBounds(
 				sf::Vector2f(m_window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 120.f),
-				sf::Vector2f(GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT)
-			);
+				sf::Vector2f(GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT));
 
 			if(musicButtonBounds.contains(mousePos))
 			{
@@ -503,8 +483,7 @@ void WorldClient::handlePauseMenuClick(sf::Vector2f mousePos)
 		// if back button clicked
 		sf::FloatRect backButtonBounds(
 			sf::Vector2f(m_window.getSize().x / 2.f - GameConfig::UI::BUTTON_WIDTH / 2.f, m_window.getSize().y - 120.f),
-			sf::Vector2f(GameConfig::UI::BUTTON_WIDTH, GameConfig::UI::BUTTON_HEIGHT)
-		);
+			sf::Vector2f(GameConfig::UI::BUTTON_WIDTH, GameConfig::UI::BUTTON_HEIGHT));
 
 		if(backButtonBounds.contains(mousePos))
 		{
@@ -516,8 +495,8 @@ void WorldClient::handlePauseMenuClick(sf::Vector2f mousePos)
 
 void WorldClient::drawHotbar(sf::RenderWindow &window) const
 {
-	const PlayerState& ownPlayer = m_state.getPlayerById(m_ownPlayerId);
-	const auto& inventory = ownPlayer.getInventory();
+	const PlayerState &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
+	const auto &inventory = ownPlayer.getInventory();
 	int selectedSlot = ownPlayer.getSelectedSlot();
 
 	const float slotSize = GameConfig::UI::HOTBAR_SLOT_SIZE;
@@ -530,26 +509,38 @@ void WorldClient::drawHotbar(sf::RenderWindow &window) const
 	auto getColorForPowerup = [](PowerupType type) -> sf::Color {
 		switch(type)
 		{
-		case PowerupType::HEALTH_PACK:   return sf::Color::Green;
-		case PowerupType::SPEED_BOOST:   return sf::Color::Cyan;
-		case PowerupType::DAMAGE_BOOST:  return sf::Color::Red;
-		case PowerupType::SHIELD:        return sf::Color::Blue;
-		case PowerupType::RAPID_FIRE:    return sf::Color::Yellow;
+		case PowerupType::HEALTH_PACK:
+			return sf::Color::Green;
+		case PowerupType::SPEED_BOOST:
+			return sf::Color::Cyan;
+		case PowerupType::DAMAGE_BOOST:
+			return sf::Color::Red;
+		case PowerupType::SHIELD:
+			return sf::Color::Blue;
+		case PowerupType::RAPID_FIRE:
+			return sf::Color::Yellow;
 		case PowerupType::NONE:
-		default:                         return sf::Color(60, 60, 60);
+		default:
+			return sf::Color(60, 60, 60);
 		}
 	};
 
 	auto getNameForPowerup = [](PowerupType type) -> std::string {
 		switch(type)
 		{
-		case PowerupType::HEALTH_PACK:   return "HP";
-		case PowerupType::SPEED_BOOST:   return "SPD";
-		case PowerupType::DAMAGE_BOOST:  return "DMG";
-		case PowerupType::SHIELD:        return "SHD";
-		case PowerupType::RAPID_FIRE:    return "RPD";
+		case PowerupType::HEALTH_PACK:
+			return "HP";
+		case PowerupType::SPEED_BOOST:
+			return "SPD";
+		case PowerupType::DAMAGE_BOOST:
+			return "DMG";
+		case PowerupType::SHIELD:
+			return "SHD";
+		case PowerupType::RAPID_FIRE:
+			return "RPD";
 		case PowerupType::NONE:
-		default:                         return "";
+		default:
+			return "";
 		}
 	};
 
@@ -588,10 +579,8 @@ void WorldClient::drawHotbar(sf::RenderWindow &window) const
 			itemText.setCharacterSize(12);
 			itemText.setFillColor(sf::Color::White);
 			sf::FloatRect textBounds = itemText.getLocalBounds();
-			itemText.setPosition(sf::Vector2f(
-				x + slotSize / 2.f - textBounds.size.x / 2.f,
-				startY + slotSize / 2.f - textBounds.size.y / 2.f - 3.f
-			));
+			itemText.setPosition(sf::Vector2f(x + slotSize / 2.f - textBounds.size.x / 2.f,
+			                                  startY + slotSize / 2.f - textBounds.size.y / 2.f - 3.f));
 			window.draw(itemText);
 		}
 
@@ -600,10 +589,7 @@ void WorldClient::drawHotbar(sf::RenderWindow &window) const
 		slotNumber.setCharacterSize(14);
 		slotNumber.setFillColor(sf::Color(200, 200, 200));
 		sf::FloatRect numBounds = slotNumber.getLocalBounds();
-		slotNumber.setPosition(sf::Vector2f(
-			x + 5.f,
-			startY + 2.f
-		));
+		slotNumber.setPosition(sf::Vector2f(x + 5.f, startY + 2.f));
 		window.draw(slotNumber);
 	}
 }

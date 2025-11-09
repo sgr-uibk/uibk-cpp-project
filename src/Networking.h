@@ -40,7 +40,7 @@ enum class ReliablePktType : uint8_t
 	JOIN_ACK,
 	LOBBY_READY,
 	LOBBY_UNREADY,
-	LOBBY_UPDATE, // srv -> clients: broadcast lobby state updates
+	LOBBY_UPDATE,       // srv -> clients: broadcast lobby state updates
 	START_GAME_REQUEST, // host requests to start game
 	GAME_START,
 	GAME_END,
@@ -133,27 +133,27 @@ inline sf::Socket::Status checkedReceive(sf::UdpSocket &sock, sf::Packet &pkt,
 	return st;
 }
 
-inline sf::Packet& operator<<(sf::Packet &pkt, const sf::Vector2f &vec)
+inline sf::Packet &operator<<(sf::Packet &pkt, const sf::Vector2f &vec)
 {
 	pkt << vec.x;
 	pkt << vec.y;
 	return pkt;
 }
 
-inline sf::Packet& operator>>(sf::Packet &pkt, sf::Vector2f &vec)
+inline sf::Packet &operator>>(sf::Packet &pkt, sf::Vector2f &vec)
 {
 	pkt >> vec.x;
 	pkt >> vec.y;
 	return pkt;
 }
 
-inline sf::Packet& operator<<(sf::Packet &pkt, const sf::Angle &ang)
+inline sf::Packet &operator<<(sf::Packet &pkt, const sf::Angle &ang)
 {
 	pkt << ang.asRadians();
 	return pkt;
 }
 
-inline sf::Packet& operator>>(sf::Packet &pkt, sf::Angle &ang)
+inline sf::Packet &operator>>(sf::Packet &pkt, sf::Angle &ang)
 {
 	float radians;
 	pkt >> radians;
@@ -161,7 +161,7 @@ inline sf::Packet& operator>>(sf::Packet &pkt, sf::Angle &ang)
 	return pkt;
 }
 
-inline sf::Packet& operator<<(sf::Packet &pkt, sf::RectangleShape const &rec)
+inline sf::Packet &operator<<(sf::Packet &pkt, sf::RectangleShape const &rec)
 {
 	pkt << rec.getPosition();
 	pkt << rec.getSize();
@@ -169,7 +169,7 @@ inline sf::Packet& operator<<(sf::Packet &pkt, sf::RectangleShape const &rec)
 	return pkt;
 }
 
-inline sf::Packet& operator>>(sf::Packet &pkt, sf::RectangleShape &rec)
+inline sf::Packet &operator>>(sf::Packet &pkt, sf::RectangleShape &rec)
 {
 	uint32_t colorInt = 0;
 	sf::Vector2f pos, sz;

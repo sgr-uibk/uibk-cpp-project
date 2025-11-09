@@ -7,35 +7,18 @@
 #include <algorithm>
 
 Menu::Menu(sf::Vector2u windowDimensions)
-	: m_windowDimensions(windowDimensions)
-	, m_font(g_assetPathResolver.resolveRelative("Font/LiberationSans-Regular.ttf").string())
-	, m_title(m_font)
-	, m_playerNameLabel(m_font)
-	, m_playerNameText(m_font)
-	, m_state(State::MAIN)
-	, m_startGame(false)
-	, m_exit(false)
-	, m_shouldConnect(false)
-	, m_playerName("Player")
-	, m_editingName(false)
-	, m_menuMusicEnabled(true)
-	, m_gameMusicEnabled(true)
-	, m_serverIp("127.0.0.1")
-	, m_serverPort(PORT_TCP)
-	, m_serverIpText(m_font)
-	, m_serverPortText(m_font)
-	, m_editingField(EditingField::NONE)
-	, m_selectedMap("Arena")
-	, m_selectedMode("Deathmatch")
+	: m_windowDimensions(windowDimensions),
+	  m_font(g_assetPathResolver.resolveRelative("Font/LiberationSans-Regular.ttf").string()), m_title(m_font),
+	  m_playerNameLabel(m_font), m_playerNameText(m_font), m_state(State::MAIN), m_startGame(false), m_exit(false),
+	  m_shouldConnect(false), m_playerName("Player"), m_editingName(false), m_menuMusicEnabled(true),
+	  m_gameMusicEnabled(true), m_serverIp("127.0.0.1"), m_serverPort(PORT_TCP), m_serverIpText(m_font),
+	  m_serverPortText(m_font), m_editingField(EditingField::NONE), m_selectedMap("Arena"), m_selectedMode("Deathmatch")
 {
 	m_title.setString("TANK GAME");
 	m_title.setCharacterSize(50);
 	m_title.setFillColor(sf::Color::White);
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
-	m_title.setPosition({
-		(windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-		80.f
-	});
+	m_title.setPosition({(windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 
 	m_playerNameLabel.setString("Player Name:");
 	m_playerNameLabel.setCharacterSize(18);
@@ -73,22 +56,16 @@ void Menu::reset()
 
 	m_title.setString("TANK GAME");
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
-	m_title.setPosition({
-		(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-		80.f
-	});
+	m_title.setPosition({(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 
 	setupMainMenu();
 }
 
-void Menu::setTitle(const std::string& title)
+void Menu::setTitle(const std::string &title)
 {
 	m_title.setString(title);
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
-	m_title.setPosition({
-		(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-		80.f
-	});
+	m_title.setPosition({(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 }
 
 void Menu::setupMainMenu()
@@ -109,10 +86,7 @@ void Menu::setupMainMenu()
 	{
 		sf::RectangleShape shape;
 		shape.setSize({buttonWidth, buttonHeight});
-		shape.setPosition({
-			(m_windowDimensions.x - buttonWidth) / 2.f,
-			startY + i * (buttonHeight + spacing)
-		});
+		shape.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f, startY + i * (buttonHeight + spacing)});
 		shape.setFillColor(sf::Color(80, 80, 80));
 
 		sf::Text text(m_font);
@@ -120,10 +94,8 @@ void Menu::setupMainMenu()
 		text.setCharacterSize(20);
 		text.setFillColor(sf::Color::White);
 		sf::FloatRect textBounds = text.getLocalBounds();
-		text.setPosition({
-			shape.getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-			shape.getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y
-		});
+		text.setPosition({shape.getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
+		                  shape.getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
 
 		m_buttonShapes.push_back(shape);
 		m_buttonTexts.push_back(text);
@@ -146,10 +118,7 @@ void Menu::setupLobbyHost()
 	lobbyInfo.setCharacterSize(20);
 	lobbyInfo.setFillColor(sf::Color(200, 200, 200));
 	sf::FloatRect infoBounds = lobbyInfo.getLocalBounds();
-	lobbyInfo.setPosition({
-		(m_windowDimensions.x - infoBounds.size.x) / 2.f - infoBounds.position.x,
-		180.f
-	});
+	lobbyInfo.setPosition({(m_windowDimensions.x - infoBounds.size.x) / 2.f - infoBounds.position.x, 180.f});
 	m_lobbyTexts.push_back(lobbyInfo);
 
 	sf::Text playersLabel(m_font);
@@ -172,7 +141,7 @@ void Menu::setupLobbyHost()
 		playerSlot.setString(std::to_string(i) + ". Waiting...");
 		playerSlot.setCharacterSize(20);
 		playerSlot.setFillColor(sf::Color(150, 150, 150));
-		playerSlot.setPosition({220.f, 280.f + (i-1) * 30.f});
+		playerSlot.setPosition({220.f, 280.f + (i - 1) * 30.f});
 		m_lobbyTexts.push_back(playerSlot);
 	}
 
@@ -198,10 +167,9 @@ void Menu::setupLobbyHost()
 	mapText.setCharacterSize(16);
 	mapText.setFillColor(sf::Color::White);
 	sf::FloatRect mapBounds = mapText.getLocalBounds();
-	mapText.setPosition({
-		mapButton.getPosition().x + (smallButtonWidth - mapBounds.size.x) / 2.f - mapBounds.position.x,
-		mapButton.getPosition().y + (smallButtonHeight - mapBounds.size.y) / 2.f - mapBounds.position.y
-	});
+	mapText.setPosition(
+		{mapButton.getPosition().x + (smallButtonWidth - mapBounds.size.x) / 2.f - mapBounds.position.x,
+	     mapButton.getPosition().y + (smallButtonHeight - mapBounds.size.y) / 2.f - mapBounds.position.y});
 	m_buttonTexts.push_back(mapText);
 	m_buttonEnabled.push_back(true);
 
@@ -224,10 +192,9 @@ void Menu::setupLobbyHost()
 	modeText.setCharacterSize(16);
 	modeText.setFillColor(sf::Color::White);
 	sf::FloatRect modeBounds = modeText.getLocalBounds();
-	modeText.setPosition({
-		modeButton.getPosition().x + (smallButtonWidth - modeBounds.size.x) / 2.f - modeBounds.position.x,
-		modeButton.getPosition().y + (smallButtonHeight - modeBounds.size.y) / 2.f - modeBounds.position.y
-	});
+	modeText.setPosition(
+		{modeButton.getPosition().x + (smallButtonWidth - modeBounds.size.x) / 2.f - modeBounds.position.x,
+	     modeButton.getPosition().y + (smallButtonHeight - modeBounds.size.y) / 2.f - modeBounds.position.y});
 	m_buttonTexts.push_back(modeText);
 	m_buttonEnabled.push_back(true);
 
@@ -243,10 +210,9 @@ void Menu::setupLobbyHost()
 	startText.setCharacterSize(24);
 	startText.setFillColor(sf::Color::White);
 	sf::FloatRect startBounds = startText.getLocalBounds();
-	startText.setPosition({
-		startButton.getPosition().x + (buttonWidth - startBounds.size.x) / 2.f - startBounds.position.x,
-		startButton.getPosition().y + (buttonHeight - startBounds.size.y) / 2.f - startBounds.position.y
-	});
+	startText.setPosition(
+		{startButton.getPosition().x + (buttonWidth - startBounds.size.x) / 2.f - startBounds.position.x,
+	     startButton.getPosition().y + (buttonHeight - startBounds.size.y) / 2.f - startBounds.position.y});
 	m_buttonTexts.push_back(startText);
 	m_buttonEnabled.push_back(true);
 
@@ -261,10 +227,9 @@ void Menu::setupLobbyHost()
 	backText.setCharacterSize(24);
 	backText.setFillColor(sf::Color::White);
 	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition({
-		backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-		backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y
-	});
+	backText.setPosition(
+		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
+	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
 	m_buttonTexts.push_back(backText);
 	m_buttonEnabled.push_back(true);
 }
@@ -284,10 +249,7 @@ void Menu::setupLobbyClient()
 	lobbyInfo.setCharacterSize(20);
 	lobbyInfo.setFillColor(sf::Color(200, 200, 200));
 	sf::FloatRect infoBounds = lobbyInfo.getLocalBounds();
-	lobbyInfo.setPosition({
-		(m_windowDimensions.x - infoBounds.size.x) / 2.f - infoBounds.position.x,
-		180.f
-	});
+	lobbyInfo.setPosition({(m_windowDimensions.x - infoBounds.size.x) / 2.f - infoBounds.position.x, 180.f});
 	m_lobbyTexts.push_back(lobbyInfo);
 
 	sf::Text playersLabel(m_font);
@@ -310,7 +272,7 @@ void Menu::setupLobbyClient()
 		playerSlot.setString(std::to_string(i) + ". Waiting...");
 		playerSlot.setCharacterSize(20);
 		playerSlot.setFillColor(sf::Color(150, 150, 150));
-		playerSlot.setPosition({220.f, 280.f + (i-1) * 30.f});
+		playerSlot.setPosition({220.f, 280.f + (i - 1) * 30.f});
 		m_lobbyTexts.push_back(playerSlot);
 	}
 
@@ -325,10 +287,9 @@ void Menu::setupLobbyClient()
 	readyText.setCharacterSize(24);
 	readyText.setFillColor(sf::Color::White);
 	sf::FloatRect readyBounds = readyText.getLocalBounds();
-	readyText.setPosition({
-		readyButton.getPosition().x + (buttonWidth - readyBounds.size.x) / 2.f - readyBounds.position.x,
-		readyButton.getPosition().y + (buttonHeight - readyBounds.size.y) / 2.f - readyBounds.position.y
-	});
+	readyText.setPosition(
+		{readyButton.getPosition().x + (buttonWidth - readyBounds.size.x) / 2.f - readyBounds.position.x,
+	     readyButton.getPosition().y + (buttonHeight - readyBounds.size.y) / 2.f - readyBounds.position.y});
 	m_buttonTexts.push_back(readyText);
 	m_buttonEnabled.push_back(true);
 
@@ -343,10 +304,9 @@ void Menu::setupLobbyClient()
 	backText.setCharacterSize(24);
 	backText.setFillColor(sf::Color::White);
 	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition({
-		backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-		backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y
-	});
+	backText.setPosition(
+		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
+	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
 	m_buttonTexts.push_back(backText);
 	m_buttonEnabled.push_back(true);
 }
@@ -408,10 +368,9 @@ void Menu::setupJoinLobby()
 	connectText.setCharacterSize(24);
 	connectText.setFillColor(sf::Color::White);
 	sf::FloatRect connectBounds = connectText.getLocalBounds();
-	connectText.setPosition({
-		connectButton.getPosition().x + (buttonWidth - connectBounds.size.x) / 2.f - connectBounds.position.x,
-		connectButton.getPosition().y + (buttonHeight - connectBounds.size.y) / 2.f - connectBounds.position.y
-	});
+	connectText.setPosition(
+		{connectButton.getPosition().x + (buttonWidth - connectBounds.size.x) / 2.f - connectBounds.position.x,
+	     connectButton.getPosition().y + (buttonHeight - connectBounds.size.y) / 2.f - connectBounds.position.y});
 	m_buttonTexts.push_back(connectText);
 	m_buttonEnabled.push_back(true);
 
@@ -426,10 +385,9 @@ void Menu::setupJoinLobby()
 	backText.setCharacterSize(24);
 	backText.setFillColor(sf::Color::White);
 	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition({
-		backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-		backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y
-	});
+	backText.setPosition(
+		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
+	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
 	m_buttonTexts.push_back(backText);
 	m_buttonEnabled.push_back(true);
 }
@@ -464,10 +422,9 @@ void Menu::setupSettings()
 	menuMusicText.setCharacterSize(18);
 	menuMusicText.setFillColor(sf::Color::White);
 	sf::FloatRect menuBounds = menuMusicText.getLocalBounds();
-	menuMusicText.setPosition({
-		menuMusicButton.getPosition().x + (buttonWidth - menuBounds.size.x) / 2.f - menuBounds.position.x,
-		menuMusicButton.getPosition().y + (buttonHeight - menuBounds.size.y) / 2.f - menuBounds.position.y
-	});
+	menuMusicText.setPosition(
+		{menuMusicButton.getPosition().x + (buttonWidth - menuBounds.size.x) / 2.f - menuBounds.position.x,
+	     menuMusicButton.getPosition().y + (buttonHeight - menuBounds.size.y) / 2.f - menuBounds.position.y});
 	m_buttonTexts.push_back(menuMusicText);
 	m_buttonEnabled.push_back(true);
 
@@ -483,10 +440,9 @@ void Menu::setupSettings()
 	gameMusicText.setCharacterSize(18);
 	gameMusicText.setFillColor(sf::Color::White);
 	sf::FloatRect gameBounds = gameMusicText.getLocalBounds();
-	gameMusicText.setPosition({
-		gameMusicButton.getPosition().x + (buttonWidth - gameBounds.size.x) / 2.f - gameBounds.position.x,
-		gameMusicButton.getPosition().y + (buttonHeight - gameBounds.size.y) / 2.f - gameBounds.position.y
-	});
+	gameMusicText.setPosition(
+		{gameMusicButton.getPosition().x + (buttonWidth - gameBounds.size.x) / 2.f - gameBounds.position.x,
+	     gameMusicButton.getPosition().y + (buttonHeight - gameBounds.size.y) / 2.f - gameBounds.position.y});
 	m_buttonTexts.push_back(gameMusicText);
 	m_buttonEnabled.push_back(true);
 
@@ -497,13 +453,8 @@ void Menu::setupSettings()
 	keybindsHeader.setPosition({(m_windowDimensions.x - 110.f) / 2.f, startY + 145.f});
 	m_lobbyTexts.push_back(keybindsHeader);
 
-	std::vector<std::string> keybindLabels = {
-		"Move: W A S D",
-		"Shoot: Space / Click",
-		"Use Item: Q",
-		"Hotbar: 1-9 / Wheel",
-		"Pause: Escape"
-	};
+	std::vector<std::string> keybindLabels = {"Move: W A S D", "Shoot: Space / Click", "Use Item: Q",
+	                                          "Hotbar: 1-9 / Wheel", "Pause: Escape"};
 
 	const float leftColX = 150.f;
 	const float rightColX = 450.f;
@@ -539,10 +490,9 @@ void Menu::setupSettings()
 	backText.setCharacterSize(20);
 	backText.setFillColor(sf::Color::White);
 	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition({
-		backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-		backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y
-	});
+	backText.setPosition(
+		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
+	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
 	m_buttonTexts.push_back(backText);
 	m_buttonEnabled.push_back(true);
 }
@@ -578,17 +528,17 @@ void Menu::setupMapSelection()
 		mapText.setCharacterSize(22);
 		mapText.setFillColor(sf::Color::White);
 		sf::FloatRect textBounds = mapText.getLocalBounds();
-		mapText.setPosition({
-			mapButton.getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-			mapButton.getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y
-		});
+		mapText.setPosition(
+			{mapButton.getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
+		     mapButton.getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
 		m_buttonTexts.push_back(mapText);
 		m_buttonEnabled.push_back(true);
 	}
 
 	sf::RectangleShape backButton;
 	backButton.setSize({buttonWidth, buttonHeight});
-	backButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f, startY + maps.size() * (buttonHeight + 15.f) + 30.f});
+	backButton.setPosition(
+		{(m_windowDimensions.x - buttonWidth) / 2.f, startY + maps.size() * (buttonHeight + 15.f) + 30.f});
 	backButton.setFillColor(sf::Color(80, 80, 80));
 	m_buttonShapes.push_back(backButton);
 
@@ -597,10 +547,9 @@ void Menu::setupMapSelection()
 	backText.setCharacterSize(24);
 	backText.setFillColor(sf::Color::White);
 	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition({
-		backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-		backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y
-	});
+	backText.setPosition(
+		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
+	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
 	m_buttonTexts.push_back(backText);
 	m_buttonEnabled.push_back(true);
 }
@@ -636,17 +585,17 @@ void Menu::setupModeSelection()
 		modeText.setCharacterSize(22);
 		modeText.setFillColor(sf::Color::White);
 		sf::FloatRect textBounds = modeText.getLocalBounds();
-		modeText.setPosition({
-			modeButton.getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-			modeButton.getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y
-		});
+		modeText.setPosition(
+			{modeButton.getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
+		     modeButton.getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
 		m_buttonTexts.push_back(modeText);
 		m_buttonEnabled.push_back(true);
 	}
 
 	sf::RectangleShape backButton;
 	backButton.setSize({buttonWidth, buttonHeight});
-	backButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f, startY + modes.size() * (buttonHeight + 15.f) + 30.f});
+	backButton.setPosition(
+		{(m_windowDimensions.x - buttonWidth) / 2.f, startY + modes.size() * (buttonHeight + 15.f) + 30.f});
 	backButton.setFillColor(sf::Color(80, 80, 80));
 	m_buttonShapes.push_back(backButton);
 
@@ -655,15 +604,14 @@ void Menu::setupModeSelection()
 	backText.setCharacterSize(24);
 	backText.setFillColor(sf::Color::White);
 	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition({
-		backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-		backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y
-	});
+	backText.setPosition(
+		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
+	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
 	m_buttonTexts.push_back(backText);
 	m_buttonEnabled.push_back(true);
 }
 
-bool Menu::isMouseOver(const sf::RectangleShape& shape, sf::Vector2f mousePos) const
+bool Menu::isMouseOver(const sf::RectangleShape &shape, sf::Vector2f mousePos) const
 {
 	sf::FloatRect bounds = shape.getGlobalBounds();
 	return bounds.contains(mousePos);
@@ -689,7 +637,8 @@ void Menu::handleMouseMove(sf::Vector2f mousePos)
 	}
 	else if(m_state == State::MAIN)
 	{
-		m_playerNameBox.setOutlineColor(m_editingField == EditingField::PLAYER_NAME ? sf::Color(200, 200, 100) : sf::Color(100, 100, 100));
+		m_playerNameBox.setOutlineColor(m_editingField == EditingField::PLAYER_NAME ? sf::Color(200, 200, 100)
+		                                                                            : sf::Color(100, 100, 100));
 	}
 
 	if(m_state == State::JOIN_LOBBY)
@@ -700,7 +649,8 @@ void Menu::handleMouseMove(sf::Vector2f mousePos)
 		}
 		else
 		{
-			m_serverIpBox.setOutlineColor(m_editingField == EditingField::SERVER_IP ? sf::Color(200, 200, 100) : sf::Color(100, 100, 100));
+			m_serverIpBox.setOutlineColor(m_editingField == EditingField::SERVER_IP ? sf::Color(200, 200, 100)
+			                                                                        : sf::Color(100, 100, 100));
 		}
 
 		if(isMouseOver(m_serverPortBox, mousePos))
@@ -709,7 +659,8 @@ void Menu::handleMouseMove(sf::Vector2f mousePos)
 		}
 		else
 		{
-			m_serverPortBox.setOutlineColor(m_editingField == EditingField::SERVER_PORT ? sf::Color(200, 200, 100) : sf::Color(100, 100, 100));
+			m_serverPortBox.setOutlineColor(m_editingField == EditingField::SERVER_PORT ? sf::Color(200, 200, 100)
+			                                                                            : sf::Color(100, 100, 100));
 		}
 	}
 }
@@ -736,7 +687,7 @@ void Menu::handleTextInput(char c)
 			if(!m_serverIp.empty())
 				m_serverIp.pop_back();
 		}
-		else if((c >= '0' && c <= '9') || c == '.' )
+		else if((c >= '0' && c <= '9') || c == '.')
 		{
 			if(m_serverIp.length() < 15)
 				m_serverIp += c;
@@ -780,7 +731,7 @@ void Menu::handleClick(sf::Vector2f mousePos)
 	{
 		m_editingField = (m_editingField == EditingField::PLAYER_NAME) ? EditingField::NONE : EditingField::PLAYER_NAME;
 		spdlog::info("Player name field clicked, editing: {}, current name: '{}'",
-			m_editingField == EditingField::PLAYER_NAME, m_playerName);
+		             m_editingField == EditingField::PLAYER_NAME, m_playerName);
 		updatePlayerNameDisplay();
 		return;
 	}
@@ -794,7 +745,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 		}
 		else if(isMouseOver(m_serverPortBox, mousePos))
 		{
-			m_editingField = (m_editingField == EditingField::SERVER_PORT) ? EditingField::NONE : EditingField::SERVER_PORT;
+			m_editingField =
+				(m_editingField == EditingField::SERVER_PORT) ? EditingField::NONE : EditingField::SERVER_PORT;
 			return;
 		}
 	}
@@ -810,10 +762,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					m_state = State::LOBBY_HOST;
 					m_title.setString("WAITING FOR PLAYERS");
 					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition({
-						(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-						80.f
-					});
+					m_title.setPosition(
+						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 					setupLobbyHost();
 				}
 				else if(i == 1)
@@ -822,10 +772,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					m_state = State::JOIN_LOBBY;
 					m_title.setString("CONNECT TO SERVER");
 					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition({
-						(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-						80.f
-					});
+					m_title.setPosition(
+						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 					setupJoinLobby();
 				}
 				else if(i == 2)
@@ -833,10 +781,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					m_state = State::SETTINGS;
 					m_title.setString("SETTINGS");
 					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition({
-						(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-						80.f
-					});
+					m_title.setPosition(
+						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 					setupSettings();
 				}
 				else if(i == 3)
@@ -853,7 +799,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					if(it != maps.end())
 					{
 						++it;
-						if(it == maps.end()) it = maps.begin();
+						if(it == maps.end())
+							it = maps.begin();
 						m_selectedMap = *it;
 					}
 					else
@@ -869,7 +816,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					if(it != modes.end())
 					{
 						++it;
-						if(it == modes.end()) it = modes.begin();
+						if(it == modes.end())
+							it = modes.begin();
 						m_selectedMode = *it;
 					}
 					else
@@ -887,10 +835,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					m_state = State::MAIN;
 					m_title.setString("TANK GAME");
 					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition({
-						(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-						80.f
-					});
+					m_title.setPosition(
+						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 					setupMainMenu();
 				}
 			}
@@ -905,10 +851,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					m_state = State::MAIN;
 					m_title.setString("TANK GAME");
 					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition({
-						(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-						80.f
-					});
+					m_title.setPosition(
+						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 					setupMainMenu();
 				}
 			}
@@ -923,10 +867,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					m_state = State::MAIN;
 					m_title.setString("TANK GAME");
 					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition({
-						(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-						80.f
-					});
+					m_title.setPosition(
+						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 					setupMainMenu();
 				}
 			}
@@ -947,10 +889,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					m_state = State::MAIN;
 					m_title.setString("TANK GAME");
 					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition({
-						(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-						80.f
-					});
+					m_title.setPosition(
+						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 					setupMainMenu();
 				}
 			}
@@ -967,10 +907,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					m_state = State::MAIN;
 					m_title.setString("TANK GAME");
 					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition({
-						(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-						80.f
-					});
+					m_title.setPosition(
+						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 					setupMainMenu();
 				}
 			}
@@ -987,10 +925,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 					m_state = State::MAIN;
 					m_title.setString("TANK GAME");
 					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition({
-						(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x,
-						80.f
-					});
+					m_title.setPosition(
+						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 					setupMainMenu();
 				}
 			}
@@ -999,7 +935,7 @@ void Menu::handleClick(sf::Vector2f mousePos)
 	}
 }
 
-void Menu::draw(sf::RenderWindow& window) const
+void Menu::draw(sf::RenderWindow &window) const
 {
 	window.clear(sf::Color(30, 30, 30));
 	window.draw(m_title);
@@ -1019,7 +955,7 @@ void Menu::draw(sf::RenderWindow& window) const
 		window.draw(m_serverPortText);
 	}
 
-	for(const auto& text : m_lobbyTexts)
+	for(const auto &text : m_lobbyTexts)
 	{
 		window.draw(text);
 	}
@@ -1031,7 +967,7 @@ void Menu::draw(sf::RenderWindow& window) const
 	}
 }
 
-void Menu::updateLobbyDisplay(const std::vector<LobbyPlayerInfo>& players)
+void Menu::updateLobbyDisplay(const std::vector<LobbyPlayerInfo> &players)
 {
 	if(m_state != State::LOBBY_HOST && m_state != State::LOBBY_CLIENT)
 		return;
@@ -1055,7 +991,7 @@ void Menu::updateLobbyDisplay(const std::vector<LobbyPlayerInfo>& players)
 		if(players[i].name == m_playerName)
 			nameStr += " (You)";
 
-		playerText.setString(std::to_string(i+1) + ". " + statusStr + " " + nameStr);
+		playerText.setString(std::to_string(i + 1) + ". " + statusStr + " " + nameStr);
 		playerText.setCharacterSize(20);
 		playerText.setFillColor(players[i].bReady ? sf::Color(100, 255, 100) : sf::Color(255, 200, 100));
 		playerText.setPosition({220.f, 280.f + i * 30.f});
@@ -1065,7 +1001,7 @@ void Menu::updateLobbyDisplay(const std::vector<LobbyPlayerInfo>& players)
 	for(size_t i = players.size(); i < 4; ++i)
 	{
 		sf::Text playerSlot(m_font);
-		playerSlot.setString(std::to_string(i+1) + ". Waiting...");
+		playerSlot.setString(std::to_string(i + 1) + ". Waiting...");
 		playerSlot.setCharacterSize(20);
 		playerSlot.setFillColor(sf::Color(150, 150, 150));
 		playerSlot.setPosition({220.f, 280.f + i * 30.f});
@@ -1099,10 +1035,9 @@ void Menu::updateHostButton(bool canStartGame, bool hasEnoughPlayers, bool hostR
 	}
 
 	sf::FloatRect textBounds = m_buttonTexts[buttonIdx].getLocalBounds();
-	m_buttonTexts[buttonIdx].setPosition({
-		m_buttonShapes[buttonIdx].getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-		m_buttonShapes[buttonIdx].getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y
-	});
+	m_buttonTexts[buttonIdx].setPosition(
+		{m_buttonShapes[buttonIdx].getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
+	     m_buttonShapes[buttonIdx].getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
 
 	m_buttonShapes[buttonIdx].setFillColor(m_buttonEnabled[buttonIdx] ? sf::Color(80, 80, 80) : sf::Color(50, 50, 50));
 	m_buttonTexts[buttonIdx].setFillColor(m_buttonEnabled[buttonIdx] ? sf::Color::White : sf::Color(120, 120, 120));
@@ -1128,8 +1063,7 @@ void Menu::updateClientButton(bool clientReady)
 	}
 
 	sf::FloatRect textBounds = m_buttonTexts[buttonIdx].getLocalBounds();
-	m_buttonTexts[buttonIdx].setPosition({
-		m_buttonShapes[buttonIdx].getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-		m_buttonShapes[buttonIdx].getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y
-	});
+	m_buttonTexts[buttonIdx].setPosition(
+		{m_buttonShapes[buttonIdx].getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
+	     m_buttonShapes[buttonIdx].getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
 }

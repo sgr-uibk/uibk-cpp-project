@@ -31,7 +31,8 @@ void LobbyServer::lobbyLoop()
 	auto countValidPlayers = [this]() {
 		int count = 0;
 		for(const auto &p : m_slots)
-			if(p.bValid) count++;
+			if(p.bValid)
+				count++;
 		return count;
 	};
 
@@ -72,8 +73,8 @@ void LobbyServer::lobbyLoop()
 	}
 	else
 	{
-		SPDLOG_LOGGER_WARN(m_logger, "Game start requested but conditions not met (players={}, ready={})",
-		                   validPlayers, m_cReady);
+		SPDLOG_LOGGER_WARN(m_logger, "Game start requested but conditions not met (players={}, ready={})", validPlayers,
+		                   m_cReady);
 	}
 }
 
@@ -133,7 +134,7 @@ void LobbyServer::acceptNewClient()
 	while(nameExists)
 	{
 		nameExists = false;
-		for(const auto& existingPlayer : m_slots)
+		for(const auto &existingPlayer : m_slots)
 		{
 			if(existingPlayer.bValid && existingPlayer.name == p.name)
 			{
@@ -230,8 +231,7 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 			}
 			else
 			{
-				SPDLOG_LOGGER_WARN(m_logger, "Non-host player {} (id {}) tried to start game - ignoring",
-				                   p.name, p.id);
+				SPDLOG_LOGGER_WARN(m_logger, "Non-host player {} (id {}) tried to start game - ignoring", p.name, p.id);
 			}
 		}
 		break;
@@ -250,7 +250,7 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 	auto spawns = worldState.getMap().getSpawns();
 	std::shuffle(spawns.begin(), spawns.end(), rng);
 
-	std::vector<LobbyPlayer const*> validPlayers;
+	std::vector<LobbyPlayer const *> validPlayers;
 	for(auto const &c : m_slots)
 	{
 		if(c.bValid)
@@ -269,7 +269,7 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 	sf::Packet startPkt = createPkt(ReliablePktType::GAME_START);
 	startPkt << validPlayers.size();
 
-	for(auto const* validPlayer : validPlayers)
+	for(auto const *validPlayer : validPlayers)
 	{
 		auto const &playerStates = worldState.getPlayers();
 		for(auto const &ps : playerStates)
@@ -281,7 +281,8 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 				startPkt << ps.getPosition();
 				startPkt << ps.getRotation();
 				SPDLOG_LOGGER_DEBUG(m_logger, "  Sending player {} ('{}') spawn: pos=({:.1f},{:.1f}), rot={:.1f}°",
-				                    ps.m_id, validPlayer->name, ps.getPosition().x, ps.getPosition().y, ps.getRotation().asDegrees());
+				                    ps.m_id, validPlayer->name, ps.getPosition().x, ps.getPosition().y,
+				                    ps.getRotation().asDegrees());
 				break;
 			}
 		}

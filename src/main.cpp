@@ -16,14 +16,14 @@
 
 static constexpr int SERVER_STARTUP_DELAY_MS = 500;
 
-static void cleanupGameLoop(sf::Music* battleMusicPtr, LobbyClient& lobbyClient)
+static void cleanupGameLoop(sf::Music *battleMusicPtr, LobbyClient &lobbyClient)
 {
 	if(battleMusicPtr)
 		battleMusicPtr->stop();
 	lobbyClient.m_lobbySock.setBlocking(true);
 }
 
-void runServer(std::shared_ptr<spdlog::logger> logger, LobbyServer* lobbyServer)
+void runServer(std::shared_ptr<spdlog::logger> logger, LobbyServer *lobbyServer)
 {
 	SPDLOG_LOGGER_INFO(logger, "Starting dedicated server thread");
 
@@ -42,26 +42,26 @@ void runServer(std::shared_ptr<spdlog::logger> logger, LobbyServer* lobbyServer)
 
 		int connectedPlayers = 0;
 		for(const auto &p : lobbyServer->m_slots)
-			if(p.bValid) connectedPlayers++;
+			if(p.bValid)
+				connectedPlayers++;
 
 		SPDLOG_LOGGER_INFO(logger, "All {} players ready. Starting game...", connectedPlayers);
 		lobbyServer->startGame(gameServer.m_world);
 		SPDLOG_LOGGER_INFO(logger, "Game started. Switching to UDP loop.");
 		PlayerState *winningPlayer = gameServer.matchLoop();
-		SPDLOG_LOGGER_INFO(logger, "Game ended, winner {}. Returning to lobby", winningPlayer ? winningPlayer->m_id : 0);
+		SPDLOG_LOGGER_INFO(logger, "Game ended, winner {}. Returning to lobby",
+		                   winningPlayer ? winningPlayer->m_id : 0);
 	}
 
 	SPDLOG_LOGGER_INFO(logger, "Server thread exiting");
 }
 
-void runGameLoop(sf::RenderWindow& window, LobbyClient& lobbyClient,
-                 std::array<PlayerState, MAX_PLAYERS>& playerStates,
-                 std::shared_ptr<spdlog::logger> logger,
-                 bool gameMusicEnabled)
+void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<PlayerState, MAX_PLAYERS> &playerStates,
+                 std::shared_ptr<spdlog::logger> logger, bool gameMusicEnabled)
 {
 	SPDLOG_LOGGER_INFO(logger, "Starting game with player ID {}", lobbyClient.m_clientId);
 
-	sf::Music* battleMusicPtr = nullptr;
+	sf::Music *battleMusicPtr = nullptr;
 	try
 	{
 		battleMusicPtr = &MusicManager::inst().load("audio/battle_loop.ogg");
@@ -72,7 +72,7 @@ void runGameLoop(sf::RenderWindow& window, LobbyClient& lobbyClient,
 			SPDLOG_LOGGER_INFO(logger, "Battle music started");
 		}
 	}
-	catch(const std::exception& e)
+	catch(const std::exception &e)
 	{
 		SPDLOG_LOGGER_WARN(logger, "Failed to load battle music: {}. Continuing without music.", e.what());
 		battleMusicPtr = nullptr;
@@ -86,12 +86,9 @@ void runGameLoop(sf::RenderWindow& window, LobbyClient& lobbyClient,
 		if(playerStates[i].m_id != 0)
 		{
 			validPlayerCount++;
-			SPDLOG_LOGGER_INFO(logger, "Player {}: pos=({:.1f},{:.1f}), rot={:.1f}°, hp={}",
-			                   playerStates[i].m_id,
-			                   playerStates[i].getPosition().x,
-			                   playerStates[i].getPosition().y,
-			                   playerStates[i].getRotation().asDegrees(),
-			                   playerStates[i].getHealth());
+			SPDLOG_LOGGER_INFO(logger, "Player {}: pos=({:.1f},{:.1f}), rot={:.1f}°, hp={}", playerStates[i].m_id,
+			                   playerStates[i].getPosition().x, playerStates[i].getPosition().y,
+			                   playerStates[i].getRotation().asDegrees(), playerStates[i].getHealth());
 		}
 	}
 	SPDLOG_LOGGER_INFO(logger, "Starting game loop with {} valid players", validPlayerCount);
@@ -142,7 +139,7 @@ int main()
 
 	Menu menu(WINDOW_DIM);
 
-	sf::Music* menuMusicPtr = nullptr;
+	sf::Music *menuMusicPtr = nullptr;
 	try
 	{
 		menuMusicPtr = &MusicManager::inst().load("audio/menu_loop.ogg");
@@ -153,7 +150,7 @@ int main()
 		}
 		SPDLOG_LOGGER_INFO(logger, "Menu music loaded successfully");
 	}
-	catch(const std::exception& e)
+	catch(const std::exception &e)
 	{
 		SPDLOG_LOGGER_WARN(logger, "Failed to load menu music: {}. Continuing without music.", e.what());
 		menuMusicPtr = nullptr;
@@ -304,7 +301,7 @@ int main()
 					bool allReady = true;
 					int playerCount = players.size();
 
-					for(const auto& p : players)
+					for(const auto &p : players)
 					{
 						if(!p.bReady)
 							allReady = false;
@@ -313,7 +310,7 @@ int main()
 					menu.updateHostButton(allReady && playerCount >= 2, playerCount >= 2, hostReady);
 				}
 			}
-			catch(const ServerShutdownException& e)
+			catch(const ServerShutdownException &e)
 			{
 				SPDLOG_LOGGER_ERROR(logger, "Unexpected server shutdown detected for host: {}", e.what());
 				hostLobbyClient.reset();
@@ -326,9 +323,10 @@ int main()
 		{
 			auto players = hostLobbyClient->getLobbyPlayers();
 			bool allReady = true;
-			for(const auto& p : players)
+			for(const auto &p : players)
 			{
-				if(!p.bReady) allReady = false;
+				if(!p.bReady)
+					allReady = false;
 			}
 
 			if(!hostReady)
@@ -354,18 +352,19 @@ int main()
 
 		if(menu.shouldConnect() && menu.getState() == Menu::State::JOIN_LOBBY && !joinLobbyClient)
 		{
-			SPDLOG_LOGGER_INFO(logger, "Connecting to game at {}:{} as player '{}'",
-			                   menu.getServerIp(), menu.getServerPort(), menu.getPlayerName());
+			SPDLOG_LOGGER_INFO(logger, "Connecting to game at {}:{} as player '{}'", menu.getServerIp(),
+			                   menu.getServerPort(), menu.getPlayerName());
 
 			try
 			{
 				auto ipAddress = sf::IpAddress::resolve(menu.getServerIp());
-				if (!ipAddress.has_value())
+				if(!ipAddress.has_value())
 				{
 					throw std::runtime_error("Failed to resolve IP address: " + menu.getServerIp());
 				}
 
-				joinLobbyClient = std::make_unique<LobbyClient>(menu.getPlayerName(), Endpoint{ipAddress.value(), menu.getServerPort()});
+				joinLobbyClient = std::make_unique<LobbyClient>(menu.getPlayerName(),
+				                                                Endpoint{ipAddress.value(), menu.getServerPort()});
 				joinLobbyClient->connect();
 				menu.clearConnectFlag();
 
@@ -418,7 +417,7 @@ int main()
 					menu.updateClientButton(clientReady);
 				}
 			}
-			catch(const ServerShutdownException& e)
+			catch(const ServerShutdownException &e)
 			{
 				SPDLOG_LOGGER_WARN(logger, "Server has shut down: {}", e.what());
 				joinLobbyClient.reset();

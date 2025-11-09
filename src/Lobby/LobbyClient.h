@@ -33,11 +33,10 @@ class LobbyClient
 		return m_bReady;
 	}
 
-	[[nodiscard]] const std::vector<LobbyPlayerInfo>& getLobbyPlayers() const
+	[[nodiscard]] const std::vector<LobbyPlayerInfo> &getLobbyPlayers() const
 	{
 		return m_lobbyPlayers;
 	}
-
 
 	EntityId m_clientId;
 	sf::TcpSocket m_lobbySock;
@@ -50,5 +49,5 @@ class LobbyClient
 	std::shared_ptr<spdlog::logger> m_logger;
 	std::vector<LobbyPlayerInfo> m_lobbyPlayers;
 
-	std::array<PlayerState, MAX_PLAYERS> parseGameStartPacket(sf::Packet& pkt);
+	std::array<PlayerState, MAX_PLAYERS> parseGameStartPacket(sf::Packet &pkt);
 };

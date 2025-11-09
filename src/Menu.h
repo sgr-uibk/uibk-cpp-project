@@ -5,39 +5,91 @@
 
 struct LobbyPlayerInfo;
 
-class Menu {
-public:
-	enum class State { MAIN, LOBBY_HOST, LOBBY_CLIENT, JOIN_LOBBY, SETTINGS, MAP_SELECT, MODE_SELECT };
+class Menu
+{
+  public:
+	enum class State
+	{
+		MAIN,
+		LOBBY_HOST,
+		LOBBY_CLIENT,
+		JOIN_LOBBY,
+		SETTINGS,
+		MAP_SELECT,
+		MODE_SELECT
+	};
 
 	Menu(sf::Vector2u windowDimensions);
 
 	void handleClick(sf::Vector2f mousePos);
 	void handleMouseMove(sf::Vector2f mousePos);
 	void handleTextInput(char c);
-	void draw(sf::RenderWindow& window) const;
+	void draw(sf::RenderWindow &window) const;
 
-	State getState() const { return m_state; }
-	bool shouldStartGame() const { return m_startGame; }
-	bool shouldExit() const { return m_exit; }
-	bool shouldConnect() const { return m_shouldConnect; }
-	std::string getServerIp() const { return m_serverIp; }
-	uint16_t getServerPort() const { return m_serverPort; }
-	std::string getPlayerName() const { return m_playerName; }
-	bool isMenuMusicEnabled() const { return m_menuMusicEnabled; }
-	bool isGameMusicEnabled() const { return m_gameMusicEnabled; }
-	std::string getSelectedMap() const { return m_selectedMap; }
-	std::string getSelectedMode() const { return m_selectedMode; }
-	void clearConnectFlag() { m_shouldConnect = false; }
-	void clearStartGameFlag() { m_startGame = false; }
+	State getState() const
+	{
+		return m_state;
+	}
+	bool shouldStartGame() const
+	{
+		return m_startGame;
+	}
+	bool shouldExit() const
+	{
+		return m_exit;
+	}
+	bool shouldConnect() const
+	{
+		return m_shouldConnect;
+	}
+	std::string getServerIp() const
+	{
+		return m_serverIp;
+	}
+	uint16_t getServerPort() const
+	{
+		return m_serverPort;
+	}
+	std::string getPlayerName() const
+	{
+		return m_playerName;
+	}
+	bool isMenuMusicEnabled() const
+	{
+		return m_menuMusicEnabled;
+	}
+	bool isGameMusicEnabled() const
+	{
+		return m_gameMusicEnabled;
+	}
+	std::string getSelectedMap() const
+	{
+		return m_selectedMap;
+	}
+	std::string getSelectedMode() const
+	{
+		return m_selectedMode;
+	}
+	void clearConnectFlag()
+	{
+		m_shouldConnect = false;
+	}
+	void clearStartGameFlag()
+	{
+		m_startGame = false;
+	}
 	void reset();
-	void updateLobbyDisplay(const std::vector<LobbyPlayerInfo>& players);
-	void setState(State state) { m_state = state; }
-	void setTitle(const std::string& title);
+	void updateLobbyDisplay(const std::vector<LobbyPlayerInfo> &players);
+	void setState(State state)
+	{
+		m_state = state;
+	}
+	void setTitle(const std::string &title);
 	void setupLobbyClient();
 	void updateHostButton(bool canStartGame, bool hasEnoughPlayers, bool hostReady);
 	void updateClientButton(bool clientReady);
 
-private:
+  private:
 	sf::Vector2u m_windowDimensions;
 	sf::Font m_font;
 	sf::Text m_title;
@@ -68,7 +120,13 @@ private:
 	sf::RectangleShape m_serverPortBox;
 	sf::Text m_serverIpText;
 	sf::Text m_serverPortText;
-	enum class EditingField { NONE, PLAYER_NAME, SERVER_IP, SERVER_PORT };
+	enum class EditingField
+	{
+		NONE,
+		PLAYER_NAME,
+		SERVER_IP,
+		SERVER_PORT
+	};
 	EditingField m_editingField;
 
 	std::string m_selectedMap;
@@ -81,5 +139,5 @@ private:
 	void setupMapSelection();
 	void setupModeSelection();
 	void updatePlayerNameDisplay();
-	bool isMouseOver(const sf::RectangleShape& shape, sf::Vector2f mousePos) const;
+	bool isMouseOver(const sf::RectangleShape &shape, sf::Vector2f mousePos) const;
 };

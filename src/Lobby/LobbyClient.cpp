@@ -189,10 +189,10 @@ bool LobbyClient::pollLobbyUpdate()
 	return true;
 }
 
-std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packet& pkt)
+std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packet &pkt)
 {
 	std::array<PlayerState, MAX_PLAYERS> states{};
-	for(auto& state : states)
+	for(auto &state : states)
 		state.m_id = 0;
 
 	size_t numPlayers;
@@ -211,8 +211,8 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packe
 		{
 			states[playerId - 1] = PlayerState(playerId, pos, rot);
 			states[playerId - 1].m_name = playerName;
-			SPDLOG_LOGGER_INFO(m_logger, "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg",
-			                   playerId, playerName, pos.x, pos.y, rot.asDegrees());
+			SPDLOG_LOGGER_INFO(m_logger, "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg", playerId,
+			                   playerName, pos.x, pos.y, rot.asDegrees());
 		}
 		else
 		{

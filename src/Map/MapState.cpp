@@ -19,10 +19,10 @@ MapState::MapState(sf::Vector2f size) : m_size(size)
 	addWall(600, 50, wallThickness, 300);  // vertical
 
 	// predefined spawn points
-	addSpawnPoint({100.f, 100.f});   // Top-left
-	addSpawnPoint({700.f, 100.f});   // Top-right
-	addSpawnPoint({100.f, 500.f});   // Bottom-left
-	addSpawnPoint({700.f, 500.f});   // Bottom-right
+	addSpawnPoint({100.f, 100.f}); // Top-left
+	addSpawnPoint({700.f, 100.f}); // Top-right
+	addSpawnPoint({100.f, 500.f}); // Bottom-left
+	addSpawnPoint({700.f, 500.f}); // Bottom-right
 }
 
 void MapState::addWall(float x, float y, float w, float h)

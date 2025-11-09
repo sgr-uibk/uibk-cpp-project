@@ -8,8 +8,10 @@ constexpr char DEFAULT_PATTERN[] = "[%L %T %P <%n> %s:%#\t] %^%v%$";
 
 class ServerShutdownException : public std::runtime_error
 {
-public:
-	ServerShutdownException() : std::runtime_error("Server has shut down") {}
+  public:
+	ServerShutdownException() : std::runtime_error("Server has shut down")
+	{
+	}
 };
 
 std::shared_ptr<spdlog::logger> createConsoleLogger(std::string const &name);

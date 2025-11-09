@@ -30,7 +30,7 @@ struct PlayerState
 
 	void applyPowerup(PowerupType type);
 	bool hasPowerup(PowerupType type) const;
-	const PowerupEffect* getPowerup(PowerupType type) const;
+	const PowerupEffect *getPowerup(PowerupType type) const;
 	float getSpeedMultiplier() const;
 	int getDamageMultiplier() const;
 	float getShootCooldown() const;
@@ -38,9 +38,15 @@ struct PlayerState
 	bool addToInventory(PowerupType type);
 	void useSelectedItem();
 	void setSelectedSlot(int slot);
-	int getSelectedSlot() const { return m_selectedSlot; }
+	int getSelectedSlot() const
+	{
+		return m_selectedSlot;
+	}
 	PowerupType getInventoryItem(int slot) const;
-	const std::array<PowerupType, 9>& getInventory() const { return m_inventory; }
+	const std::array<PowerupType, 9> &getInventory() const
+	{
+		return m_inventory;
+	}
 
 	[[nodiscard]] uint32_t getPlayerId() const;
 	[[nodiscard]] sf::Vector2f getPosition() const;

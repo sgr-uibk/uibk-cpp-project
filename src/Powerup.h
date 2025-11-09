@@ -5,11 +5,11 @@
 enum class PowerupType : uint8_t
 {
 	NONE = 0,
-	HEALTH_PACK,    
-	SPEED_BOOST,    
-	DAMAGE_BOOST,   
-	SHIELD,         
-	RAPID_FIRE     
+	HEALTH_PACK,
+	SPEED_BOOST,
+	DAMAGE_BOOST,
+	SHIELD,
+	RAPID_FIRE
 };
 
 struct PowerupEffect
@@ -17,14 +17,14 @@ struct PowerupEffect
 	PowerupType type = PowerupType::NONE;
 	float duration = 0.f;
 	float maxDuration = 5.f;
-	int value = 0;               // shield health remaining
+	int value = 0; // shield health remaining
 
 	void update(float dt)
 	{
-		if (duration > 0.f)
+		if(duration > 0.f)
 		{
 			duration -= dt;
-			if (duration < 0.f)
+			if(duration < 0.f)
 				duration = 0.f;
 		}
 	}
@@ -45,11 +45,11 @@ struct PowerupEffect
 	{
 		type = newType;
 
-		switch (type)
+		switch(type)
 		{
 		case PowerupType::HEALTH_PACK:
 			duration = 0.f;
-			value = 50;  // heal amount
+			value = 50; // heal amount
 			break;
 
 		case PowerupType::SPEED_BOOST:
@@ -64,7 +64,7 @@ struct PowerupEffect
 
 		case PowerupType::SHIELD:
 			duration = 0.f;
-			value = 50;      // shield health
+			value = 50; // shield health
 			break;
 
 		case PowerupType::RAPID_FIRE:
@@ -78,14 +78,14 @@ struct PowerupEffect
 		}
 	}
 
-	void serialize(sf::Packet& packet) const
+	void serialize(sf::Packet &packet) const
 	{
 		packet << static_cast<uint8_t>(type);
 		packet << duration;
 		packet << static_cast<int32_t>(value);
 	}
 
-	void deserialize(sf::Packet& packet)
+	void deserialize(sf::Packet &packet)
 	{
 		uint8_t typeVal;
 		int32_t valueVal;
@@ -99,10 +99,10 @@ struct PowerupEffect
 
 namespace PowerupConstants
 {
-	constexpr float SPEED_BOOST_MULTIPLIER = 1.5f;
-	constexpr int DAMAGE_BOOST_MULTIPLIER = 2;
-	constexpr float RAPID_FIRE_COOLDOWN = 0.1f;
-	constexpr float POWERUP_DURATION = 5.f;
-	constexpr int HEALTH_PACK_HEAL = 50;
-	constexpr int SHIELD_HP = 50;
-}
+constexpr float SPEED_BOOST_MULTIPLIER = 1.5f;
+constexpr int DAMAGE_BOOST_MULTIPLIER = 2;
+constexpr float RAPID_FIRE_COOLDOWN = 0.1f;
+constexpr float POWERUP_DURATION = 5.f;
+constexpr int HEALTH_PACK_HEAL = 50;
+constexpr int SHIELD_HP = 50;
+} // namespace PowerupConstants

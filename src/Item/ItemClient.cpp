@@ -1,12 +1,8 @@
 #include "ItemClient.h"
 #include <cmath>
 
-ItemClient::ItemClient(const ItemState& state)
-	: m_state(state)
-	, m_shape(sf::Vector2f(20.f, 20.f))
-	, m_bobPhase(0.f)
-	, m_bobSpeed(2.f)
-	, m_bobHeight(5.f)
+ItemClient::ItemClient(const ItemState &state)
+	: m_state(state), m_shape(sf::Vector2f(20.f, 20.f)), m_bobPhase(0.f), m_bobSpeed(2.f), m_bobHeight(5.f)
 {
 	m_shape.setFillColor(getColorForType(state.getType()));
 	m_shape.setOutlineColor(sf::Color::White);
@@ -15,7 +11,7 @@ ItemClient::ItemClient(const ItemState& state)
 	syncSpriteToState(state);
 }
 
-void ItemClient::syncSpriteToState(const ItemState& state)
+void ItemClient::syncSpriteToState(const ItemState &state)
 {
 	m_state = state;
 	m_shape.setPosition(m_state.getPosition());
@@ -26,7 +22,7 @@ void ItemClient::update(float dt)
 {
 	// bobbing animation
 	m_bobPhase += dt * m_bobSpeed * 2.f * 3.14159f;
-	if (m_bobPhase > 2.f * 3.14159f)
+	if(m_bobPhase > 2.f * 3.14159f)
 	{
 		m_bobPhase -= 2.f * 3.14159f;
 	}
@@ -36,9 +32,9 @@ void ItemClient::update(float dt)
 	m_shape.setPosition(sf::Vector2f(basePos.x, basePos.y + bobOffset));
 }
 
-void ItemClient::draw(sf::RenderWindow& window) const
+void ItemClient::draw(sf::RenderWindow &window) const
 {
-	if (m_state.isActive())
+	if(m_state.isActive())
 	{
 		window.draw(m_shape);
 	}
@@ -46,19 +42,19 @@ void ItemClient::draw(sf::RenderWindow& window) const
 
 sf::Color ItemClient::getColorForType(PowerupType type)
 {
-	switch (type)
+	switch(type)
 	{
 	case PowerupType::HEALTH_PACK:
-		return sf::Color(0, 255, 0);      // green
+		return sf::Color(0, 255, 0); // green
 	case PowerupType::SPEED_BOOST:
-		return sf::Color(0, 150, 255);    // blue
+		return sf::Color(0, 150, 255); // blue
 	case PowerupType::DAMAGE_BOOST:
-		return sf::Color(255, 100, 0);    // orange
+		return sf::Color(255, 100, 0); // orange
 	case PowerupType::SHIELD:
-		return sf::Color(200, 200, 255);  // purple
+		return sf::Color(200, 200, 255); // purple
 	case PowerupType::RAPID_FIRE:
-		return sf::Color(255, 255, 0);    // yellow
+		return sf::Color(255, 255, 0); // yellow
 	default:
-		return sf::Color(128, 128, 128);  // gray
+		return sf::Color(128, 128, 128); // gray
 	}
 }

@@ -157,7 +157,7 @@ bool PlayerState::hasPowerup(PowerupType type) const
 	return false;
 }
 
-const PowerupEffect* PlayerState::getPowerup(PowerupType type) const
+const PowerupEffect *PlayerState::getPowerup(PowerupType type) const
 {
 	for(const auto &powerup : m_powerups)
 	{

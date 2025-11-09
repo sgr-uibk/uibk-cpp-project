@@ -22,7 +22,10 @@ class LobbyServer
 	void lobbyLoop(); // blocks until all players ready
 	WorldState startGame(WorldState &worldState);
 	void requestShutdown();
-	bool isShutdownRequested() const { return m_shutdownRequested; }
+	bool isShutdownRequested() const
+	{
+		return m_shutdownRequested;
+	}
 
 	std::vector<LobbyPlayer> m_slots; // Vector, clients join sequentially
 
