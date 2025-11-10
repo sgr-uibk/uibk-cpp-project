@@ -5,7 +5,8 @@ PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
 	: m_state(state), m_color(color), m_healthyTex(TextureManager::inst().load("tank_healthy.png")),
 	  m_damagedTex(TextureManager::inst().load("tank_damaged.png")),
 	  m_deadTex(TextureManager::inst().load("tank_dead.png")), m_sprite(m_healthyTex),
-	  m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_nameText(m_font, m_state.m_name, 14)
+	  m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_nameText(m_font, m_state.m_name, 14),
+	  m_healthBar(sf::Vector2f(0, 0), sf::Vector2f(40.f, 6.f), m_state.m_maxHealth)
 {
 	updateSprite();
 	m_sprite.setPosition(m_state.m_pos);
@@ -14,19 +15,26 @@ PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
 	m_nameText.setOutlineColor(sf::Color::Black);
 	m_nameText.setOutlineThickness(1.f);
 	updateNameText();
+
+	registerHealthCallback([this](int current, int max) { m_healthBar.healthCallback(current, max); });
 }
 
-void PlayerClient::update(float)
+void PlayerClient::update(float dt)
 {
 	// smoothing / interpolation can be inserted here
 	syncSpriteToState();
 	updateNameText();
+
+	sf::Vector2f tankCenter = m_state.m_pos + PlayerState::logicalDimensions / 2.f;
+	sf::Vector2f barPos(tankCenter.x - 20.f, tankCenter.y - PlayerState::logicalDimensions.y / 2.f - 10.f);
+	m_healthBar.setPositionScreen(barPos);
 }
 
 void PlayerClient::draw(sf::RenderWindow &window) const
 {
 	window.draw(m_sprite);
 	window.draw(m_nameText);
+	window.draw(m_healthBar);
 }
 
 void PlayerClient::applyServerState(const PlayerState &serverState)

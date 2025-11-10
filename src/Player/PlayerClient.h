@@ -3,6 +3,7 @@
 #include <Map/MapState.h>
 #include <SFML/Graphics.hpp>
 #include <functional>
+#include "HealthBar.h"
 
 class PlayerClient
 {
@@ -30,6 +31,7 @@ class PlayerClient
   private:
 	void updateSprite();
 	void updateNameText();
+	void syncSpriteToState();
 	static constexpr sf::Vector2f tankDimensions = {64, 64};
 	PlayerState &m_state;
 
@@ -42,6 +44,5 @@ class PlayerClient
 	sf::Font &m_font; // must be declared before m_nameText
 	sf::Text m_nameText;
 	HealthCallback m_onHealthChanged;
-
-	void syncSpriteToState();
+	HealthBar m_healthBar;
 };

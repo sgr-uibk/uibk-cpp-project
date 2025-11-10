@@ -87,7 +87,7 @@ void HealthBar::healthCallback(const int health, const int max)
 
 void HealthBar::draw(sf::RenderTarget &target, sf::RenderStates states) const
 {
-	states.transform *= getTransform();
+	//states.transform *= getTransform();
 	target.draw(m_bg, states);
 	target.draw(m_fill, states);
 	target.draw(m_text, states);
