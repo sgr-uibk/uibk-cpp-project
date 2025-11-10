@@ -24,10 +24,7 @@ void PlayerClient::update(float dt)
 	// smoothing / interpolation can be inserted here
 	syncSpriteToState();
 	updateNameText();
-
-	sf::Vector2f tankCenter = m_state.m_pos + PlayerState::logicalDimensions / 2.f;
-	sf::Vector2f barPos(tankCenter.x - 20.f, tankCenter.y - PlayerState::logicalDimensions.y / 2.f - 10.f);
-	m_healthBar.setPositionScreen(barPos);
+	updateHealthbar(dt);
 }
 
 void PlayerClient::draw(sf::RenderWindow &window) const
@@ -92,4 +89,12 @@ void PlayerClient::updateNameText()
 	                     tankCenter.y - tankDimensions.y / 2.f - 18.f // 18 pixels above tank
 	);
 	m_nameText.setPosition(textPos);
+}
+
+void PlayerClient::updateHealthbar(float dt)
+{
+	sf::Vector2f tankCenter = m_state.m_pos + PlayerState::logicalDimensions / 2.f;
+	sf::Vector2f barPos(tankCenter.x - 20.f, tankCenter.y - PlayerState::logicalDimensions.y / 2.f - 10.f);
+	m_healthBar.setPositionScreen(barPos);
+	m_healthBar.update(dt);
 }

@@ -31,6 +31,7 @@ class PlayerClient
   private:
 	void updateSprite();
 	void updateNameText();
+	void updateHealthbar(float dt);
 	void syncSpriteToState();
 	static constexpr sf::Vector2f tankDimensions = {64, 64};
 	PlayerState &m_state;
