@@ -6,6 +6,7 @@
 #include "Map/MapClient.h"
 #include "Projectile/ProjectileClient.h"
 #include "Item/ItemClient.h"
+#include "Spectator/Spectator.h"
 
 class WorldClient
 {
@@ -39,6 +40,8 @@ class WorldClient
 	sf::Clock m_frameClock;
 	sf::Clock m_tickClock;
 
+	PlayerState& getOwnPlayerStateRef();
+
   private:
 	void drawPauseMenu(sf::RenderWindow &window) const;
 	void handlePauseMenuClick(sf::Vector2f mousePos);
@@ -51,6 +54,7 @@ class WorldClient
 	std::array<PlayerClient, MAX_PLAYERS> m_players;
 	std::vector<ProjectileClient> m_projectiles;
 	std::vector<ItemClient> m_items;
+	std::unique_ptr<Spectator> m_spectator;
 	EntityId m_ownPlayerId;
 	sf::View m_worldView;
 	sf::View m_hudView;

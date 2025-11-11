@@ -9,17 +9,25 @@
 #include "Powerup.h"
 #include "GameConfig.h"
 
+enum class PlayerMode
+{
+    NORMAL,
+    SPECTATOR
+};
+
 struct PlayerState
 {
 	PlayerState() = default;
 	PlayerState(sf::Packet pkt);
 	PlayerState(uint32_t id, sf::Vector2f pos, int maxHealth = 100);
 	PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth = 100);
+	PlayerMode m_mode = PlayerMode::NORMAL;
 
 	// Simulation
 	void update(float dt);
 	void moveOn(MapState const &map, sf::Vector2f posDelta);
 	void setRotation(sf::Angle);
+	void setPosition(const sf::Vector2f& pos);
 	void takeDamage(int amount);
 	void heal(int amount);
 	void die();

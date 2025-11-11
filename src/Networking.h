@@ -56,7 +56,8 @@ enum class UnreliablePktType : uint8_t
 	SELECT_SLOT,
 	USE_ITEM,
 	SNAPSHOT,
-	LAST
+	LAST,
+	SPECTATOR_MOVE
 };
 
 template <typename E> sf::Packet createPkt(E type)

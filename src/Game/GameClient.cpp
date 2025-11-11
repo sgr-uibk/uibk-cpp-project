@@ -16,6 +16,7 @@ GameClient::~GameClient() = default;
 void GameClient::handleUserInputs(sf::RenderWindow &window) const
 {
 	m_world.pollEvents();
+
 	std::optional<sf::Packet> outPktOpt = m_world.update();
 	m_world.draw(window);
 	window.display();
@@ -34,6 +35,7 @@ void GameClient::syncFromServer() const
 	sf::Packet snapPkt;
 	std::optional<sf::IpAddress> srcAddrOpt;
 	uint16_t srcPort;
+
 	if(sf::Socket::Status st = checkedReceive(m_lobby.m_gameSock, snapPkt, srcAddrOpt, srcPort);
 	   st == sf::Socket::Status::Done)
 	{

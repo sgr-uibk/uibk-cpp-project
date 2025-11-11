@@ -65,6 +65,7 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 	try
 	{
 		battleMusicPtr = &MusicManager::inst().load("audio/battle_loop.ogg");
+		//battleMusicPtr->setVolume(0.0f);
 		battleMusicPtr->setLooping(true);
 		if(gameMusicEnabled)
 		{
@@ -143,6 +144,7 @@ int main()
 	try
 	{
 		menuMusicPtr = &MusicManager::inst().load("audio/menu_loop.ogg");
+		//menuMusicPtr->setVolume(0.0f);
 		menuMusicPtr->setLooping(true);
 		if(menu.isMenuMusicEnabled())
 		{

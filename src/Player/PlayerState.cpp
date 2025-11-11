@@ -31,34 +31,31 @@ void PlayerState::update(float dt)
 
 void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 {
-	if(m_health <= 0)
-		return;
-
 	constexpr float tankMoveSpeed = 5.f;
 	posDelta *= tankMoveSpeed * getSpeedMultiplier();
+
+	if(m_health <= 0 && m_mode != PlayerMode::SPECTATOR)
+		return;
+
 	sf::RectangleShape nextShape(logicalDimensions);
 	nextShape.setPosition(m_pos + posDelta);
 
 	if(map.isColliding(nextShape))
 	{
-		// player crashed against something, deal them damage
 		takeDamage(10);
+		return;
 	}
-	else
-	{
-		// no collision, let them move there
-		m_pos += posDelta;
 
-		float const angRad = std::atan2(posDelta.x, -posDelta.y);
-		sf::Angle const rot = sf::radians(angRad);
-		m_rot = rot;
-	}
+	m_pos += posDelta;
+
+	float const angRad = std::atan2(posDelta.x, -posDelta.y);
+	m_rot = sf::radians(angRad);
 }
 
-// void PlayerState::setPosition(sf::Vector2f pos)
-// {
-// 	m_position = pos;
-// }
+void PlayerState::setPosition(const sf::Vector2f& pos)
+{
+	m_pos = pos;
+}
 
 void PlayerState::setRotation(sf::Angle rot)
 {
@@ -99,7 +96,8 @@ void PlayerState::heal(int const amount)
 
 void PlayerState::die()
 {
-	m_health = 0;
+	if(m_mode == PlayerMode::NORMAL)
+		m_health = 0;
 }
 
 void PlayerState::revive()
@@ -215,7 +213,7 @@ int PlayerState::getMaxHealth() const
 
 bool PlayerState::isAlive() const
 {
-	return m_health > 0;
+	return m_health > 0 || m_mode == PlayerMode::SPECTATOR;
 }
 
 bool PlayerState::addToInventory(PowerupType type)

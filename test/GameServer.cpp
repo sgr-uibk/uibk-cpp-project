@@ -45,6 +45,8 @@ int main()
 			rxPkt >> type;
 			if(static_cast<UnreliablePktType>(type) == UnreliablePktType::MOVE)
 			{
+				EntityId playerId;
+				rxPkt >> playerId;
 				sf::Vector2f posDelta;
 				rxPkt >> posDelta;
 				sf::Angle rot;
@@ -53,9 +55,20 @@ int main()
 				{
 					PlayerState &ps = world.getPlayers()[0];
 					ps.moveOn(world.map(), posDelta);
-					SPDLOG_LOGGER_INFO(logger, "player: pos=({},{}), rotDeg={}, h={}",
-					                   ps.m_pos.x, ps.m_pos.y, ps.m_rot.asDegrees(), ps.m_health);
+					SPDLOG_LOGGER_INFO(logger, "player: pos=({},{}), rotDeg={}, h={}", ps.m_pos.x, ps.m_pos.y,
+					                   ps.m_rot.asDegrees(), ps.m_health);
 				}
+			}
+			else if(static_cast<UnreliablePktType>(type) == UnreliablePktType::SPECTATOR_MOVE)
+			{
+				EntityId spectatorId;
+				sf::Vector2f posDelta;
+				sf::Angle aimAngle;
+				rxPkt >> spectatorId;
+				rxPkt >> posDelta;
+				rxPkt >> aimAngle;
+
+				SPDLOG_LOGGER_DEBUG(logger, "Ignoring SPECTATOR_MOVE for player {}", spectatorId);
 			}
 			// remember this client
 			clientAddr = srcAddrOpt.value();

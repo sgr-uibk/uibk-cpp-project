@@ -73,11 +73,30 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::ar
 		                 startY + i * (buttonHeight + spacing) + buttonHeight / 2.f - textBounds.size.y / 2.f - 5.f));
 		m_pauseButtonTexts.push_back(text);
 	}
+
+	auto &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
+	if(ownPlayer.m_mode == PlayerMode::SPECTATOR)
+		m_spectator = std::make_unique<Spectator>(ownPlayer.getPosition());
 }
 
 std::optional<sf::Packet> WorldClient::update()
 {
 	float const frameDelta = m_frameClock.restart().asSeconds();
+
+	auto &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
+
+	if(ownPlayer.getHealth() <= 0 && ownPlayer.m_mode != PlayerMode::SPECTATOR)
+	{
+		// Spectator
+		ownPlayer.m_mode = PlayerMode::SPECTATOR;
+		m_spectator = std::make_unique<Spectator>(ownPlayer.getPosition());
+	}
+	else if(ownPlayer.getHealth() > 0 && ownPlayer.m_mode == PlayerMode::SPECTATOR)
+	{
+		// Normal
+		ownPlayer.m_mode = PlayerMode::NORMAL;
+		m_spectator.reset();
+	}
 
 	// if paused -> skip game logic
 	if(m_isPaused)
@@ -103,12 +122,13 @@ std::optional<sf::Packet> WorldClient::update()
 
 	const sf::Vector2f posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
 
+	sf::Vector2f mouseWorldPos = ownPlayer.getPosition();
+
 	sf::Angle aimAngle;
 	if(hasFocus)
 	{
 		sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
-		sf::Vector2f mouseWorldPos = m_window.mapPixelToCoords(mousePixelPos, m_worldView);
-
+		mouseWorldPos = m_window.mapPixelToCoords(mousePixelPos, m_worldView);
 		sf::Vector2f playerPos = m_state.getPlayerById(m_ownPlayerId).getPosition();
 		sf::Vector2f aimDir = mouseWorldPos - playerPos;
 		float aimRad = std::atan2(aimDir.x, -aimDir.y);
@@ -129,55 +149,79 @@ std::optional<sf::Packet> WorldClient::update()
 	for(auto &item : m_items)
 		item.update(frameDelta);
 
+	if(ownPlayer.m_mode == PlayerMode::SPECTATOR)
+	{
+		m_spectator->update(frameDelta, posDelta, mouseWorldPos);
+		m_worldView.setCenter(m_spectator->getPosition());
+
+		// Paket nur senden, wenn Bewegung oder Aim erfolgt
+		if(m_bAcceptInput && (posDelta != sf::Vector2f{0, 0} || true) &&
+		   m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_RATE))
+		{
+			sf::Packet pkt = createPkt(UnreliablePktType::SPECTATOR_MOVE);
+			pkt << m_ownPlayerId;
+			pkt << posDelta;
+			pkt << aimAngle;
+			m_tickClock.restart();
+			return std::optional(pkt);
+		}
+
+		return std::nullopt;
+	}
+
 	// TODO: Disabled to explicitly show the server delay
 	// m_players[m_ownPlayerId-1].applyLocalMove(m_state.map(), posDelta);
 	// m_sprite.setRotation();
 
-	if(m_useItemRequested && m_bAcceptInput)
+	if(ownPlayer.isAlive())
 	{
-		m_useItemRequested = false;
-		sf::Packet pkt = createPkt(UnreliablePktType::USE_ITEM);
-		pkt << m_ownPlayerId;
-		return std::optional(pkt);
-	}
 
-	if(m_slotChangeRequested && m_bAcceptInput)
-	{
-		m_slotChangeRequested = false;
-		sf::Packet pkt = createPkt(UnreliablePktType::SELECT_SLOT);
-		pkt << m_ownPlayerId;
-		pkt << static_cast<int32_t>(m_requestedSlot);
-		return std::optional(pkt);
-	}
+		if(m_useItemRequested && m_bAcceptInput)
+		{
+			m_useItemRequested = false;
+			sf::Packet pkt = createPkt(UnreliablePktType::USE_ITEM);
+			pkt << m_ownPlayerId;
+			return std::optional(pkt);
+		}
 
-	if(shoot && m_bAcceptInput && m_state.getPlayerById(m_ownPlayerId).canShoot())
-	{
-		sf::Packet pkt = createPkt(UnreliablePktType::SHOOT);
-		pkt << m_ownPlayerId;
-		pkt << aimAngle;
-		return std::optional(pkt);
-	}
+		if(m_slotChangeRequested && m_bAcceptInput)
+		{
+			m_slotChangeRequested = false;
+			sf::Packet pkt = createPkt(UnreliablePktType::SELECT_SLOT);
+			pkt << m_ownPlayerId;
+			pkt << static_cast<int32_t>(m_requestedSlot);
+			return std::optional(pkt);
+		}
 
-	if(posDelta != sf::Vector2f{0, 0} && m_bAcceptInput &&
-	   m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_RATE))
-	{
-		sf::Packet pkt = createPkt(UnreliablePktType::MOVE);
-		pkt << m_ownPlayerId;
-		pkt << posDelta;
-		pkt << aimAngle;
-		m_tickClock.restart();
-		return std::optional(pkt);
-	}
+		if(shoot && m_bAcceptInput && m_state.getPlayerById(m_ownPlayerId).canShoot())
+		{
+			sf::Packet pkt = createPkt(UnreliablePktType::SHOOT);
+			pkt << m_ownPlayerId;
+			pkt << aimAngle;
+			return std::optional(pkt);
+		}
 
-	// if not moving but mouse aim changed, send rotation update
-	if(hasFocus && m_bAcceptInput && m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_RATE))
-	{
-		sf::Packet pkt = createPkt(UnreliablePktType::MOVE);
-		pkt << m_ownPlayerId;
-		pkt << sf::Vector2f{0, 0};
-		pkt << aimAngle;
-		m_tickClock.restart();
-		return std::optional(pkt);
+		if(posDelta != sf::Vector2f{0, 0} && m_bAcceptInput &&
+		   m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_RATE))
+		{
+			sf::Packet pkt = createPkt(UnreliablePktType::MOVE);
+			pkt << m_ownPlayerId;
+			pkt << posDelta;
+			pkt << aimAngle;
+			m_tickClock.restart();
+			return std::optional(pkt);
+		}
+
+		// if not moving but mouse aim changed, send rotation update
+		if(hasFocus && m_bAcceptInput && m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_RATE))
+		{
+			sf::Packet pkt = createPkt(UnreliablePktType::MOVE);
+			pkt << m_ownPlayerId;
+			pkt << sf::Vector2f{0, 0};
+			pkt << aimAngle;
+			m_tickClock.restart();
+			return std::optional(pkt);
+		}
 	}
 
 	return std::nullopt;
@@ -188,6 +232,12 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	window.setView(m_worldView);
 	window.clear(sf::Color::White);
 	m_mapClient.draw(window);
+
+	auto &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
+	if(ownPlayer.m_mode == PlayerMode::SPECTATOR && m_spectator)
+	{
+		m_spectator->draw(window);
+	}
 
 	for(auto const &item : m_items)
 		item.draw(window);
@@ -213,9 +263,33 @@ void WorldClient::draw(sf::RenderWindow &window) const
 
 void WorldClient::applyServerSnapshot(const WorldState &snapshot)
 {
+	const PlayerState currentOwnPlayerState = m_state.getPlayerById(m_ownPlayerId);
+
+	sf::Vector2f spectatorPos = currentOwnPlayerState.getPosition();
+	if(m_spectator && currentOwnPlayerState.m_mode == PlayerMode::SPECTATOR)
+	{
+		spectatorPos = m_spectator->getPosition();
+	}
+
 	m_state = snapshot;
 	// the map is static for now (deserialize does not extract a Map) as serialize doesn't shove one in.
 	// m_mapClient.setMapState(m_state.map());
+
+	PlayerState &newOwnPlayerState = m_state.getPlayerById(m_ownPlayerId);
+
+	if(currentOwnPlayerState.m_mode == PlayerMode::SPECTATOR)
+	{
+		newOwnPlayerState.m_mode = PlayerMode::SPECTATOR;
+
+		if(!m_spectator)
+		{
+			m_spectator = std::make_unique<Spectator>(spectatorPos);
+		}
+		else
+		{
+			m_spectator->setPosition(spectatorPos);
+		}
+	}
 
 	auto const states = m_state.getPlayers();
 	assert(states.size() == m_players.size());
@@ -592,4 +666,9 @@ void WorldClient::drawHotbar(sf::RenderWindow &window) const
 		slotNumber.setPosition(sf::Vector2f(x + 5.f, startY + 2.f));
 		window.draw(slotNumber);
 	}
+}
+
+PlayerState &WorldClient::getOwnPlayerStateRef()
+{
+	return m_state.getPlayerById(m_ownPlayerId);
 }
