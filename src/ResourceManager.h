@@ -7,43 +7,48 @@
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
-class AssetPathResolver
+class PathResolver
 {
   public:
-	explicit AssetPathResolver(std::vector<std::string> const &tryRoots = {"./assets", "../assets", "../../assets"})
+	explicit PathResolver(std::string_view rootName)
 	{
-		for(std::string const &possibleRoot : tryRoots)
+		std::filesystem::path const cwd = std::filesystem::current_path();
+		std::filesystem::path const tryBase[] = {cwd, cwd.parent_path(), cwd.parent_path().parent_path()};
+		for(auto const &possibleBase : tryBase)
 		{
-			std::filesystem::path abs = std::filesystem::absolute(possibleRoot);
-			if(std::filesystem::exists(abs) && std::filesystem::is_directory(abs))
+			auto const candidate = possibleBase / rootName;
+			if(std::filesystem::exists(candidate) && std::filesystem::is_directory(candidate))
 			{
 				// That exists, take it!
-				m_assetsRoot = std::move(abs);
+				m_rootPath = candidate;
 				return;
 			}
 		}
 		throw std::runtime_error("None of the candidate directories exist.");
 	}
 
-	std::filesystem::path resolveRelative(const std::string &rel) const
+	[[nodiscard]] std::filesystem::path resolveRelative(std::string_view rel) const
 	{
 		// the / is the path append operator :)
-		std::filesystem::path abs = std::filesystem::absolute(m_assetsRoot / rel);
+		std::filesystem::path abs = std::filesystem::absolute(m_rootPath / rel);
 		if(!std::filesystem::exists(abs))
-			throw std::runtime_error("Asset can't be found at " + abs.string());
+		{
+			std::string const msg = abs.string() + " doesn't exist at " + m_rootPath.string();
+			throw std::runtime_error(msg);
+		}
 		return abs;
 	}
 
-	const std::filesystem::path &getAssetsRoot() const
+	[[nodiscard]] std::filesystem::path const &getAssetsRoot() const
 	{
-		return m_assetsRoot;
+		return m_rootPath;
 	}
 
   private:
-	std::filesystem::path m_assetsRoot;
+	std::filesystem::path m_rootPath;
 };
 
-inline AssetPathResolver g_assetPathResolver;
+inline PathResolver g_assetPathResolver("assets");
 
 // Generic resource manager for types that have a loadFromFile method (sf::Texture, sf::SoundBuffer),
 // as well as sf::Font, sf::Music that have a openFromFile method. (Note that the ResourceManager must outlive the
@@ -58,8 +63,8 @@ inline AssetPathResolver g_assetPathResolver;
 template <typename R> class ResourceManager
 {
   public:
-	ResourceManager(const ResourceManager &) = delete;
-	ResourceManager &operator=(const ResourceManager &) = delete;
+	ResourceManager(ResourceManager const &) = delete;
+	ResourceManager &operator=(ResourceManager const &) = delete;
 	ResourceManager() = default;
 
 	static ResourceManager &inst()
@@ -68,7 +73,7 @@ template <typename R> class ResourceManager
 		return s_instance;
 	}
 
-	R &load(const std::string &key)
+	R &load(std::string const &key)
 	{
 		{
 			// Was the resource already loaded ?
@@ -97,7 +102,7 @@ template <typename R> class ResourceManager
 		}
 	}
 
-	R &get(const std::string &key)
+	R &get(std::string const &key)
 	{
 		std::shared_lock readLock(m_mutex);
 		auto it = m_map.find(key);
