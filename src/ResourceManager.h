@@ -60,7 +60,9 @@ inline PathResolver g_assetPathResolver("assets");
 // Can't directly store the Resources in a unordered_map<R> as lazy loading causes rehashes,
 // and that kills the R& already given to the clients.
 
-template <typename R> class ResourceManager
+template <typename R>
+concept ConstructibleFromPath = std::is_constructible_v<R, std::filesystem::path>;
+template <ConstructibleFromPath R> class ResourceManager
 {
   public:
 	ResourceManager(ResourceManager const &) = delete;
