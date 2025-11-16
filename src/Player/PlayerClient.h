@@ -26,6 +26,7 @@ class PlayerClient
 	}
 
 	void registerHealthCallback(HealthCallback cb);
+	void interp(PlayerState const &s0, PlayerState const &s1, float alpha) const;
 
   private:
 	void updateSprite();

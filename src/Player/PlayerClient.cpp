@@ -44,6 +44,22 @@ void PlayerClient::registerHealthCallback(HealthCallback cb)
 	m_onHealthChanged = std::move(cb);
 }
 
+sf::Vector2f lerp(sf::Vector2f const &a, sf::Vector2f const &b, float t)
+{
+	return a + t * (b - a);
+}
+
+sf::Angle lerp(sf::Angle const &a, sf::Angle const &b, float t)
+{
+	return a + t * (b - a);
+}
+
+void PlayerClient::interp(PlayerState const &s0, PlayerState const &s1, float const alpha) const
+{
+	this->m_state.m_pos = lerp(s0.m_pos, s1.m_pos, alpha);
+	this->m_state.m_rot = lerp(s0.m_rot, s1.m_rot, alpha);
+}
+
 void PlayerClient::updateSprite()
 {
 	syncSpriteToState();

@@ -15,6 +15,7 @@ constexpr float UNRELIABLE_TICK_TIME = 1.f / 20;
 constexpr sf::Vector2u WINDOW_DIM{800, 600};
 constexpr sf::Vector2f WINDOW_DIMf{WINDOW_DIM};
 typedef uint32_t EntityId;
+typedef uint32_t Tick;
 
 constexpr uint8_t MAX_PLAYERS = 2;
 constexpr std::array ALL_PLAYER_COLORS{sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta};
@@ -73,6 +74,13 @@ template <typename E> sf::Packet createPkt(E type)
 	return pkt;
 }
 
+template <typename E> sf::Packet createTickedPkt(E type, Tick tick)
+{
+	sf::Packet pkt = createPkt<E>(type);
+	pkt << tick;
+	return pkt;
+}
+
 template <typename E> void expectPkt(sf::Packet &pkt, E expectedType)
 {
 	static_assert(std::is_enum_v<E>);
@@ -85,6 +93,14 @@ template <typename E> void expectPkt(sf::Packet &pkt, E expectedType)
 		                            std::to_string(static_cast<uint8_t>(expectedType)) + ")";
 		throw std::runtime_error(message);
 	}
+}
+
+template <typename E> Tick expectTickedPkt(sf::Packet &pkt, E expectedType)
+{
+	expectPkt(pkt, expectedType);
+	Tick tick;
+	pkt >> tick;
+	return tick;
 }
 
 // Data is guaranteed to be fully sent/received even for non-blocking TCP sockets.
@@ -139,7 +155,7 @@ inline sf::Socket::Status checkedReceive(sf::UdpSocket &sock, sf::Packet &pkt,
 	return st;
 }
 
-inline sf::Packet operator<<(sf::Packet &pkt, const sf::Vector2f &vec)
+inline sf::Packet operator<<(sf::Packet &pkt, sf::Vector2f const &vec)
 {
 	pkt << vec.x;
 	pkt << vec.y;
@@ -153,7 +169,7 @@ inline sf::Packet operator>>(sf::Packet &pkt, sf::Vector2f &vec)
 	return pkt;
 }
 
-inline sf::Packet operator<<(sf::Packet &pkt, const sf::Angle &ang)
+inline sf::Packet operator<<(sf::Packet &pkt, sf::Angle const &ang)
 {
 	pkt << ang.asRadians();
 	return pkt;

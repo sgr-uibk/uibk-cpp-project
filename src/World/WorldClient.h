@@ -9,7 +9,7 @@ class WorldClient
   public:
 	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players);
 
-	std::optional<sf::Packet> update();
+	std::optional<sf::Packet> update(sf::Vector2f vector2);
 	void draw(sf::RenderWindow &window) const;
 
 	[[nodiscard]] PlayerState getOwnPlayerState() const

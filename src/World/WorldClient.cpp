@@ -27,15 +27,9 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::ar
 	m_tickClock.start();
 }
 
-std::optional<sf::Packet> WorldClient::update()
+std::optional<sf::Packet> WorldClient::update(sf::Vector2f const posDelta)
 {
 	float const frameDelta = m_frameClock.restart().asSeconds();
-	bool const w = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W);
-	bool const s = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S);
-	bool const a = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
-	bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
-
-	sf::Vector2f const posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
 
 	for(auto &pc : m_players)
 		pc.update(frameDelta);

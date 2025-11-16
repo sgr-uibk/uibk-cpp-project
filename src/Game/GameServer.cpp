@@ -25,6 +25,7 @@ GameServer::~GameServer()
 
 PlayerState *GameServer::matchLoop()
 {
+	m_authTick = 0;
 	while(m_numAlive > 1)
 	{
 		processPackets();
@@ -32,6 +33,7 @@ PlayerState *GameServer::matchLoop()
 		// maintain fixed tick rate updates
 		float dt = m_tickClock.restart().asSeconds();
 		sf::sleep(sf::seconds(UNRELIABLE_TICK_TIME - dt));
+		++m_authTick;
 		m_world.update(UNRELIABLE_TICK_TIME);
 
 		size_t cAlive = 0;
@@ -94,7 +96,7 @@ void GameServer::processPackets()
 void GameServer::floodWorldState()
 {
 	// flood snapshots to all known clients
-	sf::Packet snapPkt = createPkt(UnreliablePktType::SNAPSHOT);
+	sf::Packet snapPkt = createTickedPkt(UnreliablePktType::SNAPSHOT, m_authTick);
 	m_world.serialize(snapPkt);
 	for(LobbyPlayer &p : m_lobby.m_slots)
 	{
