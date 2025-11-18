@@ -3,6 +3,11 @@
 cmake*
 build*
 
+# PlantUML artifacts
+*.jar
+# these are generated sources
+diagrams/*.puml
+
 # https://github.com/github/gitignore C++.gitignore
 # Prerequisites
 *.d
