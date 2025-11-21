@@ -14,7 +14,7 @@ class GameClient
 	GameClient(WorldClient &world, LobbyClient &lobby, const std::shared_ptr<spdlog::logger> &logger);
 	~GameClient();
 	void update(sf::RenderWindow &window) const;
-	void fetchFromServer();
+	void processUnreliablePackets();
 	bool processReliablePackets(sf::TcpSocket &lobbySock) const;
 
   private:

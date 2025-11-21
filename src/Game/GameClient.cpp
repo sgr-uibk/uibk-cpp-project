@@ -42,7 +42,7 @@ void GameClient::update(sf::RenderWindow &window) const
 	}
 }
 
-void GameClient::fetchFromServer()
+void GameClient::processUnreliablePackets()
 {
 	sf::Packet snapPkt;
 	std::optional<sf::IpAddress> srcAddrOpt;

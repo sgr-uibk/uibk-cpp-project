@@ -41,8 +41,7 @@ int main(int argc, char **argv)
 		while(window.isOpen())
 		{
 			gameClient.update(window);
-			gameClient.fetchFromServer();
-
+			gameClient.processUnreliablePackets();
 			if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
 				break; // game ended
 		}
