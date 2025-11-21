@@ -9,7 +9,7 @@ class WorldState
   public:
 	WorldState();
 	explicit WorldState(sf::Vector2f mapSize);
-	void update(float dt);
+	void update();
 	void setPlayer(PlayerState const &p);
 
 	std::array<PlayerState, MAX_PLAYERS> &getPlayers();

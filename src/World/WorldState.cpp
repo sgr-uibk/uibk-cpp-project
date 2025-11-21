@@ -11,10 +11,10 @@ WorldState::WorldState(sf::Vector2f mapSize) : m_map(mapSize), m_players()
 {
 }
 
-void WorldState::update(float dt)
+void WorldState::update()
 {
 	for(auto &p : m_players)
-		p.update(dt);
+		p.update();
 }
 
 void WorldState::setPlayer(PlayerState const &p)

@@ -10,12 +10,13 @@ constexpr uint16_t PORT_TCP = 25106;
 // https://learn.microsoft.com/en-us/gaming/gdk/docs/features/console/networking/game-mesh/preferred-local-udp-multiplayer-port-networking
 constexpr uint16_t PORT_UDP = 3074;
 constexpr uint32_t PROTOCOL_VERSION = 1;
-constexpr float UNRELIABLE_TICK_RATE = 20;
-constexpr float UNRELIABLE_TICK_TIME = 1.f / 20;
+constexpr int32_t RENDER_TICK_HZ = 60;
+constexpr int32_t UNRELIABLE_TICK_HZ = 20;
+constexpr int32_t UNRELIABLE_TICK_MS = 1000 / UNRELIABLE_TICK_HZ;
 constexpr sf::Vector2u WINDOW_DIM{800, 600};
 constexpr sf::Vector2f WINDOW_DIMf{WINDOW_DIM};
 typedef uint32_t EntityId;
-typedef uint32_t Tick;
+typedef int32_t Tick;
 
 constexpr uint8_t MAX_PLAYERS = 2;
 constexpr std::array ALL_PLAYER_COLORS{sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta};
@@ -201,5 +202,19 @@ inline sf::Packet operator>>(sf::Packet &pkt, sf::RectangleShape &rec)
 	rec.setSize(sz);
 	rec.setPosition(pos);
 	rec.setFillColor(sf::Color(colorInt));
+	return pkt;
+}
+
+template <size_t Sz> sf::Packet operator<<(sf::Packet &pkt, std::array<Tick, Sz> const &arr)
+{
+	for(size_t i = 0; i < Sz; ++i)
+		pkt << arr[i];
+	return pkt;
+}
+
+template <size_t Sz> sf::Packet operator>>(sf::Packet &pkt, std::array<Tick, Sz> &arr)
+{
+	for(size_t i = 0; i < Sz; ++i)
+		pkt >> arr[i];
 	return pkt;
 }

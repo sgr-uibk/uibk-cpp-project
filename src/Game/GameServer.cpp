@@ -32,9 +32,9 @@ PlayerState *GameServer::matchLoop()
 
 		// maintain fixed tick rate updates
 		float dt = m_tickClock.restart().asSeconds();
-		sf::sleep(sf::seconds(UNRELIABLE_TICK_TIME - dt));
+		sf::sleep(sf::milliseconds(UNRELIABLE_TICK_MS - dt));
 		++m_authTick;
-		m_world.update(UNRELIABLE_TICK_TIME);
+		m_world.update();
 
 		size_t cAlive = 0;
 		PlayerState *pWinner = nullptr;
@@ -66,6 +66,8 @@ void GameServer::processPackets()
 	{
 		uint8_t type;
 		rxPkt >> type;
+		Tick tick;
+		rxPkt >> tick;
 		switch(UnreliablePktType(type))
 		{
 		case UnreliablePktType::MOVE: {

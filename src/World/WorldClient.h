@@ -25,6 +25,7 @@ class WorldClient
 
 	sf::Clock m_frameClock;
 	sf::Clock m_tickClock;
+	Tick m_clientTick = 0; // prediction reference; what inputs need to be reapplied after reconciliation
 
   private:
 	sf::RenderWindow &m_window;

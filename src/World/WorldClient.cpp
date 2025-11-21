@@ -39,9 +39,9 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f const posDelta)
 	// m_sprite.setRotation();
 
 	if(posDelta != sf::Vector2f{0, 0} && m_bAcceptInput &&
-	   m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_TIME))
+	   m_tickClock.getElapsedTime() > sf::milliseconds(UNRELIABLE_TICK_MS))
 	{
-		sf::Packet pkt = createPkt(UnreliablePktType::MOVE);
+		sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
 		pkt << m_ownPlayerId;
 		pkt << posDelta;
 		m_tickClock.restart();
