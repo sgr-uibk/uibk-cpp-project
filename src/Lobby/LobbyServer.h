@@ -20,7 +20,7 @@ class LobbyServer
 	LobbyServer(uint16_t tcpPort, const std::shared_ptr<spdlog::logger> &logger);
 	~LobbyServer();
 	void lobbyLoop(); // blocks until all players ready
-	WorldState startGame(WorldState &worldState);
+	void startGame(WorldState &worldState);
 	void endGame(EntityId winner);
 
 	std::vector<LobbyPlayer> m_slots; // Vector, clients join sequentially
@@ -32,7 +32,7 @@ class LobbyServer
 
 	sf::TcpListener m_listener;
 	sf::SocketSelector m_multiSock;
-	uint32_t m_nextId = 1;
+	uint32_t m_tentativeId = 1;
 	std::shared_ptr<spdlog::logger> m_logger;
 	uint8_t m_cReady;
 };
