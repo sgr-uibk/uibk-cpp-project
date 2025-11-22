@@ -31,7 +31,7 @@ PlayerState *GameServer::matchLoop()
 		processPackets();
 
 		// maintain fixed tick rate updates
-		float dt = m_tickClock.restart().asSeconds();
+		int32_t dt = m_tickClock.restart().asMilliseconds();
 		sf::sleep(sf::milliseconds(UNRELIABLE_TICK_MS - dt));
 		++m_authTick;
 		m_world.update();
@@ -78,14 +78,20 @@ void GameServer::processPackets()
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
+				if(m_lastClientTicks[clientId - 1] >= tick)
+				{
+					SPDLOG_LOGGER_WARN(m_logger, "MOVE: Outdated pkt (know {}, got {})",
+					                   m_lastClientTicks[clientId - 1], tick);
+					break;
+				}
+				m_lastClientTicks[clientId - 1] = tick;
 				PlayerState &ps = m_world.getPlayerById(clientId);
-
 				ps.moveOn(m_world.getMap(), posDelta);
 				SPDLOG_LOGGER_INFO(m_logger, "Recv MOVE id {} pos=({},{}), rotDeg={}", clientId, ps.m_pos.x, ps.m_pos.y,
 				                   ps.m_rot.asDegrees());
 			}
 			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(m_logger, "MOVE: Dropping packet from invalid player id {}", clientId);
 			break;
 		}
 		default:
@@ -99,6 +105,7 @@ void GameServer::floodWorldState()
 {
 	// flood snapshots to all known clients
 	sf::Packet snapPkt = createTickedPkt(UnreliablePktType::SNAPSHOT, m_authTick);
+	snapPkt << m_lastClientTicks;
 	m_world.serialize(snapPkt);
 	for(LobbyPlayer &p : m_lobby.m_slots)
 	{

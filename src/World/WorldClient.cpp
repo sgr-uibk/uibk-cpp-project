@@ -1,6 +1,9 @@
 #include "WorldClient.h"
 #include "Utilities.h"
 
+#include <numeric>
+#include <ranges>
+
 // https://www.trivialorwrong.com/2015/12/08/meta-sequences-in-c++.html
 template <std::size_t N>
 std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states, std::array<sf::Color, N> const &colors)
@@ -27,26 +30,34 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::ar
 	m_tickClock.start();
 }
 
-std::optional<sf::Packet> WorldClient::update(sf::Vector2f const posDelta)
+std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 {
 	float const frameDelta = m_frameClock.restart().asSeconds();
+	m_clientTick++;
 
 	for(auto &pc : m_players)
 		pc.update(frameDelta);
+	if(m_bAcceptInput && posDelta != sf::Vector2f{0, 0})
+	{ // now we can safely normalize
+		posDelta *= UNRELIABLE_TICK_HZ / (RENDER_TICK_HZ * posDelta.length());
 
-	// TODO: Disabled to explicitly show the server delay
-	// m_players[m_ownPlayerId-1].applyLocalMove(m_state.map(), posDelta);
-	// m_sprite.setRotation();
+		m_inputAcc += posDelta;
+		m_players[m_ownPlayerId - 1].applyLocalMove(m_state.m_map, posDelta); // predict
 
-	if(posDelta != sf::Vector2f{0, 0} && m_bAcceptInput &&
-	   m_tickClock.getElapsedTime() > sf::milliseconds(UNRELIABLE_TICK_MS))
-	{
-		sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
-		pkt << m_ownPlayerId;
-		pkt << posDelta;
-		m_tickClock.restart();
-		return std::optional(pkt);
+		if(m_tickClock.getElapsedTime().asMilliseconds() >= UNRELIABLE_TICK_MS)
+		{
+			m_inputInflightBuffer.emplace_back(m_clientTick, m_inputAcc);
+			sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
+			pkt << m_ownPlayerId;
+			pkt << m_inputAcc;
+			m_inputAcc = {0, 0}; // now in flight
+			m_tickClock.restart();
+			return std::make_optional(pkt);
+		}
 	}
+
+	for(auto &pc : m_players)
+		pc.update();
 
 	return std::nullopt;
 }
@@ -75,6 +86,69 @@ void WorldClient::applyServerSnapshot(WorldState const &snapshot)
 		m_players[i].applyServerState(states[i]);
 }
 
+void WorldClient::reconcileLocalPlayer(Tick ackedTick, WorldState const &snap)
+{
+	size_t const id = m_ownPlayerId - 1;
+	PlayerState authState = snap.m_players[id];
+	PlayerState localState = m_players[id].getState();
+
+	// Erase inputs that made it into the received snapshot
+	while(!m_inputInflightBuffer.empty() && m_inputInflightBuffer.front().first <= ackedTick)
+		m_inputInflightBuffer.pop_front();
+
+	auto err = authState.m_pos - localState.m_pos;
+	if(err.length() == 0)
+	{ // Prediction hit! We're done here.
+		return;
+	}
+
+	// Server disagrees, have to accept authoritative state, replay local inputs
+	m_players[id].applyServerState(authState);
+
+	for(auto const &delta : m_inputInflightBuffer | std::views::values)
+		m_players[id].applyLocalMove(m_state.m_map, delta);  // replay in flight
+	m_players[id].applyLocalMove(m_state.m_map, m_inputAcc); // replay pre-in flight inputs
+	auto const replayedState = m_players[id].getState();
+	err = replayedState.m_pos - localState.m_pos;
+	if(err.length() > 1e-3)
+		SPDLOG_WARN("Reconciliation error ({},{})", err.x, err.y);
+}
+
+bool WorldClient::interpolateEnemies() const
+{
+
+	// Render‑time interpolation
+	long const renderTick = m_authTick - 1;
+	if(renderTick < 0)
+	{
+		SPDLOG_INFO("Interpolation not yet ready");
+		return false;
+	}
+
+	auto &[t0, s0] = m_snapshotBuffer.get();
+	auto &[t1, s1] = m_snapshotBuffer.getOld(1);
+	if(t0 != t1 + 1)
+	{
+		SPDLOG_ERROR("SS buffer out of sequence! Perhaps increase size ?");
+		return false;
+	}
+
+	float const alpha = 1; // TODO
+	auto &p0 = s0.m_players;
+	auto &p1 = s1.m_players;
+
+	for(size_t i = 0; i < MAX_PLAYERS; ++i)
+	{
+		size_t id = i + 1;
+		if(id == m_ownPlayerId)
+			continue; // own player is predicted, not interpolated
+
+		m_players[i].interp(p0[i], p1[i], alpha);
+	}
+
+	return true;
+}
+
 WorldState &WorldClient::getState()
 {
 	return m_state;
@@ -98,4 +172,11 @@ void WorldClient::pollEvents()
 		else if(event->is<sf::Event::FocusGained>())
 			m_bAcceptInput = true;
 	}
+}
+
+void WorldClient::reset()
+{
+	m_authTick = 0;
+	m_clientTick = 0;
+	m_snapshotBuffer.clear();
 }

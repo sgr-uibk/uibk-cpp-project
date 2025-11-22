@@ -18,6 +18,7 @@ class GameServer
 	sf::Clock m_tickClock;
 	size_t m_numAlive;
 	Tick m_authTick = 0;
+	std::array<int32_t, MAX_PLAYERS> m_lastClientTicks = {0};
 
   private:
 	void processPackets();

@@ -5,7 +5,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <spdlog/spdlog.h>
 
-constexpr uint16_t PORT_TCP = 25106;
+constexpr uint16_t PORT_TCP = 25105;
 // It's a publicly registered, well-known port for multiplayer network traffic.
 // https://learn.microsoft.com/en-us/gaming/gdk/docs/features/console/networking/game-mesh/preferred-local-udp-multiplayer-port-networking
 constexpr uint16_t PORT_UDP = 3074;
@@ -17,6 +17,7 @@ constexpr sf::Vector2u WINDOW_DIM{800, 600};
 constexpr sf::Vector2f WINDOW_DIMf{WINDOW_DIM};
 typedef uint32_t EntityId;
 typedef int32_t Tick;
+template <typename T> using Ticked = std::pair<Tick, T>;
 
 constexpr uint8_t MAX_PLAYERS = 2;
 constexpr std::array ALL_PLAYER_COLORS{sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta};

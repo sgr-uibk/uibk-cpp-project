@@ -8,6 +8,8 @@
 #include "Lobby/LobbyClient.h"
 #include "World/WorldClient.h"
 
+// A thin facade for orchestrating Lobby/Battle loop
+// TODO I don't see a real responsibility, this class could be inlined.
 class GameClient
 {
   public:
@@ -21,7 +23,6 @@ class GameClient
 	WorldClient &m_world;
 	LobbyClient &m_lobby;
 	Endpoint m_gameServer;
-	RingQueue<std::pair<Tick, WorldState>, 8> m_snapshotBuffer;
 
 	std::shared_ptr<spdlog::logger> m_logger;
 };

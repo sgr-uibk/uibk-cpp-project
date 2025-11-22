@@ -1,5 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <deque>
+#include "RingBuffer.h"
 #include "WorldState.h"
 #include "Player/PlayerClient.h"
 #include "Map/MapClient.h"
@@ -17,15 +19,26 @@ class WorldClient
 		return m_players[m_ownPlayerId - 1].getState();
 	}
 
-	void applyServerSnapshot(const WorldState &snapshot);
+	void applyServerSnapshot(WorldState const &snapshot);
+	void reconcileLocalPlayer(Tick serverTick, WorldState const &snap);
+	bool interpolateEnemies() const;
+
 	WorldState &getState();
 	void pollEvents();
+	void reset();
 
 	bool m_bAcceptInput;
 
 	sf::Clock m_frameClock;
 	sf::Clock m_tickClock;
+
+	sf::Vector2f m_inputAcc = {0, 0}; // not yet in flight
+	std::deque<Ticked<sf::Vector2f>> m_inputInflightBuffer;
+	sf::Vector2f m_pendingInput = {0, 0};
+	RingQueue<Ticked<WorldState>, 8>
+		m_snapshotBuffer;  // the top of the snapshot buffer is the latest tick recvd from the server
 	Tick m_clientTick = 0; // prediction reference; what inputs need to be reapplied after reconciliation
+	Tick m_authTick = 0;   // last authoritative tick received from server
 
   private:
 	sf::RenderWindow &m_window;

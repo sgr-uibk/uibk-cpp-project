@@ -4,9 +4,8 @@
 #include "Player/PlayerState.h"
 #include "Networking.h"
 
-class WorldState
+struct WorldState
 {
-  public:
 	WorldState();
 	explicit WorldState(sf::Vector2f mapSize);
 	void update();
@@ -22,9 +21,8 @@ class WorldState
 
 	WorldState &operator=(WorldState const &);
 
-  private:
 	MapState const m_map;
-	// Players are not removed on disconnect,
-	// as others can't join in the battle phase anyway.
 	std::array<PlayerState, MAX_PLAYERS> m_players;
 };
+
+template <typename T> using Ticked = std::pair<Tick, T>;

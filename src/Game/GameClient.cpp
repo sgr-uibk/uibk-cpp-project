@@ -17,18 +17,13 @@ void GameClient::update(sf::RenderWindow &window) const
 {
 	m_world.pollEvents();
 
-	auto const &[tick, state] = m_snapshotBuffer.get();
-	// ss are saved in strict monotonic ascending order, ensure the head is the latest
-	for(size_t i = 0; i < m_snapshotBuffer.m_buf.size(); ++i)
-		assert(tick >= m_snapshotBuffer.m_buf[i].first);
-	m_world.applyServerSnapshot(state);
+	m_world.interpolateEnemies();
 
 	bool const w = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W);
 	bool const s = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S);
 	bool const a = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
 	bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
 	sf::Vector2f const posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
-
 	std::optional<sf::Packet> outPktOpt = m_world.update(posDelta);
 	m_world.draw(window);
 	window.display();
@@ -50,15 +45,20 @@ void GameClient::processUnreliablePackets()
 	if(sf::Socket::Status st = checkedReceive(m_lobby.m_gameSock, snapPkt, srcAddrOpt, srcPort);
 	   st == sf::Socket::Status::Done)
 	{
-		Tick const t = expectTickedPkt(snapPkt, UnreliablePktType::SNAPSHOT);
-		[[unlikely]] if(m_snapshotBuffer.m_hot >= t)
+		Tick const authTick = expectTickedPkt(snapPkt, UnreliablePktType::SNAPSHOT);
+		std::array<Tick, MAX_PLAYERS> ackedTicks{};
+		snapPkt >> ackedTicks;
+		[[unlikely]] if(m_world.m_snapshotBuffer.get().tick >= authTick)
 		{
-			SPDLOG_LOGGER_WARN(m_logger, "Ignoring outdated snapshot with tick {}", t);
+			SPDLOG_LOGGER_WARN(m_logger, "Ignoring outdated snapshot created at server tick #{}", authTick);
 			return;
 		}
-		auto &[tick, snap] = m_snapshotBuffer.claim();
-		tick = t;
-		snap.deserialize(snapPkt);
+		else
+			m_world.m_authTick = authTick;
+		auto &[snapTick, snapState] = m_world.m_snapshotBuffer.claim();
+		snapTick = authTick;
+		snapState.deserialize(snapPkt);
+		m_world.reconcileLocalPlayer(ackedTicks[m_lobby.m_clientId - 1], snapState); // reconcile local player state now
 	}
 	else if(st != sf::Socket::Status::NotReady)
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed receiving snapshot pkt: {}", (int)st);
@@ -83,6 +83,7 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 				SPDLOG_LOGGER_INFO(m_logger, "I won the game!", winnerId);
 			else
 				SPDLOG_LOGGER_INFO(m_logger, "Battle is over, winner id {}, returning to lobby.", winnerId);
+			m_world.reset();
 			return true;
 		}
 		default:

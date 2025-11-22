@@ -35,7 +35,7 @@ int main()
 			}
 		}
 
-		float const dt = frameClock.restart().asSeconds();
+		float const dt = frameClock.restart().asMilliseconds();
 		gameWorld.update(dt);
 		gameWorld.draw(window);
 		window.display();
