@@ -2,27 +2,38 @@
 #include "../Utilities.h"
 
 LobbyClient::LobbyClient(std::string const &name, Endpoint const lobbyServer)
-	: m_clientId(0), m_name(name), m_bReady(false)
+	: m_clientId(0), m_name(name), m_bReady(false), m_loggerName(name)
 {
-	m_logger = createConsoleAndFileLogger(name);
-	if(m_lobbySock.connect(lobbyServer.ip, lobbyServer.port) != sf::Socket::Status::Done)
+	m_logger = createConsoleAndFileLogger(m_loggerName);
+
+	try
 	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to connect to lobby");
-		std::exit(1);
+		if(m_lobbySock.connect(lobbyServer.ip, lobbyServer.port) != sf::Socket::Status::Done)
+		{
+			SPDLOG_LOGGER_ERROR(m_logger, "Failed to connect to lobby");
+			throw std::runtime_error("Failed to connect to lobby server");
+		}
+		m_lobbySock.setBlocking(false);
+		// Bind to the local game socket now, the server should know everything about the client as early as possible.
+		bindGameSocket();
+		SPDLOG_LOGGER_INFO(m_logger, "Starting Client. Server {}, lobby:{}, game:{}, client name {}",
+		                   lobbyServer.ip.toString(), lobbyServer.port, m_gameSock.getLocalPort(), m_name);
 	}
-	m_lobbySock.setBlocking(true);
-	// Bind to the local game socket now, the server should know everything about the client as early as possible.
-	bindGameSocket();
-	SPDLOG_LOGGER_INFO(m_logger, "Starting Client. Server {}, lobby:{}, game:{}, client name {}",
-	                   lobbyServer.ip.toString(), lobbyServer.port, m_gameSock.getLocalPort(), m_name);
+	catch(...)
+	{
+		// If construction fails, drop the logger before re-throwing
+		// (destructor won't be called for failed construction)
+		spdlog::drop(m_loggerName);
+		throw;
+	}
 }
 
 LobbyClient::~LobbyClient()
 {
 	m_lobbySock.disconnect();
 	m_gameSock.unbind();
-	// drop the logger to allow recreating it with the same name later
-	spdlog::drop(m_name);
+	// drop the logger using the original name to allow recreating it later
+	spdlog::drop(m_loggerName);
 }
 
 void LobbyClient::bindGameSocket()
@@ -43,7 +54,7 @@ void LobbyClient::bindGameSocket()
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed to bind to any UDP port [{}, {}]", m_gameSock.getLocalPort(),
 		                    m_gameSock.getLocalPort() + MAX_PLAYERS);
-		std::exit(1);
+		throw std::runtime_error("Failed to bind to any available UDP port");
 	}
 	m_gameSock.setBlocking(false);
 }
@@ -57,47 +68,57 @@ void LobbyClient::connect()
 	if(checkedSend(m_lobbySock, joinPkt) != sf::Socket::Status::Done)
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send JOIN_REQ");
-		std::exit(1);
+		throw std::runtime_error("Failed to send join request to server");
 	}
 
-	sf::Packet joinAckPkt;
-#ifdef SFML_SYSTEM_LINUX
-	errno = 0;
-#endif
-	sf::Socket::Status error = checkedReceive(m_lobbySock, joinAckPkt);
-	if(error == sf::Socket::Status::Done)
+	// Wait for JOIN_ACK with timeout to avoid indefinite blocking
+	sf::Clock timeout;
+	const sf::Time maxWaitTime = sf::seconds(5);
+
+	while(timeout.getElapsedTime() < maxWaitTime)
 	{
-		uint8_t type;
-		joinAckPkt >> type;
-		if(type == uint8_t(ReliablePktType::JOIN_ACK))
+		sf::Packet joinAckPkt;
+		sf::Socket::Status error = checkedReceive(m_lobbySock, joinAckPkt);
+
+		if(error == sf::Socket::Status::Done)
 		{
-			std::string assignedName;
-			joinAckPkt >> m_clientId;
-			joinAckPkt >> assignedName;
-
-			if(assignedName != m_name)
+			uint8_t type;
+			joinAckPkt >> type;
+			if(type == uint8_t(ReliablePktType::JOIN_ACK))
 			{
-				SPDLOG_LOGGER_INFO(m_logger, "Name changed from '{}' to '{}' due to duplicate", m_name, assignedName);
-				m_name = assignedName;
-			}
+				std::string assignedName;
+				joinAckPkt >> m_clientId;
+				joinAckPkt >> assignedName;
 
-			SPDLOG_LOGGER_INFO(m_logger, "Joined lobby, got id {} with name '{}'", m_clientId, m_name);
+				if(assignedName != m_name)
+				{
+					SPDLOG_LOGGER_INFO(m_logger, "Name changed from '{}' to '{}' due to duplicate", m_name,
+					                   assignedName);
+					m_name = assignedName;
+				}
+
+				SPDLOG_LOGGER_INFO(m_logger, "Joined lobby, got id {} with name '{}'", m_clientId, m_name);
+				assert(m_clientId != 0);
+				return;
+			}
+			SPDLOG_LOGGER_ERROR(m_logger, "Unexpected packet type {}", type);
+			throw std::runtime_error("Unexpected packet type received from server");
+		}
+		if(error == sf::Socket::Status::NotReady)
+		{
+			// No data yet, sleep briefly and try again
+			sf::sleep(sf::milliseconds(50));
 		}
 		else
 		{
-			SPDLOG_LOGGER_ERROR(m_logger, "Unexpected packet type {}", type);
-			std::exit(1);
+			SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive JOIN_ACK: {}", int(error));
+			throw std::runtime_error("Failed to receive join acknowledgment from server");
 		}
 	}
-	else
-	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive JOIN_ACK: {}", int(error));
-#ifdef SFML_SYSTEM_LINUX
-		perror("Error from OS");
-#endif
-		std::exit(1);
-	}
-	assert(m_clientId != 0);
+
+	// Timeout occurred
+	SPDLOG_LOGGER_ERROR(m_logger, "Timeout waiting for JOIN_ACK from server");
+	throw std::runtime_error("Connection timeout: no response from server");
 }
 
 void LobbyClient::sendReady()
@@ -275,7 +296,7 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::waitForGameStart()
 		if(checkedReceive(m_lobbySock, startPkt) != sf::Socket::Status::Done)
 		{
 			SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive GAME_START");
-			std::exit(1);
+			throw std::runtime_error("Failed to receive game start packet from server");
 		}
 
 		uint8_t type;

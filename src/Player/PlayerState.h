@@ -51,17 +51,39 @@ struct PlayerState
 	[[nodiscard]] uint32_t getPlayerId() const;
 	[[nodiscard]] sf::Vector2f getPosition() const;
 	[[nodiscard]] sf::Angle getRotation() const;
+	[[nodiscard]] sf::Angle getCannonRotation() const;
+	void setCannonRotation(sf::Angle angle);
 	[[nodiscard]] int getHealth() const;
 	[[nodiscard]] int getMaxHealth() const;
 	[[nodiscard]] bool isAlive() const;
+	[[nodiscard]] int getKills() const
+	{
+		return m_kills;
+	}
+	[[nodiscard]] int getDeaths() const
+	{
+		return m_deaths;
+	}
+
+	void incrementKills()
+	{
+		m_kills++;
+	}
+	void incrementDeaths()
+	{
+		m_deaths++;
+	}
 
 	void serialize(sf::Packet &pkt) const;
 	void deserialize(sf::Packet &pkt);
 
 	EntityId m_id;
 	std::string m_name;
+	int m_kills = 0;
+	int m_deaths = 0;
 	sf::Vector2f m_pos;
 	sf::Angle m_rot;
+	sf::Angle m_cannonRot;
 	int m_maxHealth;
 	int m_health = m_maxHealth;
 	Cooldown m_shootCooldown{GameConfig::Player::SHOOT_COOLDOWN};

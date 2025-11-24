@@ -38,6 +38,11 @@ class LobbyClient
 		return m_lobbyPlayers;
 	}
 
+	void updateLobbyPlayers(const std::vector<LobbyPlayerInfo> &players)
+	{
+		m_lobbyPlayers = players;
+	}
+
 	EntityId m_clientId;
 	sf::TcpSocket m_lobbySock;
 	std::string m_name;
@@ -47,6 +52,7 @@ class LobbyClient
   private:
 	bool m_bReady;
 	std::shared_ptr<spdlog::logger> m_logger;
+	std::string m_loggerName; // Store original logger name for proper cleanup
 	std::vector<LobbyPlayerInfo> m_lobbyPlayers;
 
 	std::array<PlayerState, MAX_PLAYERS> parseGameStartPacket(sf::Packet &pkt);

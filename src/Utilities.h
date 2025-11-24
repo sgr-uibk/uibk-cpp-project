@@ -14,6 +14,12 @@ class ServerShutdownException : public std::runtime_error
 	}
 };
 
+enum class GameEndResult
+{
+	RETURN_TO_LOBBY,
+	RETURN_TO_MAIN_MENU
+};
+
 std::shared_ptr<spdlog::logger> createConsoleLogger(std::string const &name);
 std::shared_ptr<spdlog::logger> createConsoleAndFileLogger(std::string const &name,
                                                            spdlog::level::level_enum logLevel = spdlog::level::debug);

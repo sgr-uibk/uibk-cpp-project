@@ -39,9 +39,19 @@ class PlayerClient
 	sf::Texture &m_damagedTex;
 	sf::Texture &m_deadTex;
 	sf::Sprite m_sprite;
+	sf::Texture &m_cannonHealthyTex;
+	sf::Texture &m_cannonDamagedTex;
+	sf::Texture &m_cannonDeadTex;
+	sf::Texture &m_cannonHealthyShootingTex;
+	sf::Texture &m_cannonDamagedShootingTex;
+	sf::Sprite m_cannonSprite;
 	sf::Font &m_font; // must be declared before m_nameText
 	sf::Text m_nameText;
 	HealthCallback m_onHealthChanged;
+
+	float m_shootAnimTimer;
+	float m_lastShootCooldown;
+	static constexpr float SHOOT_ANIM_DURATION = 0.1f;
 
 	void syncSpriteToState();
 };

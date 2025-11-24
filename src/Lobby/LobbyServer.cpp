@@ -10,7 +10,8 @@ LobbyServer::LobbyServer(uint16_t tcpPort, const std::shared_ptr<spdlog::logger>
 	if(m_listener.listen(tcpPort) != sf::Socket::Status::Done)
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed to listen on TCP {}", tcpPort);
-		std::exit(1);
+		throw std::runtime_error("Failed to bind TCP port " + std::to_string(tcpPort) +
+		                         " (port already in use or permission denied)");
 	}
 	m_listener.setBlocking(false);
 	m_multiSock.add(m_listener);
@@ -85,16 +86,53 @@ void LobbyServer::acceptNewClient()
 		return;
 	assert(newClientSock.getRemoteAddress().has_value()); // Know exists from status done.
 
-	if(m_nextId > MAX_PLAYERS)
+	// Reject connections if game is in progress
+	if(m_gameInProgress)
 	{
-		SPDLOG_LOGGER_WARN(m_logger, "Maximum lobby size reached, rejecting player.");
-		// TODO Tell them they were rejected.
+		SPDLOG_LOGGER_WARN(m_logger, "Game in progress, rejecting new connection");
 		newClientSock.disconnect();
 		return;
 	}
 
+	// Count current valid players
+	int validPlayerCount = 0;
+	for(const auto &slot : m_slots)
+	{
+		if(slot.bValid)
+			validPlayerCount++;
+	}
+
+	if(validPlayerCount >= MAX_PLAYERS)
+	{
+		SPDLOG_LOGGER_WARN(m_logger, "Maximum lobby size reached ({}), rejecting player.", MAX_PLAYERS);
+		newClientSock.disconnect();
+		return;
+	}
+
+	// find an available slot (either reuse an invalid slot or assign new ID)
+	uint32_t assignedId = 0;
+	int slotIndex = -1;
+
+	for(size_t i = 0; i < m_slots.size(); i++)
+	{
+		if(!m_slots[i].bValid)
+		{
+			assignedId = m_slots[i].id;
+			slotIndex = static_cast<int>(i);
+			SPDLOG_LOGGER_DEBUG(m_logger, "Reusing slot {} with id {}", slotIndex, assignedId);
+			break;
+		}
+	}
+
+	// If no invalid slot found, assign new ID
+	if(assignedId == 0)
+	{
+		assignedId = m_nextId;
+		m_nextId++;
+	}
+
 	sf::IpAddress const remoteAddr = newClientSock.getRemoteAddress().value();
-	LobbyPlayer p{.id = m_nextId, .udpAddr = remoteAddr, .tcpSocket = std::move(newClientSock)};
+	LobbyPlayer p{.id = assignedId, .udpAddr = remoteAddr, .tcpSocket = std::move(newClientSock)};
 	// keep socket blocking until we receive JOIN_REQ
 	p.tcpSocket.setBlocking(true);
 
@@ -163,10 +201,20 @@ void LobbyServer::acceptNewClient()
 
 	// All good from server side. Make the client valid.
 	p.bValid = true;
-	m_nextId++;
 	m_multiSock.add(p.tcpSocket);
 	SPDLOG_LOGGER_INFO(m_logger, "Player {} (id {}) joined lobby", p.name, p.id);
-	m_slots.push_back(std::move(p));
+
+	// Either update existing slot or add new one
+	if(slotIndex >= 0)
+	{
+		SPDLOG_LOGGER_DEBUG(m_logger, "Reusing slot {} for player {}", slotIndex, p.name);
+		m_slots[slotIndex] = std::move(p);
+	}
+	else
+	{
+		m_slots.push_back(std::move(p));
+	}
+
 	broadcastLobbyUpdate();
 }
 
@@ -261,7 +309,10 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 			sf::Vector2f const spawn = spawns[validPlayers.size() - 1];
 			sf::Angle const rot = sf::degrees(float(rng()) / float(rng.max() / 360));
 			PlayerState ps(c.id, spawn);
+			ps.m_name = c.name;
 			ps.m_rot = rot;
+			ps.m_kills = c.totalKills;
+			ps.m_deaths = c.totalDeaths;
 			worldState.setPlayer(ps);
 		}
 	}
@@ -341,6 +392,10 @@ void LobbyServer::requestShutdown()
 	m_shutdownRequested = true;
 
 	broadcastServerShutdown();
+
+	// close the listener immediately to release the port
+	m_listener.close();
+	SPDLOG_LOGGER_INFO(m_logger, "TCP listener closed, port released");
 }
 
 void LobbyServer::broadcastServerShutdown()
@@ -362,4 +417,52 @@ void LobbyServer::broadcastServerShutdown()
 			}
 		}
 	}
+}
+
+void LobbyServer::updatePlayerStats(const std::array<PlayerState, MAX_PLAYERS> &playerStates)
+{
+	for(auto &slot : m_slots)
+	{
+		if(!slot.bValid)
+			continue;
+
+		for(const auto &ps : playerStates)
+		{
+			if(ps.m_id == slot.id)
+			{
+				slot.totalKills = ps.getKills();
+				slot.totalDeaths = ps.getDeaths();
+				SPDLOG_LOGGER_INFO(m_logger, "Updated stats for {} (id {}): {} kills, {} deaths", slot.name, slot.id,
+				                   slot.totalKills, slot.totalDeaths);
+				break;
+			}
+		}
+	}
+}
+
+void LobbyServer::resetLobbyState()
+{
+	// reset all ready flags after game ends
+	for(auto &p : m_slots)
+	{
+		if(p.bValid)
+		{
+			p.bReady = false;
+		}
+	}
+	m_cReady = 0;
+	m_gameStartRequested = false;
+	m_gameInProgress = false;
+	SPDLOG_LOGGER_INFO(m_logger, "Lobby state reset: all players unmarked as ready");
+
+	sf::sleep(sf::milliseconds(100));
+
+	for(int i = 0; i < 3; ++i)
+	{
+		broadcastLobbyUpdate();
+		if(i < 2)
+			sf::sleep(sf::milliseconds(50));
+	}
+
+	SPDLOG_LOGGER_INFO(m_logger, "Broadcasted lobby state reset to all clients");
 }

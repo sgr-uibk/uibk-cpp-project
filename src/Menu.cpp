@@ -10,9 +10,10 @@ Menu::Menu(sf::Vector2u windowDimensions)
 	: m_windowDimensions(windowDimensions),
 	  m_font(g_assetPathResolver.resolveRelative("Font/LiberationSans-Regular.ttf").string()), m_title(m_font),
 	  m_playerNameLabel(m_font), m_playerNameText(m_font), m_state(State::MAIN), m_startGame(false), m_exit(false),
-	  m_shouldConnect(false), m_playerName("Player"), m_editingName(false), m_menuMusicEnabled(true),
-	  m_gameMusicEnabled(true), m_serverIp("127.0.0.1"), m_serverPort(PORT_TCP), m_serverIpText(m_font),
-	  m_serverPortText(m_font), m_editingField(EditingField::NONE), m_selectedMap("Arena"), m_selectedMode("Deathmatch")
+	  m_shouldConnect(false), m_playerName("Player"), m_editingName(false), m_menuMusicEnabled(false),
+	  m_gameMusicEnabled(false), m_serverIp("127.0.0.1"), m_serverPort(PORT_TCP), m_serverIpText(m_font),
+	  m_serverPortText(m_font), m_editingField(EditingField::NONE), m_selectedMap("Arena"),
+	  m_selectedMode("Deathmatch"), m_hasError(false), m_errorText(m_font), m_errorButtonText(m_font)
 {
 	m_title.setString("TANK GAME");
 	m_title.setCharacterSize(50);
@@ -727,6 +728,20 @@ void Menu::handleTextInput(char c)
 
 void Menu::handleClick(sf::Vector2f mousePos)
 {
+	if(m_hasError)
+	{
+		if(isMouseOver(m_errorButton, mousePos))
+		{
+			clearError();
+			if(m_state == State::LOBBY_HOST || m_state == State::LOBBY_CLIENT || m_state == State::JOIN_LOBBY)
+			{
+				m_state = State::MAIN;
+				setupMainMenu();
+			}
+		}
+		return;
+	}
+
 	if(m_state == State::MAIN && isMouseOver(m_playerNameBox, mousePos))
 	{
 		m_editingField = (m_editingField == EditingField::PLAYER_NAME) ? EditingField::NONE : EditingField::PLAYER_NAME;
@@ -965,6 +980,11 @@ void Menu::draw(sf::RenderWindow &window) const
 		window.draw(m_buttonShapes[i]);
 		window.draw(m_buttonTexts[i]);
 	}
+
+	if(m_hasError)
+	{
+		drawErrorPopup(window);
+	}
 }
 
 void Menu::updateLobbyDisplay(const std::vector<LobbyPlayerInfo> &players)
@@ -1066,4 +1086,67 @@ void Menu::updateClientButton(bool clientReady)
 	m_buttonTexts[buttonIdx].setPosition(
 		{m_buttonShapes[buttonIdx].getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
 	     m_buttonShapes[buttonIdx].getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
+}
+
+void Menu::handleResize(sf::Vector2u newSize)
+{
+	(void)newSize;
+}
+
+void Menu::showError(const std::string &errorMessage)
+{
+	m_hasError = true;
+	m_errorMessage = errorMessage;
+
+	m_errorOverlay.setSize(sf::Vector2f(m_windowDimensions));
+	m_errorOverlay.setFillColor(sf::Color(0, 0, 0, 180));
+
+	float boxWidth = 500.f;
+	float boxHeight = 250.f;
+	m_errorBox.setSize({boxWidth, boxHeight});
+	m_errorBox.setPosition({m_windowDimensions.x / 2.f - boxWidth / 2.f, m_windowDimensions.y / 2.f - boxHeight / 2.f});
+	m_errorBox.setFillColor(sf::Color(50, 50, 50));
+	m_errorBox.setOutlineColor(sf::Color::Red);
+	m_errorBox.setOutlineThickness(3.f);
+
+	m_errorText.setString(errorMessage);
+	m_errorText.setCharacterSize(18);
+	m_errorText.setFillColor(sf::Color::White);
+	sf::FloatRect textBounds = m_errorText.getLocalBounds();
+	m_errorText.setPosition(
+		{m_errorBox.getPosition().x + boxWidth / 2.f - textBounds.size.x / 2.f, m_errorBox.getPosition().y + 60.f});
+
+	float buttonWidth = 120.f;
+	float buttonHeight = 40.f;
+	m_errorButton.setSize({buttonWidth, buttonHeight});
+	m_errorButton.setPosition({m_errorBox.getPosition().x + boxWidth / 2.f - buttonWidth / 2.f,
+	                           m_errorBox.getPosition().y + boxHeight - 70.f});
+	m_errorButton.setFillColor(sf::Color(80, 80, 80));
+	m_errorButton.setOutlineColor(sf::Color::White);
+	m_errorButton.setOutlineThickness(2.f);
+
+	m_errorButtonText.setString("OK");
+	m_errorButtonText.setCharacterSize(20);
+	m_errorButtonText.setFillColor(sf::Color::White);
+	sf::FloatRect buttonTextBounds = m_errorButtonText.getLocalBounds();
+	m_errorButtonText.setPosition(
+		{m_errorButton.getPosition().x + buttonWidth / 2.f - buttonTextBounds.size.x / 2.f,
+	     m_errorButton.getPosition().y + buttonHeight / 2.f - buttonTextBounds.size.y / 2.f - 5.f});
+
+	spdlog::warn("Error popup shown: {}", errorMessage);
+}
+
+void Menu::clearError()
+{
+	m_hasError = false;
+	m_errorMessage.clear();
+}
+
+void Menu::drawErrorPopup(sf::RenderWindow &window) const
+{
+	window.draw(m_errorOverlay);
+	window.draw(m_errorBox);
+	window.draw(m_errorText);
+	window.draw(m_errorButton);
+	window.draw(m_errorButtonText);
 }

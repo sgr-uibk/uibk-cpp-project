@@ -27,9 +27,10 @@ GameServer::~GameServer()
 
 PlayerState *GameServer::matchLoop()
 {
-	while(m_numAlive > 1)
+	while(m_numAlive > 1 && !m_lobby.isShutdownRequested())
 	{
 		processPackets();
+		checkPlayerConnections();
 
 		// maintain fixed tick rate updates
 		float dt = m_tickClock.restart().asSeconds();
@@ -72,6 +73,12 @@ PlayerState *GameServer::matchLoop()
 			break;
 		}
 	}
+
+	if(m_lobby.isShutdownRequested())
+	{
+		SPDLOG_LOGGER_INFO(m_logger, "Game ended due to server shutdown request");
+	}
+
 	return nullptr;
 }
 
@@ -94,16 +101,19 @@ void GameServer::processPackets()
 		case UnreliablePktType::MOVE: {
 			uint32_t clientId;
 			sf::Vector2f posDelta;
+			sf::Angle cannonAngle;
 			rxPkt >> clientId;
 			rxPkt >> posDelta;
+			rxPkt >> cannonAngle;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
 				PlayerState &ps = m_world.getPlayerById(clientId);
 
 				ps.moveOn(m_world.getMap(), posDelta);
-				SPDLOG_LOGGER_INFO(m_logger, "Recv MOVE id {} pos=({},{}), rotDeg={}", clientId, ps.m_pos.x, ps.m_pos.y,
-				                   ps.m_rot.asDegrees());
+				ps.setCannonRotation(cannonAngle);
+				SPDLOG_LOGGER_INFO(m_logger, "Recv MOVE id {} pos=({},{}), rotDeg={}, cannonDeg={}", clientId,
+				                   ps.m_pos.x, ps.m_pos.y, ps.m_rot.asDegrees(), ps.m_cannonRot.asDegrees());
 			}
 			else
 				SPDLOG_LOGGER_WARN(m_logger, "Dropping MOVE packet from invalid player id {}", clientId);
@@ -111,9 +121,9 @@ void GameServer::processPackets()
 		}
 		case UnreliablePktType::SHOOT: {
 			uint32_t clientId;
-			sf::Angle aimAngle;
+			sf::Angle cannonAngle;
 			rxPkt >> clientId;
-			rxPkt >> aimAngle;
+			rxPkt >> cannonAngle;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
@@ -122,19 +132,23 @@ void GameServer::processPackets()
 				if(ps.canShoot())
 				{
 					ps.shoot();
+					ps.setCannonRotation(cannonAngle);
 
-					// spawn projectile at player position
-					sf::Vector2f position = ps.getPosition();
+					// spawn projectile at cannon tip
+					sf::Vector2f tankCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+					sf::Vector2f cannonOffset(std::sin(cannonAngle.asRadians()) * GameConfig::Player::CANNON_LENGTH,
+					                          -std::cos(cannonAngle.asRadians()) * GameConfig::Player::CANNON_LENGTH);
+					sf::Vector2f position = tankCenter + cannonOffset;
 
-					// calculate velocity from aim angle
-					sf::Vector2f velocity(std::sin(aimAngle.asRadians()) * GameConfig::Projectile::SPEED,
-					                      -std::cos(aimAngle.asRadians()) * GameConfig::Projectile::SPEED);
+					// calculate velocity from cannon angle
+					sf::Vector2f velocity(std::sin(cannonAngle.asRadians()) * GameConfig::Projectile::SPEED,
+					                      -std::cos(cannonAngle.asRadians()) * GameConfig::Projectile::SPEED);
 
 					// Apply damage multiplier from powerups
 					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
 					m_world.addProjectile(position, velocity, clientId, damage);
 					SPDLOG_LOGGER_INFO(m_logger, "Player {} shoots at angle {} (damage={})", clientId,
-					                   aimAngle.asDegrees(), damage);
+					                   cannonAngle.asDegrees(), damage);
 				}
 			}
 			else
@@ -217,6 +231,34 @@ void GameServer::floodWorldState()
 		if(checkedSend(m_gameSock, snapPkt, p.udpAddr, p.gamePort) != sf::Socket::Status::Done)
 		{
 			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send snapshot to {}:{}", p.udpAddr.toString(), p.gamePort);
+		}
+	}
+}
+
+void GameServer::checkPlayerConnections()
+{
+	// check TCP connection status for all players
+	// mark disconnected players as dead
+	for(LobbyPlayer &lobbySlot : m_lobby.m_slots)
+	{
+		if(!lobbySlot.bValid)
+			continue;
+
+		sf::Packet testPkt;
+		lobbySlot.tcpSocket.setBlocking(false);
+		sf::Socket::Status status = lobbySlot.tcpSocket.receive(testPkt);
+
+		if(status == sf::Socket::Status::Disconnected)
+		{
+			SPDLOG_LOGGER_WARN(m_logger, "Player {} (id {}) disconnected during game, marking as dead", lobbySlot.name,
+			                   lobbySlot.id);
+
+			PlayerState &playerState = m_world.getPlayerById(lobbySlot.id);
+			if(playerState.isAlive())
+			{
+				playerState.takeDamage(playerState.getHealth());
+				SPDLOG_LOGGER_INFO(m_logger, "Player {} eliminated due to disconnect", lobbySlot.id);
+			}
 		}
 	}
 }

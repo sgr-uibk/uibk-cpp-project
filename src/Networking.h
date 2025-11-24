@@ -41,7 +41,7 @@ enum class ReliablePktType : uint8_t
 	LOBBY_READY,
 	LOBBY_UNREADY,
 	LOBBY_UPDATE,       // srv -> clients: broadcast lobby state updates
-	START_GAME_REQUEST, // host requests to start game
+	START_GAME_REQUEST, // host requests to start game               --- can be removed
 	GAME_START,
 	GAME_END,
 	SERVER_SHUTDOWN,

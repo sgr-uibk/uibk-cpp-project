@@ -25,12 +25,9 @@ MapState::MapState(sf::Vector2f size) : m_size(size)
 	addSpawnPoint({700.f, 500.f}); // Bottom-right
 }
 
-void MapState::addWall(float x, float y, float w, float h)
+void MapState::addWall(float x, float y, float w, float h, int health)
 {
-	sf::RectangleShape r({w, h});
-	r.setPosition({x, y});
-	r.setFillColor(sf::Color::Black);
-	m_walls.push_back(std::move(r));
+	m_walls.emplace_back(x, y, w, h, health);
 }
 
 void MapState::addSpawnPoint(sf::Vector2f spawn)
@@ -38,7 +35,12 @@ void MapState::addSpawnPoint(sf::Vector2f spawn)
 	m_spawns.push_back(spawn);
 }
 
-const std::vector<sf::RectangleShape> &MapState::getWalls() const
+const std::vector<WallState> &MapState::getWalls() const
+{
+	return m_walls;
+}
+
+std::vector<WallState> &MapState::getWalls()
 {
 	return m_walls;
 }
@@ -53,6 +55,9 @@ bool MapState::isColliding(const sf::RectangleShape &r) const
 	sf::FloatRect rbox = r.getGlobalBounds();
 	for(auto const &w : m_walls)
 	{
+		if(w.isDestroyed())
+			continue;
+
 		sf::FloatRect wbox = w.getGlobalBounds();
 		if(rbox.findIntersection(wbox).has_value())
 		{

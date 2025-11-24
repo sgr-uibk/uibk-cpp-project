@@ -7,11 +7,22 @@
 #include "Projectile/ProjectileClient.h"
 #include "Item/ItemClient.h"
 
+class Scoreboard;
+
 class WorldClient
 {
   public:
+	struct PlayerStats
+	{
+		EntityId id;
+		std::string name;
+		int kills;
+		int deaths;
+	};
+
 	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players,
 	            sf::Music *battleMusic = nullptr);
+	~WorldClient();
 
 	std::optional<sf::Packet> update();
 	void draw(sf::RenderWindow &window) const;
@@ -24,6 +35,7 @@ class WorldClient
 	void applyServerSnapshot(const WorldState &snapshot);
 	WorldState &getState();
 	void pollEvents();
+	void handleResize(sf::Vector2u newSize);
 
 	bool isPaused() const
 	{
@@ -33,6 +45,12 @@ class WorldClient
 	{
 		return m_shouldDisconnect;
 	}
+	bool shouldReturnToLobby() const
+	{
+		return m_shouldReturnToLobby;
+	}
+
+	void showScoreboard(EntityId winnerId, const std::vector<PlayerStats> &playerStats = {});
 
 	bool m_bAcceptInput;
 
@@ -62,14 +80,17 @@ class WorldClient
 	};
 	bool m_isPaused = false;
 	bool m_shouldDisconnect = false;
+	bool m_shouldReturnToLobby = false;
 	PauseMenuState m_pauseMenuState = PauseMenuState::MAIN;
 	sf::Font m_pauseFont;
 	std::vector<sf::RectangleShape> m_pauseButtons;
 	std::vector<sf::Text> m_pauseButtonTexts;
 
+	std::unique_ptr<Scoreboard> m_scoreboard;
 	bool m_slotChangeRequested = false;
 	int m_requestedSlot = 0;
 	bool m_useItemRequested = false;
 
 	sf::Music *m_battleMusic = nullptr;
+	std::optional<sf::Sound> m_shootSound;
 };

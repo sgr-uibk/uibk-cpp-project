@@ -12,6 +12,9 @@ struct LobbyPlayer
 	sf::IpAddress udpAddr;
 	uint16_t gamePort;
 	sf::TcpSocket tcpSocket;
+
+	int totalKills{0};
+	int totalDeaths{0};
 };
 
 class LobbyServer
@@ -26,6 +29,16 @@ class LobbyServer
 	{
 		return m_shutdownRequested;
 	}
+	void setGameInProgress(bool inProgress)
+	{
+		m_gameInProgress = inProgress;
+	}
+	bool isGameInProgress() const
+	{
+		return m_gameInProgress;
+	}
+	void resetLobbyState();
+	void updatePlayerStats(const std::array<PlayerState, MAX_PLAYERS> &playerStates);
 
 	std::vector<LobbyPlayer> m_slots; // Vector, clients join sequentially
 
@@ -42,4 +55,5 @@ class LobbyServer
 	uint8_t m_cReady;
 	bool m_gameStartRequested = false;
 	bool m_shutdownRequested = false;
+	bool m_gameInProgress = false;
 };

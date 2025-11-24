@@ -6,6 +6,7 @@
 #include "Utilities.h"
 #include "ResourceManager.h"
 #include "GameConfig.h"
+#include "UI/Scoreboard.h"
 
 template <std::size_t N, std::size_t... I>
 static std::array<PlayerClient, N> make_players_impl(std::array<PlayerState, N> &states,
@@ -43,6 +44,9 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::ar
 	m_frameClock.start();
 	m_tickClock.start();
 
+	// Initialize scoreboard
+	m_scoreboard = std::make_unique<Scoreboard>(m_pauseFont);
+
 	sf::Vector2f windowSize(window.getSize());
 	float buttonWidth = GameConfig::UI::BUTTON_WIDTH;
 	float buttonHeight = GameConfig::UI::BUTTON_HEIGHT;
@@ -74,6 +78,8 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::ar
 		m_pauseButtonTexts.push_back(text);
 	}
 }
+
+WorldClient::~WorldClient() = default;
 
 std::optional<sf::Packet> WorldClient::update()
 {
@@ -187,6 +193,11 @@ void WorldClient::draw(sf::RenderWindow &window) const
 {
 	window.setView(m_worldView);
 	window.clear(sf::Color::White);
+
+	sf::RectangleShape gameBackground{sf::Vector2f(WINDOW_DIMf)};
+	gameBackground.setFillColor(sf::Color(200, 200, 200));
+	window.draw(gameBackground);
+
 	m_mapClient.draw(window);
 
 	for(auto const &item : m_items)
@@ -201,11 +212,22 @@ void WorldClient::draw(sf::RenderWindow &window) const
 			pc.draw(window);
 	}
 
+	// visible border around game area
+	sf::RectangleShape borderOutline{sf::Vector2f(WINDOW_DIMf)};
+	borderOutline.setFillColor(sf::Color::Transparent);
+	borderOutline.setOutlineColor(sf::Color::Black);
+	borderOutline.setOutlineThickness(3.f);
+	window.draw(borderOutline);
+
 	// HUD
 	window.setView(m_hudView);
 	drawHotbar(window);
 
-	if(m_isPaused)
+	if(m_scoreboard->isShowing())
+	{
+		m_scoreboard->draw(window);
+	}
+	else if(m_isPaused)
 	{
 		drawPauseMenu(window);
 	}
@@ -290,11 +312,25 @@ void WorldClient::pollEvents()
 		}
 		else if(const auto *mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>())
 		{
-			if(m_isPaused && mouseButtonPressed->button == sf::Mouse::Button::Left)
+			if(mouseButtonPressed->button == sf::Mouse::Button::Left)
 			{
-				// handle pause menu clicks
 				sf::Vector2f mousePos = m_window.mapPixelToCoords(mouseButtonPressed->position, m_hudView);
-				handlePauseMenuClick(mousePos);
+				if(m_scoreboard->isShowing())
+				{
+					auto action = m_scoreboard->handleClick(mousePos);
+					if(action == Scoreboard::ButtonAction::RETURN_TO_LOBBY)
+					{
+						m_shouldReturnToLobby = true;
+					}
+					else if(action == Scoreboard::ButtonAction::MAIN_MENU)
+					{
+						m_shouldDisconnect = true;
+					}
+				}
+				else if(m_isPaused)
+				{
+					handlePauseMenuClick(mousePos);
+				}
 			}
 		}
 		else if(event->is<sf::Event::FocusLost>())
@@ -319,14 +355,21 @@ void WorldClient::pollEvents()
 				m_requestedSlot = currentSlot;
 			}
 		}
+		else if(const auto *resized = event->getIf<sf::Event::Resized>())
+		{
+			handleResize(resized->size);
+		}
 	}
 }
 
 void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 {
+	window.setView(window.getDefaultView());
 	sf::RectangleShape overlay(sf::Vector2f(window.getSize()));
 	overlay.setFillColor(sf::Color(0, 0, 0, 180));
 	window.draw(overlay);
+
+	window.setView(m_hudView);
 
 	if(m_pauseMenuState == PauseMenuState::MAIN)
 	{
@@ -335,7 +378,7 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 		pauseTitle.setCharacterSize(48);
 		pauseTitle.setFillColor(sf::Color::White);
 		sf::FloatRect titleBounds = pauseTitle.getLocalBounds();
-		pauseTitle.setPosition(sf::Vector2f(window.getSize().x / 2.f - titleBounds.size.x / 2.f, 80.f));
+		pauseTitle.setPosition(sf::Vector2f(WINDOW_DIM.x / 2.f - titleBounds.size.x / 2.f, 80.f));
 		window.draw(pauseTitle);
 
 		sf::Text warningText(m_pauseFont);
@@ -343,7 +386,7 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 		warningText.setCharacterSize(20);
 		warningText.setFillColor(sf::Color(255, 100, 100));
 		sf::FloatRect warningBounds = warningText.getLocalBounds();
-		warningText.setPosition(sf::Vector2f(window.getSize().x / 2.f - warningBounds.size.x / 2.f, 160.f));
+		warningText.setPosition(sf::Vector2f(WINDOW_DIM.x / 2.f - warningBounds.size.x / 2.f, 160.f));
 		window.draw(warningText);
 
 		for(size_t i = 0; i < m_pauseButtons.size(); ++i)
@@ -359,14 +402,14 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 		settingsTitle.setCharacterSize(40);
 		settingsTitle.setFillColor(sf::Color::White);
 		sf::FloatRect titleBounds = settingsTitle.getLocalBounds();
-		settingsTitle.setPosition(sf::Vector2f(window.getSize().x / 2.f - titleBounds.size.x / 2.f, 60.f));
+		settingsTitle.setPosition(sf::Vector2f(WINDOW_DIM.x / 2.f - titleBounds.size.x / 2.f, 60.f));
 		window.draw(settingsTitle);
 
 		if(m_battleMusic)
 		{
 			sf::RectangleShape musicButton;
 			musicButton.setSize({GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT});
-			musicButton.setPosition({window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 120.f});
+			musicButton.setPosition({WINDOW_DIM.x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 120.f});
 			musicButton.setFillColor(sf::Color(80, 80, 80));
 			window.draw(musicButton);
 
@@ -389,7 +432,7 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 		keybindsHeader.setCharacterSize(28);
 		keybindsHeader.setFillColor(sf::Color(200, 200, 100));
 		sf::FloatRect headerBounds = keybindsHeader.getLocalBounds();
-		keybindsHeader.setPosition(sf::Vector2f(window.getSize().x / 2.f - headerBounds.size.x / 2.f, 190.f));
+		keybindsHeader.setPosition(sf::Vector2f(WINDOW_DIM.x / 2.f - headerBounds.size.x / 2.f, 190.f));
 		window.draw(keybindsHeader);
 
 		std::vector<std::string> keybindLabels = {
@@ -404,14 +447,14 @@ void WorldClient::drawPauseMenu(sf::RenderWindow &window) const
 			keybindText.setCharacterSize(20);
 			keybindText.setFillColor(sf::Color(200, 200, 200));
 			sf::FloatRect textBounds = keybindText.getLocalBounds();
-			keybindText.setPosition(sf::Vector2f(window.getSize().x / 2.f - textBounds.size.x / 2.f, 235.f + i * 32.f));
+			keybindText.setPosition(sf::Vector2f(WINDOW_DIM.x / 2.f - textBounds.size.x / 2.f, 235.f + i * 32.f));
 			window.draw(keybindText);
 		}
 
 		sf::RectangleShape backButton;
 		backButton.setSize({GameConfig::UI::BUTTON_WIDTH, GameConfig::UI::BUTTON_HEIGHT});
 		backButton.setPosition(
-			{window.getSize().x / 2.f - GameConfig::UI::BUTTON_WIDTH / 2.f, window.getSize().y - 120.f});
+			{WINDOW_DIM.x / 2.f - GameConfig::UI::BUTTON_WIDTH / 2.f, static_cast<float>(WINDOW_DIM.y) - 120.f});
 		backButton.setFillColor(sf::Color(80, 80, 80));
 		window.draw(backButton);
 
@@ -461,7 +504,7 @@ void WorldClient::handlePauseMenuClick(sf::Vector2f mousePos)
 		if(m_battleMusic)
 		{
 			sf::FloatRect musicButtonBounds(
-				sf::Vector2f(m_window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 120.f),
+				sf::Vector2f(WINDOW_DIM.x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 120.f),
 				sf::Vector2f(GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT));
 
 			if(musicButtonBounds.contains(mousePos))
@@ -481,9 +524,9 @@ void WorldClient::handlePauseMenuClick(sf::Vector2f mousePos)
 		}
 
 		// if back button clicked
-		sf::FloatRect backButtonBounds(
-			sf::Vector2f(m_window.getSize().x / 2.f - GameConfig::UI::BUTTON_WIDTH / 2.f, m_window.getSize().y - 120.f),
-			sf::Vector2f(GameConfig::UI::BUTTON_WIDTH, GameConfig::UI::BUTTON_HEIGHT));
+		sf::FloatRect backButtonBounds(sf::Vector2f(WINDOW_DIM.x / 2.f - GameConfig::UI::BUTTON_WIDTH / 2.f,
+		                                            static_cast<float>(WINDOW_DIM.y) - 120.f),
+		                               sf::Vector2f(GameConfig::UI::BUTTON_WIDTH, GameConfig::UI::BUTTON_HEIGHT));
 
 		if(backButtonBounds.contains(mousePos))
 		{
@@ -502,7 +545,7 @@ void WorldClient::drawHotbar(sf::RenderWindow &window) const
 	const float slotSize = GameConfig::UI::HOTBAR_SLOT_SIZE;
 	const float slotSpacing = GameConfig::UI::HOTBAR_SLOT_SPACING;
 	const float hotbarWidth = 9 * slotSize + 8 * slotSpacing;
-	const sf::Vector2f windowSize(m_window.getSize());
+	const sf::Vector2f windowSize = sf::Vector2f(WINDOW_DIM);
 	const float startX = windowSize.x / 2.f - hotbarWidth / 2.f;
 	const float startY = windowSize.y - slotSize - 20.f;
 
@@ -592,4 +635,37 @@ void WorldClient::drawHotbar(sf::RenderWindow &window) const
 		slotNumber.setPosition(sf::Vector2f(x + 5.f, startY + 2.f));
 		window.draw(slotNumber);
 	}
+}
+void WorldClient::showScoreboard(EntityId winnerId, const std::vector<PlayerStats> &playerStats)
+{
+	m_bAcceptInput = false;
+
+	std::vector<Scoreboard::PlayerStats> scoreboardStats;
+	for(const auto &stats : playerStats)
+	{
+		scoreboardStats.push_back({stats.id, stats.name, stats.kills, stats.deaths});
+	}
+
+	m_scoreboard->show(winnerId, scoreboardStats);
+}
+
+void WorldClient::handleResize(sf::Vector2u newSize)
+{
+	spdlog::info("Window resized to {}x{}", newSize.x, newSize.y);
+
+	// uniform scaling
+	float scaleX = static_cast<float>(newSize.x) / static_cast<float>(WINDOW_DIM.x);
+	float scaleY = static_cast<float>(newSize.y) / static_cast<float>(WINDOW_DIM.y);
+	float scale = std::min(scaleX, scaleY);
+
+	float viewportWidth = (WINDOW_DIM.x * scale) / newSize.x;
+	float viewportHeight = (WINDOW_DIM.y * scale) / newSize.y;
+	float viewportX = (1.f - viewportWidth) / 2.f;
+	float viewportY = (1.f - viewportHeight) / 2.f;
+
+	m_worldView = sf::View(sf::FloatRect({0.f, 0.f}, sf::Vector2f(WINDOW_DIM)));
+	m_hudView = sf::View(sf::FloatRect({0.f, 0.f}, sf::Vector2f(WINDOW_DIM)));
+
+	m_worldView.setViewport(sf::FloatRect({viewportX, viewportY}, {viewportWidth, viewportHeight}));
+	m_hudView.setViewport(sf::FloatRect({viewportX, viewportY}, {viewportWidth, viewportHeight}));
 }

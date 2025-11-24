@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Utilities.h"
+#include "Lobby/LobbyClient.h"
 
 GameClient::GameClient(WorldClient &world, LobbyClient &lobby, const std::shared_ptr<spdlog::logger> &logger)
 	: m_world(world), m_lobby(lobby), m_logger(logger),
@@ -63,12 +64,62 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 		case uint8_t(ReliablePktType::GAME_END): {
 			EntityId winnerId;
 			reliablePkt >> winnerId;
-			// TODO save the player names somewhere, so that we can print the winner here
+
+			// Read player stats
+			uint32_t numPlayers;
+			reliablePkt >> numPlayers;
+
+			std::vector<WorldClient::PlayerStats> playerStats;
+			playerStats.reserve(numPlayers);
+
+			for(uint32_t i = 0; i < numPlayers; ++i)
+			{
+				WorldClient::PlayerStats stats;
+				reliablePkt >> stats.id;
+				reliablePkt >> stats.name;
+
+				int32_t kills, deaths;
+				reliablePkt >> kills >> deaths;
+				stats.kills = kills;
+				stats.deaths = deaths;
+
+				playerStats.push_back(stats);
+			}
+
+			// Show the scoreboard UI with player stats
+			m_world.showScoreboard(winnerId, playerStats);
+
 			if(m_lobby.m_clientId == winnerId)
 				SPDLOG_LOGGER_INFO(m_logger, "I won the game!", winnerId);
 			else
-				SPDLOG_LOGGER_INFO(m_logger, "Battle is over, winner id {}, returning to lobby.", winnerId);
-			return true;
+				SPDLOG_LOGGER_INFO(m_logger, "Battle is over, winner id {}, scoreboard displayed.", winnerId);
+
+			return false;
+		}
+		case uint8_t(ReliablePktType::SERVER_SHUTDOWN): {
+			SPDLOG_LOGGER_WARN(m_logger, "Server shutdown during game");
+			throw ServerShutdownException();
+		}
+		case uint8_t(ReliablePktType::LOBBY_UPDATE): {
+			// Server is broadcasting lobby updates (after game ends when resetLobbyState is called)
+			// We need to parse and update the lobby client's state so it's fresh when we return
+			uint32_t numPlayers;
+			reliablePkt >> numPlayers;
+
+			// Parse all player data
+			std::vector<LobbyPlayerInfo> players;
+			for(uint32_t i = 0; i < numPlayers; ++i)
+			{
+				LobbyPlayerInfo playerInfo;
+				reliablePkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
+				players.push_back(playerInfo);
+			}
+
+			// Update the lobby client's player list
+			m_lobby.updateLobbyPlayers(players);
+
+			SPDLOG_LOGGER_DEBUG(m_logger, "Received LOBBY_UPDATE during game, updated {} players", numPlayers);
+			return false;
 		}
 		default:
 			SPDLOG_LOGGER_WARN(m_logger, "Unhandled reliable packet type: {}, size={}", type,

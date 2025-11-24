@@ -12,6 +12,7 @@ namespace Player
 	constexpr float SHOOT_COOLDOWN = 0.5f; // seconds between shots
 	constexpr int INVENTORY_SIZE = 9;
 	constexpr int MAX_SIMULTANEOUS_POWERUPS = 5;
+	constexpr float CANNON_LENGTH = 22.f; // distance from tank center to cannon tip
 } // namespace Player
 
 namespace Projectile
@@ -41,14 +42,14 @@ namespace Powerup
 
 namespace UI
 {
-	// Pause menu buttons
-	constexpr float BUTTON_WIDTH = 200.f;
-	constexpr float BUTTON_HEIGHT = 50.f;
-	constexpr float BUTTON_SPACING = 20.f;
+	// Pause menu buttons (sized for 800x600, will scale with window)
+	constexpr float BUTTON_WIDTH = 180.f;
+	constexpr float BUTTON_HEIGHT = 40.f;
+	constexpr float BUTTON_SPACING = 15.f;
 
 	// Music button (wider for text)
-	constexpr float MUSIC_BUTTON_WIDTH = 250.f;
-	constexpr float MUSIC_BUTTON_HEIGHT = 40.f;
+	constexpr float MUSIC_BUTTON_WIDTH = 220.f;
+	constexpr float MUSIC_BUTTON_HEIGHT = 35.f;
 
 	// Hotbar/Inventory
 	constexpr float HOTBAR_SLOT_SIZE = 50.f;
@@ -86,19 +87,19 @@ namespace Menu
 	constexpr float TITLE_Y = 80.f;
 	constexpr int TITLE_SIZE = 50;
 
-	// Button dimensions
-	constexpr float MAIN_BUTTON_WIDTH = 280.f;
-	constexpr float MAIN_BUTTON_HEIGHT = 45.f;
-	constexpr float MAIN_BUTTON_SPACING = 15.f;
+	// Button dimensions (sized for 800x600, will scale with window)
+	constexpr float MAIN_BUTTON_WIDTH = 240.f;
+	constexpr float MAIN_BUTTON_HEIGHT = 40.f;
+	constexpr float MAIN_BUTTON_SPACING = 12.f;
 	constexpr float MAIN_BUTTON_START_Y = 200.f;
 
-	constexpr float LOBBY_BUTTON_WIDTH = 200.f;
-	constexpr float LOBBY_BUTTON_HEIGHT = 50.f;
+	constexpr float LOBBY_BUTTON_WIDTH = 180.f;
+	constexpr float LOBBY_BUTTON_HEIGHT = 40.f;
 	constexpr float LOBBY_BUTTON_Y = 450.f;
 	constexpr float LOBBY_BUTTON_OFFSET = 110.f;
 
-	constexpr float SMALL_BUTTON_WIDTH = 180.f;
-	constexpr float SMALL_BUTTON_HEIGHT = 35.f;
+	constexpr float SMALL_BUTTON_WIDTH = 160.f;
+	constexpr float SMALL_BUTTON_HEIGHT = 32.f;
 
 	// Player name input
 	constexpr float PLAYER_NAME_BOX_WIDTH = 150.f;

@@ -95,7 +95,23 @@ void WorldState::checkProjectilePlayerCollisions()
 
 			if(projBounds.findIntersection(playerBounds).has_value())
 			{
+				bool wasAlive = player.isAlive();
 				player.takeDamage(proj.getDamage());
+
+				if(wasAlive && !player.isAlive())
+				{
+					player.incrementDeaths();
+
+					for(auto &shooter : m_players)
+					{
+						if(shooter.getPlayerId() == proj.getOwnerId())
+						{
+							shooter.incrementKills();
+							break;
+						}
+					}
+				}
+
 				proj.deactivate();
 				break;
 			}
@@ -111,13 +127,16 @@ void WorldState::checkProjectileWallCollisions()
 			continue;
 
 		sf::FloatRect projBounds = proj.getBounds();
-		const auto &walls = m_map.getWalls();
+		auto &walls = m_map.getWalls();
 
-		for(const auto &wall : walls)
+		for(auto &wall : walls)
 		{
+			if(wall.isDestroyed())
+				continue;
+
 			if(projBounds.findIntersection(wall.getGlobalBounds()))
 			{
-				// hit wall -> just deactivate projectile for now
+				wall.takeDamage(proj.getDamage());
 				proj.deactivate();
 				break;
 			}
@@ -253,6 +272,15 @@ void WorldState::serialize(sf::Packet &pkt) const
 	{
 		item.serialize(pkt);
 	}
+
+	// serialize wall states for dynamic wall damage
+	const auto &walls = m_map.getWalls();
+	uint32_t numWalls = static_cast<uint32_t>(walls.size());
+	pkt << numWalls;
+	for(const auto &wall : walls)
+	{
+		wall.serialize(pkt);
+	}
 }
 
 void WorldState::deserialize(sf::Packet &pkt)
@@ -282,6 +310,25 @@ void WorldState::deserialize(sf::Packet &pkt)
 		ItemState item;
 		item.deserialize(pkt);
 		m_items.push_back(item);
+	}
+
+	uint32_t numWalls = 0;
+	pkt >> numWalls;
+	auto &walls = m_map.getWalls();
+	if(numWalls == walls.size())
+	{
+		for(uint32_t i = 0; i < numWalls; ++i)
+		{
+			walls[i].deserialize(pkt);
+		}
+	}
+	else
+	{
+		for(uint32_t i = 0; i < numWalls; ++i)
+		{
+			WallState dummy;
+			dummy.deserialize(pkt);
+		}
 	}
 }
 

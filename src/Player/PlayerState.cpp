@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 
 PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth)
-	: m_id(id), m_name(""), m_pos(pos), m_rot(rot), m_maxHealth(maxHealth), m_health(maxHealth)
+	: m_id(id), m_name(""), m_pos(pos), m_rot(rot), m_cannonRot(rot), m_maxHealth(maxHealth), m_health(maxHealth)
 {
 }
 
@@ -203,6 +203,16 @@ sf::Angle PlayerState::getRotation() const
 	return m_rot;
 }
 
+sf::Angle PlayerState::getCannonRotation() const
+{
+	return m_cannonRot;
+}
+
+void PlayerState::setCannonRotation(sf::Angle angle)
+{
+	m_cannonRot = angle;
+}
+
 int PlayerState::getHealth() const
 {
 	return m_health;
@@ -263,9 +273,12 @@ void PlayerState::serialize(sf::Packet &pkt) const
 	pkt << m_id;
 	pkt << m_pos;
 	pkt << m_rot;
+	pkt << m_cannonRot;
 	pkt << m_health;
 	pkt << m_maxHealth;
 	pkt << m_shootCooldown.getRemaining();
+	pkt << static_cast<int32_t>(m_kills);
+	pkt << static_cast<int32_t>(m_deaths);
 
 	for(const auto &powerup : m_powerups)
 	{
@@ -284,12 +297,18 @@ void PlayerState::deserialize(sf::Packet &pkt)
 	pkt >> m_id;
 	pkt >> m_pos;
 	pkt >> m_rot;
+	pkt >> m_cannonRot;
 	pkt >> m_health;
 	pkt >> m_maxHealth;
 
 	float cooldownRemaining;
 	pkt >> cooldownRemaining;
 	m_shootCooldown.setRemaining(cooldownRemaining);
+
+	int32_t kills, deaths;
+	pkt >> kills >> deaths;
+	m_kills = kills;
+	m_deaths = deaths;
 
 	for(auto &powerup : m_powerups)
 	{

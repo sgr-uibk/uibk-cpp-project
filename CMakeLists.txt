@@ -41,9 +41,10 @@ add_executable(TankGame
     ${SERVER_SRCS}
     src/Utilities.cpp
     src/HealthBar.cpp
+    src/UI/Scoreboard.cpp
 )
 
-add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp)
+add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp src/UI/Scoreboard.cpp)
 add_executable(Server ${TEST_ROOT}/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp)
 
 add_library(common_deps INTERFACE)

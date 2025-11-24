@@ -25,6 +25,7 @@ class Menu
 	void handleMouseMove(sf::Vector2f mousePos);
 	void handleTextInput(char c);
 	void draw(sf::RenderWindow &window) const;
+	void handleResize(sf::Vector2u newSize);
 
 	State getState() const
 	{
@@ -88,6 +89,12 @@ class Menu
 	void setupLobbyClient();
 	void updateHostButton(bool canStartGame, bool hasEnoughPlayers, bool hostReady);
 	void updateClientButton(bool clientReady);
+	void showError(const std::string &errorMessage);
+	void clearError();
+	bool hasError() const
+	{
+		return m_hasError;
+	}
 
   private:
 	sf::Vector2u m_windowDimensions;
@@ -132,6 +139,14 @@ class Menu
 	std::string m_selectedMap;
 	std::string m_selectedMode;
 
+	bool m_hasError;
+	std::string m_errorMessage;
+	sf::RectangleShape m_errorOverlay;
+	sf::RectangleShape m_errorBox;
+	sf::Text m_errorText;
+	sf::RectangleShape m_errorButton;
+	sf::Text m_errorButtonText;
+
 	void setupMainMenu();
 	void setupLobbyHost();
 	void setupJoinLobby();
@@ -140,4 +155,5 @@ class Menu
 	void setupModeSelection();
 	void updatePlayerNameDisplay();
 	bool isMouseOver(const sf::RectangleShape &shape, sf::Vector2f mousePos) const;
+	void drawErrorPopup(sf::RenderWindow &window) const;
 };

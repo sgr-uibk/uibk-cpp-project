@@ -24,6 +24,7 @@ class GameServer
 	void processPackets();
 	void floodWorldState();
 	void spawnItems();
+	void checkPlayerConnections();
 
 	std::shared_ptr<spdlog::logger> m_logger;
 	sf::UdpSocket m_gameSock;

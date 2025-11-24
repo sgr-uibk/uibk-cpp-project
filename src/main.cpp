@@ -20,7 +20,24 @@ static void cleanupGameLoop(sf::Music *battleMusicPtr, LobbyClient &lobbyClient)
 {
 	if(battleMusicPtr)
 		battleMusicPtr->stop();
-	lobbyClient.m_lobbySock.setBlocking(true);
+}
+
+static void handleReturnToLobby(LobbyClient &lobbyClient, const std::shared_ptr<spdlog::logger> &logger)
+{
+	SPDLOG_LOGGER_INFO(logger, "Returned to lobby, keeping connection alive");
+
+	bool gotUpdate = false;
+	for(int i = 0; i < 10; ++i)
+	{
+		if(lobbyClient.pollLobbyUpdate())
+			gotUpdate = true;
+		sf::sleep(sf::milliseconds(50));
+	}
+
+	if(!gotUpdate)
+	{
+		SPDLOG_LOGGER_WARN(logger, "Did not receive lobby update after returning from game");
+	}
 }
 
 void runServer(std::shared_ptr<spdlog::logger> logger, LobbyServer *lobbyServer)
@@ -47,17 +64,65 @@ void runServer(std::shared_ptr<spdlog::logger> logger, LobbyServer *lobbyServer)
 
 		SPDLOG_LOGGER_INFO(logger, "All {} players ready. Starting game...", connectedPlayers);
 		lobbyServer->startGame(gameServer.m_world);
+		lobbyServer->setGameInProgress(true);
 		SPDLOG_LOGGER_INFO(logger, "Game started. Switching to UDP loop.");
 		PlayerState *winningPlayer = gameServer.matchLoop();
+		lobbyServer->setGameInProgress(false);
 		SPDLOG_LOGGER_INFO(logger, "Game ended, winner {}. Returning to lobby",
 		                   winningPlayer ? winningPlayer->m_id : 0);
+
+		sf::Packet gameEndPkt = createPkt(ReliablePktType::GAME_END);
+		gameEndPkt << static_cast<uint32_t>(winningPlayer ? winningPlayer->m_id : 0);
+
+		const auto &players = gameServer.m_world.getPlayers();
+		uint32_t numPlayers = 0;
+		for(const auto &player : players)
+		{
+			if(player.m_id != 0)
+				numPlayers++;
+		}
+
+		gameEndPkt << numPlayers;
+		for(const auto &player : players)
+		{
+			if(player.m_id != 0)
+			{
+				gameEndPkt << player.m_id;
+				gameEndPkt << player.m_name;
+				gameEndPkt << static_cast<int32_t>(player.getKills());
+				gameEndPkt << static_cast<int32_t>(player.getDeaths());
+				SPDLOG_LOGGER_DEBUG(logger, "Player {}: {} - K:{} D:{}", player.m_id, player.m_name, player.getKills(),
+				                    player.getDeaths());
+			}
+		}
+
+		for(auto &p : lobbyServer->m_slots)
+		{
+			if(p.bValid)
+			{
+				if(checkedSend(p.tcpSocket, gameEndPkt) != sf::Socket::Status::Done)
+				{
+					SPDLOG_LOGGER_ERROR(logger, "Failed to send GAME_END to {} (id {})", p.name, p.id);
+				}
+				else
+				{
+					SPDLOG_LOGGER_INFO(logger, "Sent GAME_END to {} (id {})", p.name, p.id);
+				}
+			}
+		}
+
+		lobbyServer->updatePlayerStats(players);
+
+		lobbyServer->resetLobbyState();
+		SPDLOG_LOGGER_INFO(logger, "Returning to lobby loop, waiting for players to ready up...");
 	}
 
 	SPDLOG_LOGGER_INFO(logger, "Server thread exiting");
 }
 
-void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<PlayerState, MAX_PLAYERS> &playerStates,
-                 std::shared_ptr<spdlog::logger> logger, bool gameMusicEnabled)
+GameEndResult runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient,
+                          std::array<PlayerState, MAX_PLAYERS> &playerStates, std::shared_ptr<spdlog::logger> logger,
+                          bool gameMusicEnabled)
 {
 	SPDLOG_LOGGER_INFO(logger, "Starting game with player ID {}", lobbyClient.m_clientId);
 
@@ -105,18 +170,20 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 		if(worldClient.shouldDisconnect())
 		{
 			cleanupGameLoop(battleMusicPtr, lobbyClient);
-			SPDLOG_LOGGER_INFO(logger, "Player disconnected via pause menu, returning to lobby...");
-			return;
+			SPDLOG_LOGGER_INFO(logger, "Player disconnected via pause menu, returning to main menu...");
+			return GameEndResult::RETURN_TO_MAIN_MENU;
+		}
+
+		if(worldClient.shouldReturnToLobby())
+		{
+			cleanupGameLoop(battleMusicPtr, lobbyClient);
+			SPDLOG_LOGGER_INFO(logger, "Player chose to return to lobby from scoreboard...");
+			return GameEndResult::RETURN_TO_LOBBY;
 		}
 
 		gameClient.syncFromServer();
 
-		if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
-		{
-			cleanupGameLoop(battleMusicPtr, lobbyClient);
-			SPDLOG_LOGGER_INFO(logger, "Game ended, returning to lobby...");
-			return;
-		}
+		gameClient.processReliablePackets(lobbyClient.m_lobbySock);
 
 		// log every 60 frames (~once per second at 60 fps)
 		if(++frameCount % 60 == 0)
@@ -126,7 +193,8 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 	}
 
 	cleanupGameLoop(battleMusicPtr, lobbyClient);
-	SPDLOG_LOGGER_INFO(logger, "Game window closed, returning to lobby...");
+	SPDLOG_LOGGER_INFO(logger, "Game window closed, returning to main menu...");
+	return GameEndResult::RETURN_TO_MAIN_MENU;
 }
 
 int main()
@@ -134,7 +202,8 @@ int main()
 	auto logger = createConsoleAndFileLogger("TankGame");
 	SPDLOG_LOGGER_INFO(logger, "Tank Game starting...");
 
-	sf::RenderWindow window(sf::VideoMode(WINDOW_DIM), "Tank Game", sf::Style::Titlebar | sf::Style::Close);
+	sf::RenderWindow window(sf::VideoMode(WINDOW_DIM), "Tank Game",
+	                        sf::Style::Titlebar | sf::Style::Close | sf::Style::Resize);
 	window.setFramerateLimit(60);
 
 	Menu menu(WINDOW_DIM);
@@ -191,6 +260,25 @@ int main()
 					menu.handleTextInput(static_cast<char>(textEntered->unicode));
 				}
 			}
+			else if(const auto *resized = event->getIf<sf::Event::Resized>())
+			{
+				// Uniform scaling: scale by the same factor in both directions
+				float scaleX = static_cast<float>(resized->size.x) / static_cast<float>(WINDOW_DIM.x);
+				float scaleY = static_cast<float>(resized->size.y) / static_cast<float>(WINDOW_DIM.y);
+
+				float scale = std::min(scaleX, scaleY);
+
+				float viewportWidth = (WINDOW_DIM.x * scale) / resized->size.x;
+				float viewportHeight = (WINDOW_DIM.y * scale) / resized->size.y;
+
+				float viewportX = (1.f - viewportWidth) / 2.f;
+				float viewportY = (1.f - viewportHeight) / 2.f;
+
+				sf::View view(sf::FloatRect({0.f, 0.f}, sf::Vector2f(WINDOW_DIM)));
+				view.setViewport(sf::FloatRect({viewportX, viewportY}, {viewportWidth, viewportHeight}));
+				window.setView(view);
+				menu.handleResize(resized->size);
+			}
 		}
 
 		if(menuMusicPtr)
@@ -215,6 +303,19 @@ int main()
 
 		if(menu.getState() == Menu::State::LOBBY_HOST && !hostLobbyClient)
 		{
+			if(serverThread && serverThread->joinable())
+			{
+				SPDLOG_LOGGER_INFO(logger, "Waiting for previous server thread to exit before hosting new game...");
+				if(lobbyServer)
+				{
+					lobbyServer->requestShutdown();
+				}
+				serverThread->join();
+				serverThread.reset();
+				lobbyServer.reset();
+				SPDLOG_LOGGER_INFO(logger, "Previous server cleaned up");
+			}
+
 			SPDLOG_LOGGER_INFO(logger, "Hosting game as player '{}'", menu.getPlayerName());
 
 			try
@@ -244,7 +345,7 @@ int main()
 					serverThread.reset();
 					lobbyServer.reset();
 				}
-				menu.reset();
+				menu.showError("Failed to host game:\n" + std::string(e.what()));
 			}
 		}
 
@@ -286,11 +387,30 @@ int main()
 					if(menuMusicPtr)
 						menuMusicPtr->stop();
 
-					runGameLoop(window, *hostLobbyClient, playerStates, logger, menu.isGameMusicEnabled());
+					GameEndResult result =
+						runGameLoop(window, *hostLobbyClient, playerStates, logger, menu.isGameMusicEnabled());
 
-					hostLobbyClient.reset();
-					hostReady = false;
-					menu.reset();
+					if(result == GameEndResult::RETURN_TO_LOBBY)
+					{
+						handleReturnToLobby(*hostLobbyClient, logger);
+						hostReady = false;
+
+						auto players = hostLobbyClient->getLobbyPlayers();
+						menu.updateLobbyDisplay(players);
+						menu.updateHostButton(false, players.size() >= 2, hostReady);
+
+						if(menuMusicPtr && menu.isMenuMusicEnabled())
+							menuMusicPtr->play();
+					}
+					else // RETURN_TO_MAIN_MENU
+					{
+						SPDLOG_LOGGER_INFO(logger, "Returned to main menu, disconnecting from lobby");
+						hostLobbyClient.reset();
+						hostReady = false;
+						menu.reset();
+						if(menuMusicPtr && menu.isMenuMusicEnabled())
+							menuMusicPtr->play();
+					}
 				}
 				else
 				{
@@ -315,7 +435,24 @@ int main()
 				SPDLOG_LOGGER_ERROR(logger, "Unexpected server shutdown detected for host: {}", e.what());
 				hostLobbyClient.reset();
 				hostReady = false;
-				menu.reset();
+
+				if(lobbyServer)
+				{
+					SPDLOG_LOGGER_INFO(logger, "Cleaning up server after shutdown exception...");
+					lobbyServer->requestShutdown();
+
+					if(serverThread && serverThread->joinable())
+					{
+						SPDLOG_LOGGER_INFO(logger, "Waiting for server thread to exit...");
+						serverThread->join();
+						SPDLOG_LOGGER_INFO(logger, "Server thread exited");
+					}
+					serverThread.reset();
+					lobbyServer.reset();
+					SPDLOG_LOGGER_INFO(logger, "Server cleaned up successfully");
+				}
+
+				menu.showError("Server has shut down unexpectedly.\nReturning to main menu.");
 			}
 		}
 
@@ -379,6 +516,7 @@ int main()
 				SPDLOG_LOGGER_ERROR(logger, "Failed to connect to server: {}", e.what());
 				joinLobbyClient.reset();
 				menu.clearConnectFlag();
+				menu.showError("Failed to connect to server:\n" + std::string(e.what()));
 			}
 		}
 
@@ -403,11 +541,29 @@ int main()
 					if(menuMusicPtr)
 						menuMusicPtr->stop();
 
-					runGameLoop(window, *joinLobbyClient, playerStates, logger, menu.isGameMusicEnabled());
+					GameEndResult result =
+						runGameLoop(window, *joinLobbyClient, playerStates, logger, menu.isGameMusicEnabled());
 
-					joinLobbyClient.reset();
-					clientReady = false;
-					menu.reset();
+					if(result == GameEndResult::RETURN_TO_LOBBY)
+					{
+						handleReturnToLobby(*joinLobbyClient, logger);
+						clientReady = false;
+
+						menu.updateLobbyDisplay(joinLobbyClient->getLobbyPlayers());
+						menu.updateClientButton(clientReady);
+
+						if(menuMusicPtr && menu.isMenuMusicEnabled())
+							menuMusicPtr->play();
+					}
+					else // RETURN_TO_MAIN_MENU
+					{
+						SPDLOG_LOGGER_INFO(logger, "Returned to main menu, disconnecting from lobby");
+						joinLobbyClient.reset();
+						clientReady = false;
+						menu.reset();
+						if(menuMusicPtr && menu.isMenuMusicEnabled())
+							menuMusicPtr->play();
+					}
 				}
 				else
 				{
@@ -422,7 +578,7 @@ int main()
 				SPDLOG_LOGGER_WARN(logger, "Server has shut down: {}", e.what());
 				joinLobbyClient.reset();
 				clientReady = false;
-				menu.reset();
+				menu.showError("Host has disconnected.\nThe server has shut down.");
 			}
 		}
 
@@ -448,6 +604,38 @@ int main()
 		window.display();
 	}
 
-	SPDLOG_LOGGER_INFO(logger, "Tank Game shutting down");
+	// cleanup server and clients before exiting
+	SPDLOG_LOGGER_INFO(logger, "Tank Game shutting down, cleaning up resources...");
+
+	if(hostLobbyClient)
+	{
+		SPDLOG_LOGGER_INFO(logger, "Disconnecting host lobby client...");
+		hostLobbyClient.reset();
+	}
+
+	if(joinLobbyClient)
+	{
+		SPDLOG_LOGGER_INFO(logger, "Disconnecting join lobby client...");
+		joinLobbyClient.reset();
+	}
+
+	if(lobbyServer)
+	{
+		SPDLOG_LOGGER_INFO(logger, "Shutting down server...");
+		lobbyServer->requestShutdown();
+
+		if(serverThread && serverThread->joinable())
+		{
+			SPDLOG_LOGGER_INFO(logger, "Waiting for server thread to exit...");
+			serverThread->join();
+			SPDLOG_LOGGER_INFO(logger, "Server thread exited successfully");
+		}
+
+		serverThread.reset();
+		lobbyServer.reset();
+		SPDLOG_LOGGER_INFO(logger, "Server cleaned up successfully");
+	}
+
+	SPDLOG_LOGGER_INFO(logger, "All resources cleaned up, exiting");
 	return 0;
 }
