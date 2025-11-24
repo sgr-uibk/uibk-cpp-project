@@ -672,3 +672,40 @@ PlayerState &WorldClient::getOwnPlayerStateRef()
 {
 	return m_state.getPlayerById(m_ownPlayerId);
 }
+
+std::vector<PlayerState> WorldClient::getPlayers() const {
+    std::vector<PlayerState> result;
+    for (const auto& pc : m_players) {
+        result.push_back(pc.getState());
+    }
+    return result;
+}
+
+PlayerState* WorldClient::getWinner() const {
+    for (const auto& pc : m_players) {
+        if (pc.getState().isAlive()) {
+            return const_cast<PlayerState*>(&pc.getState());
+        }
+    }
+    return nullptr;
+}
+
+PlayerState* WorldClient::getPlayerById(EntityId id)
+{
+    for(auto &pc : m_players)
+    {
+        if(pc.getState().m_id == id)
+            return &pc.getState();
+    }
+    return nullptr;
+}
+
+const PlayerState* WorldClient::getPlayerById(EntityId id) const
+{
+    for(const auto &pc : m_players)
+    {
+        if(pc.getState().m_id == id)
+            return &pc.getState();
+    }
+    return nullptr;
+}

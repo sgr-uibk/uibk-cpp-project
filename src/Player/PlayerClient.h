@@ -21,6 +21,7 @@ class PlayerClient
 	// input / local movement (prediction)
 	void applyLocalMove(MapState const &map, sf::Vector2f delta);
 
+	PlayerState& getState() { return m_state; }
 	const PlayerState &getState() const
 	{
 		return m_state;

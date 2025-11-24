@@ -205,12 +205,14 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packe
 		std::string playerName;
 		sf::Vector2f pos;
 		sf::Angle rot;
-		pkt >> playerId >> playerName >> pos >> rot;
+		uint32_t kills, deaths;
+		pkt >> playerId >> playerName >> pos >> rot >> kills >> deaths;
 
 		if(playerId > 0 && playerId <= MAX_PLAYERS)
 		{
-			states[playerId - 1] = PlayerState(playerId, pos, rot);
-			states[playerId - 1].m_name = playerName;
+			states[playerId - 1] = PlayerState(playerId, pos, rot, GameConfig::Player::DEFAULT_MAX_HEALTH, playerName);
+			states[playerId - 1].setKills(kills);
+			states[playerId - 1].setDeaths(deaths);
 			SPDLOG_LOGGER_INFO(m_logger, "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg", playerId,
 			                   playerName, pos.x, pos.y, rot.asDegrees());
 		}

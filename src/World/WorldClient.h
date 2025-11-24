@@ -42,6 +42,12 @@ class WorldClient
 
 	PlayerState& getOwnPlayerStateRef();
 
+	std::vector<PlayerState> getPlayers() const;
+    PlayerState* getWinner() const;
+
+	PlayerState* getPlayerById(EntityId id);
+    const PlayerState* getPlayerById(EntityId id) const;
+
   private:
 	void drawPauseMenu(sf::RenderWindow &window) const;
 	void handlePauseMenuClick(sf::Vector2f mousePos);

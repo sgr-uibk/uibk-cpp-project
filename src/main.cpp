@@ -65,7 +65,7 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 	try
 	{
 		battleMusicPtr = &MusicManager::inst().load("audio/battle_loop.ogg");
-		//battleMusicPtr->setVolume(0.0f);
+		battleMusicPtr->setVolume(0.0f);
 		battleMusicPtr->setLooping(true);
 		if(gameMusicEnabled)
 		{
@@ -112,7 +112,7 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 
 		gameClient.syncFromServer();
 
-		if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
+		if(gameClient.processReliablePackets(lobbyClient.m_lobbySock, window))
 		{
 			cleanupGameLoop(battleMusicPtr, lobbyClient);
 			SPDLOG_LOGGER_INFO(logger, "Game ended, returning to lobby...");
@@ -144,7 +144,7 @@ int main()
 	try
 	{
 		menuMusicPtr = &MusicManager::inst().load("audio/menu_loop.ogg");
-		//menuMusicPtr->setVolume(0.0f);
+		menuMusicPtr->setVolume(0.0f);
 		menuMusicPtr->setLooping(true);
 		if(menu.isMenuMusicEnabled())
 		{

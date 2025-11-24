@@ -260,8 +260,7 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 			// assign spawn point from shuffled list
 			sf::Vector2f const spawn = spawns[validPlayers.size() - 1];
 			sf::Angle const rot = sf::degrees(float(rng()) / float(rng.max() / 360));
-			PlayerState ps(c.id, spawn);
-			ps.m_rot = rot;
+			PlayerState ps(c.id, spawn, rot, GameConfig::Player::DEFAULT_MAX_HEALTH, c.name);
 			worldState.setPlayer(ps);
 		}
 	}
@@ -280,6 +279,8 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 				startPkt << validPlayer->name;
 				startPkt << ps.getPosition();
 				startPkt << ps.getRotation();
+				startPkt << ps.getKills();
+				startPkt << ps.getDeaths();
 				SPDLOG_LOGGER_DEBUG(m_logger, "  Sending player {} ('{}') spawn: pos=({:.1f},{:.1f}), rot={:.1f}°",
 				                    ps.m_id, validPlayer->name, ps.getPosition().x, ps.getPosition().y,
 				                    ps.getRotation().asDegrees());

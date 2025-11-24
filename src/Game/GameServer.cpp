@@ -39,7 +39,11 @@ PlayerState *GameServer::matchLoop()
 
 		spawnItems();
 
-		m_world.checkProjectilePlayerCollisions();
+		auto kills = m_world.checkProjectilePlayerCollisions();
+		for(auto &[killer, victim] : kills)
+		{
+			onPlayerKilled(killer, victim);
+		}
 		m_world.checkProjectileWallCollisions();
 		m_world.checkPlayerItemCollisions();
 		m_world.checkPlayerPlayerCollisions();
@@ -63,12 +67,14 @@ PlayerState *GameServer::matchLoop()
 		if(numAlive == 1)
 		{
 			SPDLOG_LOGGER_INFO(m_logger, "Game ended, winner {}.", pWinner->m_id);
+			sendGameEnd(pWinner);
 			return pWinner;
 		}
 		if(numAlive == 0)
 		{
 			// Technically possible that all players die in the same tick
 			SPDLOG_LOGGER_WARN(m_logger, "Game ended in a draw.");
+			sendGameEnd(pWinner);
 			break;
 		}
 	}
@@ -219,4 +225,47 @@ void GameServer::floodWorldState()
 			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send snapshot to {}:{}", p.udpAddr.toString(), p.gamePort);
 		}
 	}
+}
+
+void GameServer::sendGameEnd(PlayerState *winner)
+{
+	sf::Packet pkt;
+	pkt << uint8_t(ReliablePktType::GAME_END);
+	uint32_t winnerId = winner ? winner->m_id : 0;
+	pkt << winnerId;
+
+	uint32_t numPlayers = m_world.getPlayers().size();
+	pkt << numPlayers;
+	for(auto &p : m_world.getPlayers())
+	{
+		pkt << p.getPlayerId();
+		pkt << p.getKills();
+		pkt << p.getDeaths();
+	}
+
+	for(LobbyPlayer &p : m_lobby.m_slots)
+	{
+		if(!p.bValid)
+			continue;
+		if(p.tcpSocket.send(pkt) != sf::Socket::Status::Done)
+		{
+			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send GAME_END to player {}", p.id);
+		}
+	}
+}
+
+void GameServer::onPlayerKilled(uint32_t killerId, uint32_t victimId)
+{
+	PlayerState *killer = (killerId > 0) ? &m_world.getPlayerById(killerId) : nullptr;
+	PlayerState *victim = (victimId > 0) ? &m_world.getPlayerById(victimId) : nullptr;
+
+	if(killer)
+		killer->addKill();
+	if(victim)
+	{
+		victim->addDeath();
+		victim->die();
+	}
+	SPDLOG_INFO("KILL EVENT: killer={} (kills={}), victim={} (deaths={})", killerId, killer ? killer->getKills() : 0,
+	            victimId, victim ? victim->getDeaths() : 0);
 }

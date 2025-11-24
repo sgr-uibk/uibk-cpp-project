@@ -4,8 +4,8 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
-PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth)
-	: m_id(id), m_name(""), m_pos(pos), m_rot(rot), m_maxHealth(maxHealth), m_health(maxHealth)
+PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth, const std::string &name)
+	: m_id(id), m_name(name), m_pos(pos), m_rot(rot), m_maxHealth(maxHealth), m_health(maxHealth)
 {
 }
 
@@ -52,7 +52,7 @@ void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 	m_rot = sf::radians(angRad);
 }
 
-void PlayerState::setPosition(const sf::Vector2f& pos)
+void PlayerState::setPosition(const sf::Vector2f &pos)
 {
 	m_pos = pos;
 }
@@ -259,11 +259,14 @@ PowerupType PlayerState::getInventoryItem(int slot) const
 void PlayerState::serialize(sf::Packet &pkt) const
 {
 	pkt << m_id;
+	pkt << m_name;
 	pkt << m_pos;
 	pkt << m_rot;
 	pkt << m_health;
 	pkt << m_maxHealth;
 	pkt << m_shootCooldown.getRemaining();
+	pkt << m_kills;
+	pkt << m_deaths;
 
 	for(const auto &powerup : m_powerups)
 	{
@@ -280,10 +283,13 @@ void PlayerState::serialize(sf::Packet &pkt) const
 void PlayerState::deserialize(sf::Packet &pkt)
 {
 	pkt >> m_id;
+	pkt >> m_name;
 	pkt >> m_pos;
 	pkt >> m_rot;
 	pkt >> m_health;
 	pkt >> m_maxHealth;
+	pkt >> m_kills;
+	pkt >> m_deaths;
 
 	float cooldownRemaining;
 	pkt >> cooldownRemaining;
@@ -306,4 +312,31 @@ void PlayerState::deserialize(sf::Packet &pkt)
 
 	// assert(m_health >= 0);
 	// assert(m_maxHealth >= 0);
+}
+
+void PlayerState::setKills(uint32_t k)
+{
+	m_kills = k;
+}
+void PlayerState::setDeaths(uint32_t d)
+{
+	m_deaths = d;
+}
+
+uint32_t PlayerState::getKills() const
+{
+	return m_kills;
+}
+uint32_t PlayerState::getDeaths() const
+{
+	return m_deaths;
+}
+
+void PlayerState::addKill()
+{
+	m_kills++;
+}
+void PlayerState::addDeath()
+{
+	m_deaths++;
 }

@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 		{
 			gameClient.handleUserInputs(window);
 			gameClient.syncFromServer();
-			if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
+			if(gameClient.processReliablePackets(lobbyClient.m_lobbySock, window))
 				break; // game ended
 		}
 	}

@@ -20,6 +20,9 @@ class GameServer
 	sf::Clock m_tickClock;
 	size_t m_numAlive;
 
+	void sendGameEnd(PlayerState* winner);
+	void onPlayerKilled(uint32_t killerId, uint32_t victimId);
+
   private:
 	void processPackets();
 	void floodWorldState();

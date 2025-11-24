@@ -11,8 +11,8 @@
 
 enum class PlayerMode
 {
-    NORMAL,
-    SPECTATOR
+	NORMAL,
+	SPECTATOR
 };
 
 struct PlayerState
@@ -20,18 +20,25 @@ struct PlayerState
 	PlayerState() = default;
 	PlayerState(sf::Packet pkt);
 	PlayerState(uint32_t id, sf::Vector2f pos, int maxHealth = 100);
-	PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth = 100);
+	PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth = 100, const std::string &name = "");
 	PlayerMode m_mode = PlayerMode::NORMAL;
 
 	// Simulation
 	void update(float dt);
 	void moveOn(MapState const &map, sf::Vector2f posDelta);
 	void setRotation(sf::Angle);
-	void setPosition(const sf::Vector2f& pos);
+	void setPosition(const sf::Vector2f &pos);
 	void takeDamage(int amount);
 	void heal(int amount);
 	void die();
 	void revive();
+
+	void addKill();
+	void addDeath();
+	void setKills(uint32_t k);
+	void setDeaths(uint32_t d);
+	uint32_t getKills() const;
+	uint32_t getDeaths() const;
 
 	bool canShoot() const;
 	void shoot();
@@ -72,6 +79,10 @@ struct PlayerState
 	sf::Angle m_rot;
 	int m_maxHealth;
 	int m_health = m_maxHealth;
+
+	int m_kills = 0;
+	int m_deaths = 0;
+
 	Cooldown m_shootCooldown{GameConfig::Player::SHOOT_COOLDOWN};
 
 	static constexpr int MAX_POWERUPS = 5;

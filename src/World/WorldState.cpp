@@ -74,7 +74,7 @@ void WorldState::removeInactiveProjectiles()
 	                    m_projectiles.end());
 }
 
-void WorldState::checkProjectilePlayerCollisions()
+/*void WorldState::checkProjectilePlayerCollisions()
 {
 	for(auto &proj : m_projectiles)
 	{
@@ -101,7 +101,7 @@ void WorldState::checkProjectilePlayerCollisions()
 			}
 		}
 	}
-}
+}*/
 
 void WorldState::checkProjectileWallCollisions()
 {
@@ -232,6 +232,46 @@ void WorldState::checkPlayerPlayerCollisions()
 		}
 	}
 }
+
+std::vector<std::pair<uint32_t, uint32_t>> WorldState::checkProjectilePlayerCollisions()
+{
+    std::vector<std::pair<uint32_t, uint32_t>> kills;
+
+    for(auto &proj : m_projectiles)
+    {
+        if(!proj.isActive())
+            continue;
+
+        sf::FloatRect projBounds = proj.getBounds();
+
+        for(auto &player : m_players)
+        {
+            if(!player.isAlive())
+                continue;
+
+            if(player.getPlayerId() == proj.getOwnerId())
+                continue;
+
+            sf::FloatRect playerBounds(player.getPosition(), PlayerState::logicalDimensions);
+
+            if(projBounds.findIntersection(playerBounds).has_value())
+            {
+                player.takeDamage(proj.getDamage());
+                proj.deactivate();
+
+                if(player.getHealth() <= 0)
+                {
+                    kills.emplace_back(proj.getOwnerId(), player.getPlayerId());
+                }
+
+                break;
+            }
+        }
+    }
+
+    return kills;
+}
+
 
 void WorldState::serialize(sf::Packet &pkt) const
 {

@@ -43,10 +43,12 @@ class WorldState
 		return m_items;
 	}
 
-	void checkProjectilePlayerCollisions();
+	//void checkProjectilePlayerCollisions();
 	void checkProjectileWallCollisions();
 	void checkPlayerItemCollisions();
 	void checkPlayerPlayerCollisions();
+
+	std::vector<std::pair<uint32_t, uint32_t>> checkProjectilePlayerCollisions();
 
 	// serialization (full snapshot)
 	void serialize(sf::Packet &pkt) const;
