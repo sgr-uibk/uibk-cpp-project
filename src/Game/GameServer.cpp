@@ -31,8 +31,10 @@ PlayerState *GameServer::matchLoop()
 		processPackets();
 
 		// maintain fixed tick rate updates
-		int32_t dt = m_tickClock.restart().asMilliseconds();
+		int32_t dt = m_tickClock.getElapsedTime().asMilliseconds();
 		sf::sleep(sf::milliseconds(UNRELIABLE_TICK_MS - dt));
+		m_tickClock.restart();
+
 		++m_authTick;
 		m_world.update();
 
