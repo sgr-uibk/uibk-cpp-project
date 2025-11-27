@@ -6,42 +6,47 @@
 // Unidirectional ring buffer implementation (think cyclic FIFO structure)
 template <class T, size_t Sz> struct RingQueue
 {
-	constexpr RingQueue() : m_hot(0), m_buf{}
+	constexpr RingQueue() : m_buf{}
 	{
 	}
 
-	// forward a parameter pack for the array elemets
 	template <typename... U, typename = std::enable_if_t<sizeof...(U) == Sz>>
-	explicit constexpr RingQueue(U &&...u) : m_hot(0), m_buf{T(std::forward<U>(u))...}
+	explicit constexpr RingQueue(U &&...u) : m_buf{T(std::forward<U>(u))...}
 	{
 	}
 
+	/// \brief Inserts a new element, overwriting the oldest entry.
 	void push(T val) noexcept
 	{
 		m_buf[++m_hot % Sz] = val;
 	}
 
+	/// \brief Claims a slot for an element to be filled later by the caller
+	/// \return Reference to the claimed element slot.
 	T &claim() noexcept
 	{
 		return m_buf[++m_hot % Sz];
 	}
 
+	/// \Returns the most recently inserted element.
 	T &get() const noexcept
 	{
 		return m_buf[m_hot % Sz];
 	}
 
-	T &getOld(size_t const k) const noexcept
+	/// \Returns the element that was inserted \param k positions before the most recent one
+	T &get(std::size_t k) const noexcept
 	{
 		return m_buf[(m_hot - k) % Sz];
 	}
 
+	/// \brief Marks the buffer as empty
 	void clear() noexcept
 	{
-		m_hot = 0;
+		m_hot = Sz - 1;
 	}
 
-	size_t m_hot;
+	std::size_t m_hot = 0;
 	mutable std::array<T, Sz> m_buf;
 };
 

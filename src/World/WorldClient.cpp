@@ -114,39 +114,52 @@ void WorldClient::reconcileLocalPlayer(Tick ackedTick, WorldState const &snap)
 		SPDLOG_WARN("Reconciliation error ({},{})", err.x, err.y);
 }
 
-bool WorldClient::interpolateEnemies() const
+void WorldClient::interpolateEnemies() const
 {
-
 	// Render‑time interpolation
 	long const renderTick = m_authTick - 1;
 	if(renderTick < 0)
 	{
 		SPDLOG_INFO("Interpolation not yet ready");
-		return false;
+		return;
 	}
 
-	auto &[t0, s0] = m_snapshotBuffer.get();
-	auto &[t1, s1] = m_snapshotBuffer.getOld(1);
-	if(t0 != t1 + 1)
+	struct interpState
 	{
-		SPDLOG_ERROR("SS buffer out of sequence! Perhaps increase size ?");
-		return false;
+		size_t step = size_t(-1);
+		Ticked<WorldState> const *node0 = nullptr;
+		Ticked<WorldState> const *node1 = nullptr;
+	};
+	static interpState s;
+
+	if(s.step >= RENDER_TICK_HZ / UNRELIABLE_TICK_HZ)
+	{ // completed interpolation, get the next pair
+		s.step = 0;
+		s.node0 = &m_snapshotBuffer.get(1);
+		s.node1 = &m_snapshotBuffer.get(0);
 	}
 
-	float const alpha = 1; // TODO
-	auto &p0 = s0.m_players;
-	auto &p1 = s1.m_players;
+	auto const [t0, s0] = *s.node0;
+	auto const [t1, s1] = *s.node1;
+
+	if(t0 + 1 != t1 && t0 && t1)
+	{
+		SPDLOG_ERROR("SS buffer out of sequence: {},{}", t0, t1);
+		return;
+	}
+
+	float const alpha = s.step++ * UNRELIABLE_TICK_HZ / float(RENDER_TICK_HZ);
 
 	for(size_t i = 0; i < MAX_PLAYERS; ++i)
 	{
+		auto &p0 = s0.m_players[i];
+		auto &p1 = s1.m_players[i];
 		size_t id = i + 1;
 		if(id == m_ownPlayerId)
 			continue; // own player is predicted, not interpolated
 
-		m_players[i].interp(p0[i], p1[i], alpha);
+		m_players[i].interp(p0, p1, alpha);
 	}
-
-	return true;
 }
 
 WorldState &WorldClient::getState()

@@ -51,7 +51,8 @@ sf::Vector2f lerp(sf::Vector2f const &a, sf::Vector2f const &b, float t)
 
 sf::Angle lerp(sf::Angle const &a, sf::Angle const &b, float t)
 {
-	return a + t * (b - a);
+	auto const delta = (b - a).wrapSigned();
+	return a + t * delta;
 }
 
 void PlayerClient::interp(PlayerState const &s0, PlayerState const &s1, float const alpha) const

@@ -21,7 +21,7 @@ class WorldClient
 
 	void applyServerSnapshot(WorldState const &snapshot);
 	void reconcileLocalPlayer(Tick serverTick, WorldState const &snap);
-	bool interpolateEnemies() const;
+	void interpolateEnemies() const;
 
 	WorldState &getState();
 	void pollEvents();
