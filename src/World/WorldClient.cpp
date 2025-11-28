@@ -46,7 +46,7 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 
 		if(m_tickClock.getElapsedTime().asMilliseconds() >= UNRELIABLE_TICK_MS)
 		{
-			m_inputInflightBuffer.emplace_back(m_clientTick, m_inputAcc);
+			m_inflightInputs.emplace(m_clientTick, m_inputAcc);
 			sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
 			pkt << m_ownPlayerId;
 			pkt << m_inputAcc;
@@ -92,12 +92,8 @@ void WorldClient::reconcileLocalPlayer(Tick ackedTick, WorldState const &snap)
 	PlayerState authState = snap.m_players[id];
 	PlayerState localState = m_players[id].getState();
 
-	// Erase inputs that made it into the received snapshot
-	while(!m_inputInflightBuffer.empty() && m_inputInflightBuffer.front().tick <= ackedTick)
-		m_inputInflightBuffer.pop_front();
-
 	auto err = authState.m_pos - localState.m_pos;
-	if(err.length() == 0)
+	if(err.lengthSquared() == 0)
 	{ // Prediction hit! We're done here.
 		return;
 	}
@@ -105,12 +101,16 @@ void WorldClient::reconcileLocalPlayer(Tick ackedTick, WorldState const &snap)
 	// Server disagrees, have to accept authoritative state, replay local inputs
 	m_players[id].applyServerState(authState);
 
-	for(auto const &delta : m_inputInflightBuffer)
-		m_players[id].applyLocalMove(m_state.m_map, delta.obj); // replay in flight
-	m_players[id].applyLocalMove(m_state.m_map, m_inputAcc);    // replay pre-in flight inputs
+	for(size_t i = m_inflightInputs.capacity(); i > 0; --i)
+	{
+		auto &delta = m_inflightInputs.get(i - 1);
+		if(delta.tick > ackedTick)
+			m_players[id].applyLocalMove(m_state.m_map, delta.obj); // replay in flight
+	}
+	m_players[id].applyLocalMove(m_state.m_map, m_inputAcc); // replay pre-in flight inputs
 	auto const replayedState = m_players[id].getState();
 	err = replayedState.m_pos - localState.m_pos;
-	if(err.length() > 1e-3)
+	if(err.lengthSquared() > 1e-3)
 		SPDLOG_WARN("Reconciliation error ({},{})", err.x, err.y);
 }
 

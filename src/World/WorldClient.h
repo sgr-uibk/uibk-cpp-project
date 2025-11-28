@@ -33,7 +33,7 @@ class WorldClient
 	sf::Clock m_tickClock;
 
 	sf::Vector2f m_inputAcc = {0, 0}; // not yet in flight
-	std::deque<Ticked<sf::Vector2f>> m_inputInflightBuffer;
+	RingQueue<Ticked<sf::Vector2f>, 8> m_inflightInputs;
 	sf::Vector2f m_pendingInput = {0, 0};
 	RingQueue<Ticked<WorldState>, 8>
 		m_snapshotBuffer;  // the top of the snapshot buffer is the latest tick recvd from the server

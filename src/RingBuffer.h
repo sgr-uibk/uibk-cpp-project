@@ -21,6 +21,12 @@ template <class T, size_t Sz> struct RingQueue
 		m_buf[++m_hot % Sz] = val;
 	}
 
+	/// \brief Constructs an element in-place, overwriting the oldest entry.
+	template <typename... Args> void emplace(Args &&...args) noexcept
+	{
+		m_buf[++m_hot % Sz] = T(std::forward<Args>(args)...);
+	}
+
 	/// \brief Claims a slot for an element to be filled later by the caller
 	/// \return Reference to the claimed element slot.
 	T &claim() noexcept
@@ -44,6 +50,11 @@ template <class T, size_t Sz> struct RingQueue
 	void clear() noexcept
 	{
 		m_hot = Sz - 1;
+	}
+
+	size_t capacity() noexcept
+	{
+		return Sz;
 	}
 
 	std::size_t m_hot = 0;
