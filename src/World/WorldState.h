@@ -24,5 +24,3 @@ struct WorldState
 	MapState const m_map;
 	std::array<PlayerState, MAX_PLAYERS> m_players;
 };
-
-template <typename T> using Ticked = std::pair<Tick, T>;

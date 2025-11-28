@@ -56,7 +56,7 @@ void GameClient::processUnreliablePackets()
 		auto &[snapTick, snapState] = m_world.m_snapshotBuffer.claim();
 		snapTick = authTick;
 		snapState.deserialize(snapPkt);
-		assert(m_world.m_snapshotBuffer.get().first == authTick);
+		assert(m_world.m_snapshotBuffer.get().tick == authTick);
 		m_world.reconcileLocalPlayer(ackedTicks[m_lobby.m_clientId - 1], snapState);
 	}
 	else if(st != sf::Socket::Status::NotReady)

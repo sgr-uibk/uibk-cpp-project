@@ -93,7 +93,7 @@ void WorldClient::reconcileLocalPlayer(Tick ackedTick, WorldState const &snap)
 	PlayerState localState = m_players[id].getState();
 
 	// Erase inputs that made it into the received snapshot
-	while(!m_inputInflightBuffer.empty() && m_inputInflightBuffer.front().first <= ackedTick)
+	while(!m_inputInflightBuffer.empty() && m_inputInflightBuffer.front().tick <= ackedTick)
 		m_inputInflightBuffer.pop_front();
 
 	auto err = authState.m_pos - localState.m_pos;
@@ -105,9 +105,9 @@ void WorldClient::reconcileLocalPlayer(Tick ackedTick, WorldState const &snap)
 	// Server disagrees, have to accept authoritative state, replay local inputs
 	m_players[id].applyServerState(authState);
 
-	for(auto const &delta : m_inputInflightBuffer | std::views::values)
-		m_players[id].applyLocalMove(m_state.m_map, delta);  // replay in flight
-	m_players[id].applyLocalMove(m_state.m_map, m_inputAcc); // replay pre-in flight inputs
+	for(auto const &delta : m_inputInflightBuffer)
+		m_players[id].applyLocalMove(m_state.m_map, delta.obj); // replay in flight
+	m_players[id].applyLocalMove(m_state.m_map, m_inputAcc);    // replay pre-in flight inputs
 	auto const replayedState = m_players[id].getState();
 	err = replayedState.m_pos - localState.m_pos;
 	if(err.length() > 1e-3)
@@ -127,24 +127,19 @@ void WorldClient::interpolateEnemies() const
 	struct interpState
 	{
 		size_t step = size_t(-1);
-		Ticked<WorldState> const *node0 = nullptr;
-		Ticked<WorldState> const *node1 = nullptr;
+		Ticked<WorldState> const *ss0 = nullptr;
+		Ticked<WorldState> const *ss1 = nullptr;
 	};
 	static interpState s;
 
 	if(s.step >= RENDER_TICK_HZ / UNRELIABLE_TICK_HZ)
 	{ // completed interpolation, get the next pair
-		s.step = 0;
-		s.node0 = &m_snapshotBuffer.get(1);
-		s.node1 = &m_snapshotBuffer.get(0);
+		s = {.step = 0, .ss0 = &m_snapshotBuffer.get(1), .ss1 = &m_snapshotBuffer.get(0)};
 	}
 
-	auto const [t0, s0] = *s.node0;
-	auto const [t1, s1] = *s.node1;
-
-	if(t0 + 1 != t1 && t0 && t1)
+	if(s.ss0->tick + 1 != s.ss1->tick && s.ss0->tick && s.ss1->tick)
 	{
-		SPDLOG_ERROR("SS buffer out of sequence: {},{}", t0, t1);
+		SPDLOG_ERROR("SS buffer out of sequence: {},{}", s.ss0->tick, s.ss1->tick);
 		return;
 	}
 
@@ -152,8 +147,8 @@ void WorldClient::interpolateEnemies() const
 
 	for(size_t i = 0; i < MAX_PLAYERS; ++i)
 	{
-		auto &p0 = s0.m_players[i];
-		auto &p1 = s1.m_players[i];
+		auto &p0 = s.ss0->obj.m_players[i];
+		auto &p1 = s.ss1->obj.m_players[i];
 		size_t id = i + 1;
 		if(id == m_ownPlayerId)
 			continue; // own player is predicted, not interpolated
