@@ -181,10 +181,3 @@ void WorldClient::pollEvents()
 			m_bAcceptInput = true;
 	}
 }
-
-void WorldClient::reset()
-{
-	m_authTick = 0;
-	m_clientTick = 0;
-	m_snapshotBuffer.clear();
-}

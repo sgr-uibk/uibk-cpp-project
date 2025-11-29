@@ -25,7 +25,6 @@ class WorldClient
 
 	WorldState &getState();
 	void pollEvents();
-	void reset();
 
 	bool m_bAcceptInput;
 

@@ -82,7 +82,6 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 				SPDLOG_LOGGER_INFO(m_logger, "I won the game!", winnerId);
 			else
 				SPDLOG_LOGGER_INFO(m_logger, "Battle is over, winner id {}, returning to lobby.", winnerId);
-			m_world.reset();
 			return true;
 		}
 		default:

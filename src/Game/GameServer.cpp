@@ -25,7 +25,6 @@ GameServer::~GameServer()
 
 PlayerState *GameServer::matchLoop()
 {
-	m_authTick = 0;
 	while(m_numAlive > 1)
 	{
 		processPackets();
@@ -82,8 +81,8 @@ void GameServer::processPackets()
 			{
 				if(m_lastClientTicks[clientId - 1] >= tick)
 				{
-					SPDLOG_LOGGER_WARN(m_logger, "MOVE: Outdated pkt (know {}, got {})",
-					                   m_lastClientTicks[clientId - 1], tick);
+					SPDLOG_LOGGER_WARN(m_logger, "MOVE: Outdated pkt from {}, (know {}, got {})",
+					                   clientId, m_lastClientTicks[clientId - 1], tick);
 					break;
 				}
 				m_lastClientTicks[clientId - 1] = tick;
