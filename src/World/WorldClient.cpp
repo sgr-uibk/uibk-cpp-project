@@ -13,11 +13,11 @@ std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states, std
 	}(std::make_index_sequence<N>{});
 }
 
-WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players)
+WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId,
+                         std::array<PlayerState, MAX_PLAYERS> &players)
 	: m_bAcceptInput(true), m_window(window), m_state(sf::Vector2f(window.getSize())), m_mapClient(m_state.getMap()),
-	  // Members must be initialized before the constructor body runs,
-      // so this initializer needs to convert the PlayerStates to PlayerClients *at compile time*
-	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId)
+	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
+	  m_interp(m_state.getMap(), ownPlayerId, m_players)
 {
 	for(auto &ps : players)
 	{
@@ -34,30 +34,25 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 {
 	float const frameDelta = m_frameClock.restart().asSeconds();
 	m_clientTick++;
+	bool const bServerTickExpired = m_tickClock.getElapsedTime().asMilliseconds() >= UNRELIABLE_TICK_MS;
+	if(bServerTickExpired)
+		m_tickClock.restart();
 
 	for(auto &pc : m_players)
 		pc.update(frameDelta);
 	if(m_bAcceptInput && posDelta != sf::Vector2f{0, 0})
 	{ // now we can safely normalize
 		posDelta *= UNRELIABLE_TICK_HZ / (RENDER_TICK_HZ * posDelta.length());
+		m_interp.predictMovement(posDelta);
 
-		m_inputAcc += posDelta;
-		m_players[m_ownPlayerId - 1].applyLocalMove(m_state.m_map, posDelta); // predict
-
-		if(m_tickClock.getElapsedTime().asMilliseconds() >= UNRELIABLE_TICK_MS)
+		if(bServerTickExpired)
 		{
-			m_inflightInputs.emplace(m_clientTick, m_inputAcc);
 			sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
 			pkt << m_ownPlayerId;
-			pkt << m_inputAcc;
-			m_inputAcc = {0, 0}; // now in flight
-			m_tickClock.restart();
+			pkt << m_interp.getCumulativeInputs(m_clientTick);
 			return std::make_optional(pkt);
 		}
 	}
-
-	for(auto &pc : m_players)
-		pc.update();
 
 	return std::nullopt;
 }
@@ -84,77 +79,6 @@ void WorldClient::applyServerSnapshot(WorldState const &snapshot)
 	assert(states.size() == m_players.size());
 	for(size_t i = 0; i < m_players.size(); ++i)
 		m_players[i].applyServerState(states[i]);
-}
-
-void WorldClient::reconcileLocalPlayer(Tick ackedTick, WorldState const &snap)
-{
-	size_t const id = m_ownPlayerId - 1;
-	PlayerState authState = snap.m_players[id];
-	PlayerState localState = m_players[id].getState();
-
-	auto err = authState.m_pos - localState.m_pos;
-	if(err.lengthSquared() == 0)
-	{ // Prediction hit! We're done here.
-		return;
-	}
-
-	// Server disagrees, have to accept authoritative state, replay local inputs
-	m_players[id].applyServerState(authState);
-
-	for(size_t i = m_inflightInputs.capacity(); i > 0; --i)
-	{
-		auto &delta = m_inflightInputs.get(i - 1);
-		if(delta.tick > ackedTick)
-			m_players[id].applyLocalMove(m_state.m_map, delta.obj); // replay in flight
-	}
-	m_players[id].applyLocalMove(m_state.m_map, m_inputAcc); // replay pre-in flight inputs
-	auto const replayedState = m_players[id].getState();
-	err = replayedState.m_pos - localState.m_pos;
-	if(err.lengthSquared() > 1e-3)
-		SPDLOG_WARN("Reconciliation error ({},{})", err.x, err.y);
-}
-
-void WorldClient::interpolateEnemies() const
-{
-	// Render‑time interpolation
-	long const renderTick = m_authTick - 1;
-	if(renderTick < 0)
-	{
-		SPDLOG_INFO("Interpolation not yet ready");
-		return;
-	}
-
-	struct interpState
-	{
-		size_t step = size_t(-1);
-		Ticked<WorldState> const *ss0 = nullptr;
-		Ticked<WorldState> const *ss1 = nullptr;
-	};
-	static interpState s;
-
-	if(s.step >= RENDER_TICK_HZ / UNRELIABLE_TICK_HZ)
-	{ // completed interpolation, get the next pair
-		s = {.step = 0, .ss0 = &m_snapshotBuffer.get(1), .ss1 = &m_snapshotBuffer.get(0)};
-	}
-
-	if(s.ss0->tick + 1 != s.ss1->tick && s.ss0->tick && s.ss1->tick)
-	{
-		SPDLOG_ERROR("SS buffer out of sequence: {},{}", s.ss0->tick, s.ss1->tick);
-		return;
-	}
-
-	float const alpha = s.step++ * UNRELIABLE_TICK_HZ / float(RENDER_TICK_HZ);
-
-	for(size_t i = 0; i < MAX_PLAYERS; ++i)
-	{
-		auto &p0 = s.ss0->obj.m_players[i];
-		auto &p1 = s.ss1->obj.m_players[i];
-		size_t id = i + 1;
-		if(id == m_ownPlayerId)
-			continue; // own player is predicted, not interpolated
-
-		m_players[i].interp(p0, p1, alpha);
-	}
 }
 
 WorldState &WorldClient::getState()

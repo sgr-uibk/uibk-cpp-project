@@ -16,7 +16,7 @@ GameClient::~GameClient() = default;
 void GameClient::update(sf::RenderWindow &window) const
 {
 	m_world.pollEvents();
-	m_world.interpolateEnemies();
+	m_world.m_interp.interpolateEnemies();
 
 	bool const w = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W);
 	bool const s = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S);
@@ -45,19 +45,10 @@ void GameClient::processUnreliablePackets()
 	   st == sf::Socket::Status::Done)
 	{
 		Tick const authTick = expectTickedPkt(snapPkt, UnreliablePktType::SNAPSHOT);
-		std::array<Tick, MAX_PLAYERS> ackedTicks{};
-		snapPkt >> ackedTicks;
-		[[unlikely]] if(m_world.m_snapshotBuffer.get().tick >= authTick)
+		if(WorldState const *snapState = m_world.m_interp.storeSnapshot(authTick, snapPkt))
 		{
-			SPDLOG_LOGGER_WARN(m_logger, "Ignoring outdated snapshot created at server tick #{}", authTick);
-			return;
+			m_world.m_interp.syncLocalPlayer(*snapState);
 		}
-		m_world.m_authTick = authTick;
-		auto &[snapTick, snapState] = m_world.m_snapshotBuffer.claim();
-		snapTick = authTick;
-		snapState.deserialize(snapPkt);
-		assert(m_world.m_snapshotBuffer.get().tick == authTick);
-		m_world.reconcileLocalPlayer(ackedTicks[m_lobby.m_clientId - 1], snapState);
 	}
 	else if(st != sf::Socket::Status::NotReady)
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed receiving snapshot pkt: {}", (int)st);

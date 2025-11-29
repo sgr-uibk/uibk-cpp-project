@@ -35,7 +35,6 @@ void PlayerClient::applyServerState(const PlayerState &serverState)
 void PlayerClient::applyLocalMove(MapState const &map, sf::Vector2f delta)
 {
 	m_state.moveOn(map, delta);
-	// prediction using same logic as server (map pointer should point to local map copy)
 	syncSpriteToState();
 }
 
@@ -55,7 +54,7 @@ sf::Angle lerp(sf::Angle const &a, sf::Angle const &b, float t)
 	return a + t * delta;
 }
 
-void PlayerClient::interp(PlayerState const &s0, PlayerState const &s1, float const alpha) const
+void PlayerClient::interp(PlayerState const &s0, PlayerState const &s1, float const alpha)
 {
 	this->m_state.m_pos = lerp(s0.m_pos, s1.m_pos, alpha);
 	this->m_state.m_rot = lerp(s0.m_rot, s1.m_rot, alpha);
