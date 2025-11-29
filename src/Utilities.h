@@ -2,6 +2,7 @@
 #include <spdlog/logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <stdexcept>
+#include <SFML/Audio/Music.hpp>
 #include "Networking.h"
 
 constexpr char DEFAULT_PATTERN[] = "[%L %T %P <%n> %s:%#\t] %^%v%$";
@@ -17,3 +18,5 @@ class ServerShutdownException : public std::runtime_error
 std::shared_ptr<spdlog::logger> createConsoleLogger(std::string const &name);
 std::shared_ptr<spdlog::logger> createConsoleAndFileLogger(std::string const &name,
                                                            spdlog::level::level_enum logLevel = spdlog::level::debug);
+
+sf::Music &initMusic(std::string const &resourcePath, bool bStartPlaying = true);

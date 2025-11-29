@@ -16,10 +16,8 @@
 
 static constexpr int SERVER_STARTUP_DELAY_MS = 500;
 
-static void cleanupGameLoop(sf::Music *battleMusicPtr, LobbyClient &lobbyClient)
+static void cleanupGameLoop(LobbyClient &lobbyClient)
 {
-	if(battleMusicPtr)
-		battleMusicPtr->stop();
 	lobbyClient.m_lobbySock.setBlocking(true);
 }
 
@@ -57,26 +55,9 @@ void runServer(std::shared_ptr<spdlog::logger> logger, LobbyServer *lobbyServer)
 }
 
 void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<PlayerState, MAX_PLAYERS> &playerStates,
-                 std::shared_ptr<spdlog::logger> logger, bool gameMusicEnabled)
+                 std::shared_ptr<spdlog::logger> logger)
 {
 	SPDLOG_LOGGER_INFO(logger, "Starting game with player ID {}", lobbyClient.m_clientId);
-
-	sf::Music *battleMusicPtr = nullptr;
-	try
-	{
-		battleMusicPtr = &MusicManager::inst().load("audio/battle_loop.ogg");
-		battleMusicPtr->setLooping(true);
-		if(gameMusicEnabled)
-		{
-			battleMusicPtr->play();
-			SPDLOG_LOGGER_INFO(logger, "Battle music started");
-		}
-	}
-	catch(const std::exception &e)
-	{
-		SPDLOG_LOGGER_WARN(logger, "Failed to load battle music: {}. Continuing without music.", e.what());
-		battleMusicPtr = nullptr;
-	}
 
 	lobbyClient.m_lobbySock.setBlocking(false);
 
@@ -92,40 +73,29 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 		}
 	}
 	SPDLOG_LOGGER_INFO(logger, "Starting game loop with {} valid players", validPlayerCount);
-
-	WorldClient worldClient(window, lobbyClient.m_clientId, playerStates, battleMusicPtr);
-
+	WorldClient worldClient(window, lobbyClient.m_clientId, playerStates);
 	GameClient gameClient(worldClient, lobbyClient, logger);
 
-	int frameCount = 0;
 	while(window.isOpen())
 	{
 		gameClient.handleUserInputs(window);
 
-		if(worldClient.shouldDisconnect())
+		if(worldClient.m_pauseMenu.isDisconnectRequested())
 		{
-			cleanupGameLoop(battleMusicPtr, lobbyClient);
 			SPDLOG_LOGGER_INFO(logger, "Player disconnected via pause menu, returning to lobby...");
-			return;
+			break;
 		}
 
 		gameClient.syncFromServer();
 
 		if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
 		{
-			cleanupGameLoop(battleMusicPtr, lobbyClient);
 			SPDLOG_LOGGER_INFO(logger, "Game ended, returning to lobby...");
-			return;
-		}
-
-		// log every 60 frames (~once per second at 60 fps)
-		if(++frameCount % 60 == 0)
-		{
-			SPDLOG_LOGGER_DEBUG(logger, "Game loop frame {}", frameCount);
+			break;
 		}
 	}
 
-	cleanupGameLoop(battleMusicPtr, lobbyClient);
+	cleanupGameLoop(lobbyClient);
 	SPDLOG_LOGGER_INFO(logger, "Game window closed, returning to lobby...");
 }
 
@@ -138,31 +108,12 @@ int main()
 	window.setFramerateLimit(60);
 
 	Menu menu(WINDOW_DIM);
-
-	sf::Music *menuMusicPtr = nullptr;
-	try
-	{
-		menuMusicPtr = &MusicManager::inst().load("audio/menu_loop.ogg");
-		menuMusicPtr->setLooping(true);
-		if(menu.isMenuMusicEnabled())
-		{
-			menuMusicPtr->play();
-		}
-		SPDLOG_LOGGER_INFO(logger, "Menu music loaded successfully");
-	}
-	catch(const std::exception &e)
-	{
-		SPDLOG_LOGGER_WARN(logger, "Failed to load menu music: {}. Continuing without music.", e.what());
-		menuMusicPtr = nullptr;
-	}
-
+	sf::Music &menuMusic = initMusic("audio/menu_loop.ogg");
 	std::unique_ptr<std::thread> serverThread;
 	std::unique_ptr<LobbyServer> lobbyServer;
-
 	std::unique_ptr<LobbyClient> hostLobbyClient;
-	bool hostReady = false;
-
 	std::unique_ptr<LobbyClient> joinLobbyClient;
+	bool hostReady = false;
 	bool clientReady = false;
 
 	while(window.isOpen())
@@ -170,41 +121,30 @@ int main()
 		while(const std::optional event = window.pollEvent())
 		{
 			if(event->is<sf::Event::Closed>())
-			{
 				window.close();
-			}
 			else if(const auto *mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>())
 			{
 				if(mouseButtonPressed->button == sf::Mouse::Button::Left)
-				{
 					menu.handleClick(window.mapPixelToCoords(mouseButtonPressed->position, window.getView()));
-				}
 			}
 			else if(const auto *mouseMoved = event->getIf<sf::Event::MouseMoved>())
-			{
 				menu.handleMouseMove(window.mapPixelToCoords(mouseMoved->position, window.getView()));
-			}
 			else if(const auto *textEntered = event->getIf<sf::Event::TextEntered>())
 			{
 				if(textEntered->unicode < 128)
-				{
 					menu.handleTextInput(static_cast<char>(textEntered->unicode));
-				}
 			}
 		}
 
-		if(menuMusicPtr)
+		if(menu.isMenuMusicEnabled())
 		{
-			if(menu.isMenuMusicEnabled())
-			{
-				if(menuMusicPtr->getStatus() != sf::Music::Status::Playing)
-					menuMusicPtr->play();
-			}
-			else
-			{
-				if(menuMusicPtr->getStatus() == sf::Music::Status::Playing)
-					menuMusicPtr->stop();
-			}
+			if(menuMusic.getStatus() != sf::Music::Status::Playing)
+				menuMusic.play();
+		}
+		else
+		{
+			if(menuMusic.getStatus() == sf::Music::Status::Playing)
+				menuMusic.stop();
 		}
 
 		if(menu.shouldExit())
@@ -283,10 +223,8 @@ int main()
 					SPDLOG_LOGGER_INFO(logger, "Host received GAME_START packet, starting game...");
 					auto playerStates = gameStartResult.value();
 
-					if(menuMusicPtr)
-						menuMusicPtr->stop();
-
-					runGameLoop(window, *hostLobbyClient, playerStates, logger, menu.isGameMusicEnabled());
+					menuMusic.stop();
+					runGameLoop(window, *hostLobbyClient, playerStates, logger);
 
 					hostLobbyClient.reset();
 					hostReady = false;
@@ -400,10 +338,9 @@ int main()
 					SPDLOG_LOGGER_INFO(logger, "Client received GAME_START packet, starting game...");
 					auto playerStates = gameStartResult.value();
 
-					if(menuMusicPtr)
-						menuMusicPtr->stop();
+					menuMusic.stop();
 
-					runGameLoop(window, *joinLobbyClient, playerStates, logger, menu.isGameMusicEnabled());
+					runGameLoop(window, *joinLobbyClient, playerStates, logger);
 
 					joinLobbyClient.reset();
 					clientReady = false;
