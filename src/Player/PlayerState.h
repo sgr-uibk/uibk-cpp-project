@@ -36,12 +36,7 @@ struct PlayerState
 	float getShootCooldown() const;
 
 	bool addToInventory(PowerupType type);
-	void useSelectedItem();
-	void setSelectedSlot(int slot);
-	int getSelectedSlot() const
-	{
-		return m_selectedSlot;
-	}
+	void useItem(size_t slot);
 	PowerupType getInventoryItem(int slot) const;
 	const std::array<PowerupType, 9> &getInventory() const
 	{
@@ -70,7 +65,6 @@ struct PlayerState
 	std::array<PowerupEffect, MAX_POWERUPS> m_powerups;
 
 	std::array<PowerupType, 9> m_inventory{PowerupType::NONE};
-	int m_selectedSlot = 0;
 
 	static constexpr sf::Vector2f logicalDimensions = {32, 32};
 };

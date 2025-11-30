@@ -231,24 +231,17 @@ bool PlayerState::addToInventory(PowerupType type)
 	return false;
 }
 
-void PlayerState::useSelectedItem()
+void PlayerState::useItem(size_t const slot)
 {
-	if(m_selectedSlot < 0 || m_selectedSlot >= static_cast<int>(m_inventory.size()))
+	if(slot >= static_cast<int>(m_inventory.size()))
 		return;
 
-	PowerupType itemType = m_inventory[m_selectedSlot];
+	PowerupType itemType = m_inventory[slot];
 	if(itemType == PowerupType::NONE)
 		return;
 
 	applyPowerup(itemType);
-
-	m_inventory[m_selectedSlot] = PowerupType::NONE;
-}
-
-void PlayerState::setSelectedSlot(int slot)
-{
-	if(slot >= 0 && slot < static_cast<int>(m_inventory.size()))
-		m_selectedSlot = slot;
+	m_inventory[slot] = PowerupType::NONE;
 }
 
 PowerupType PlayerState::getInventoryItem(int slot) const
@@ -276,7 +269,6 @@ void PlayerState::serialize(sf::Packet &pkt) const
 	{
 		pkt << static_cast<uint8_t>(item);
 	}
-	pkt << static_cast<int32_t>(m_selectedSlot);
 }
 
 void PlayerState::deserialize(sf::Packet &pkt)
@@ -302,10 +294,4 @@ void PlayerState::deserialize(sf::Packet &pkt)
 		pkt >> itemType;
 		item = static_cast<PowerupType>(itemType);
 	}
-	int32_t selectedSlot;
-	pkt >> selectedSlot;
-	m_selectedSlot = selectedSlot;
-
-	// assert(m_health >= 0);
-	// assert(m_maxHealth >= 0);
 }

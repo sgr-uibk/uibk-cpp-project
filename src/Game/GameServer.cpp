@@ -136,15 +136,16 @@ void GameServer::processPackets()
 				SPDLOG_LOGGER_WARN(m_logger, "Dropping SHOOT packet from invalid player id {}", clientId);
 			break;
 		}
-		case UnreliablePktType::USE_ITEM: { // todo select based on server state
+		case UnreliablePktType::USE_ITEM: {
 			uint32_t clientId;
-			rxPkt >> clientId;
+			size_t slot;
+			rxPkt >> clientId >> slot;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
 				PlayerState &ps = m_world.getPlayerById(clientId);
-				ps.useSelectedItem();
-				SPDLOG_LOGGER_INFO(m_logger, "Player {} used item from slot {}", clientId, ps.getSelectedSlot());
+				ps.useItem(slot);
+				SPDLOG_LOGGER_INFO(m_logger, "Player {} used item from slot {}", clientId, slot);
 			}
 			else
 				SPDLOG_LOGGER_WARN(m_logger, "Dropping USE_ITEM packet from invalid player id {}", clientId);
