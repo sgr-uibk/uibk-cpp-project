@@ -103,10 +103,7 @@ void ItemBarClient::draw(sf::RenderWindow &window) const
 
 void ItemBarClient::moveSelection(int const delta)
 {
-	int newSlot = m_selectedSlot;
-	newSlot += delta;
-	newSlot %= numSlots;
-	assert(newSlot >= 0);
+	size_t const newSlot = (m_selectedSlot + delta + numSlots) % numSlots;
 	m_selectedSlot = newSlot;
 }
 

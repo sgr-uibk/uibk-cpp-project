@@ -24,7 +24,13 @@ int main(int argc, char **argv)
 	while(true)
 	{
 		lobbyServer.lobbyLoop();
-		SPDLOG_LOGGER_INFO(logger, "All {} players ready. Starting game...", MAX_PLAYERS);
+
+		int connectedPlayers = 0;
+		for(const auto &p : lobbyServer.m_slots)
+			connectedPlayers += p.bValid;
+		assert(lobbyServer.m_slots.size() == connectedPlayers);
+
+		SPDLOG_LOGGER_INFO(logger, "All {} players ready. Starting game...", connectedPlayers);
 		lobbyServer.startGame(gameServer.m_world);
 		SPDLOG_LOGGER_INFO(logger, "Game started. Switching to UDP loop.");
 		PlayerState *winningPlayer = gameServer.matchLoop();

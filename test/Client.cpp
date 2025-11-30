@@ -31,9 +31,14 @@ int main(int argc, char **argv)
 		sf::sleep(sf::seconds(1));
 		lobbyClient.sendReady();
 		SPDLOG_LOGGER_INFO(logger, "I'm ready, waiting for GAME_START...");
-		std::array<PlayerState, MAX_PLAYERS> initialPlayerStates = lobbyClient.waitForGameStart();
+		auto optPlayerStates = lobbyClient.waitForGameStart(sf::seconds(300));
+		if(!optPlayerStates.has_value())
+		{
+			SPDLOG_CRITICAL("Timed out waiting for game start");
+			return EXIT_FAILURE;
+		}
 
-		WorldClient worldClient(window, lobbyClient.m_clientId, initialPlayerStates);
+		WorldClient worldClient(window, lobbyClient.m_clientId, *optPlayerStates);
 		lobbyClient.m_lobbySock.setBlocking(false); // make reliable channel pollable
 		GameClient gameClient(worldClient, lobbyClient, logger);
 
