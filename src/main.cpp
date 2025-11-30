@@ -14,44 +14,9 @@
 #include "Game/GameServer.h"
 #include "World/WorldClient.h"
 
-static constexpr int SERVER_STARTUP_DELAY_MS = 500;
-
 static void cleanupGameLoop(LobbyClient &lobbyClient)
 {
 	lobbyClient.m_lobbySock.setBlocking(true);
-}
-
-void runServer(std::shared_ptr<spdlog::logger> logger, LobbyServer *lobbyServer)
-{
-	SPDLOG_LOGGER_INFO(logger, "Starting dedicated server thread");
-
-	GameServer gameServer(*lobbyServer, PORT_UDP, logger);
-
-	while(!lobbyServer->isShutdownRequested())
-	{
-		lobbyServer->lobbyLoop();
-
-		// if shutdown was requested during lobby loop
-		if(lobbyServer->isShutdownRequested())
-		{
-			SPDLOG_LOGGER_INFO(logger, "Server shutdown requested, exiting server thread");
-			break;
-		}
-
-		int connectedPlayers = 0;
-		for(const auto &p : lobbyServer->m_slots)
-			if(p.bValid)
-				connectedPlayers++;
-
-		SPDLOG_LOGGER_INFO(logger, "All {} players ready. Starting game...", connectedPlayers);
-		lobbyServer->startGame(gameServer.m_world);
-		SPDLOG_LOGGER_INFO(logger, "Game started. Switching to UDP loop.");
-		PlayerState *winningPlayer = gameServer.matchLoop();
-		SPDLOG_LOGGER_INFO(logger, "Game ended, winner {}. Returning to lobby",
-		                   winningPlayer ? winningPlayer->m_id : 0);
-	}
-
-	SPDLOG_LOGGER_INFO(logger, "Server thread exiting");
 }
 
 void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<PlayerState, MAX_PLAYERS> &playerStates,
@@ -153,141 +118,6 @@ int main()
 			break;
 		}
 
-		if(menu.getState() == Menu::State::LOBBY_HOST && !hostLobbyClient)
-		{
-			SPDLOG_LOGGER_INFO(logger, "Hosting game as player '{}'", menu.getPlayerName());
-
-			try
-			{
-				lobbyServer = std::make_unique<LobbyServer>(PORT_TCP, logger);
-				serverThread = std::make_unique<std::thread>(runServer, logger, lobbyServer.get());
-
-				sf::sleep(sf::milliseconds(SERVER_STARTUP_DELAY_MS));
-
-				// connect as client to own server
-				hostLobbyClient = std::make_unique<LobbyClient>(menu.getPlayerName());
-				hostLobbyClient->connect();
-				SPDLOG_LOGGER_INFO(logger, "Connected to own server, waiting in lobby...");
-			}
-			catch(const std::exception &e)
-			{
-				SPDLOG_LOGGER_ERROR(logger, "Failed to start server or connect: {}", e.what());
-				hostLobbyClient.reset();
-
-				if(lobbyServer)
-				{
-					lobbyServer->requestShutdown();
-					if(serverThread && serverThread->joinable())
-					{
-						serverThread->join();
-					}
-					serverThread.reset();
-					lobbyServer.reset();
-				}
-				menu.reset();
-			}
-		}
-
-		// reset lobby client if we left the lobby host screen
-		if(menu.getState() != Menu::State::LOBBY_HOST && hostLobbyClient)
-		{
-			SPDLOG_LOGGER_INFO(logger, "Left lobby host screen, disconnecting...");
-			hostLobbyClient.reset();
-			hostReady = false;
-
-			if(lobbyServer)
-			{
-				SPDLOG_LOGGER_INFO(logger, "Requesting server shutdown...");
-				lobbyServer->requestShutdown();
-
-				if(serverThread && serverThread->joinable())
-				{
-					SPDLOG_LOGGER_INFO(logger, "Waiting for server thread to exit...");
-					serverThread->join();
-					SPDLOG_LOGGER_INFO(logger, "Server thread exited");
-				}
-				serverThread.reset();
-				lobbyServer.reset();
-				SPDLOG_LOGGER_INFO(logger, "Server cleaned up successfully");
-			}
-		}
-
-		// poll lobby updates while in host lobby
-		if(menu.getState() == Menu::State::LOBBY_HOST && hostLobbyClient)
-		{
-			try
-			{
-				auto gameStartResult = hostLobbyClient->checkForGameStart();
-				if(gameStartResult.has_value())
-				{
-					SPDLOG_LOGGER_INFO(logger, "Host received GAME_START packet, starting game...");
-					auto playerStates = gameStartResult.value();
-
-					menuMusic.stop();
-					runGameLoop(window, *hostLobbyClient, playerStates, logger);
-
-					hostLobbyClient.reset();
-					hostReady = false;
-					menu.reset();
-				}
-				else
-				{
-					hostLobbyClient->pollLobbyUpdate();
-					auto players = hostLobbyClient->getLobbyPlayers();
-					menu.updateLobbyDisplay(players);
-
-					bool allReady = true;
-					int playerCount = players.size();
-
-					for(const auto &p : players)
-					{
-						if(!p.bReady)
-							allReady = false;
-					}
-
-					menu.updateHostButton(allReady && playerCount >= 2, playerCount >= 2, hostReady);
-				}
-			}
-			catch(const ServerShutdownException &e)
-			{
-				SPDLOG_LOGGER_ERROR(logger, "Unexpected server shutdown detected for host: {}", e.what());
-				hostLobbyClient.reset();
-				hostReady = false;
-				menu.reset();
-			}
-		}
-
-		if(menu.shouldStartGame() && menu.getState() == Menu::State::LOBBY_HOST && hostLobbyClient)
-		{
-			auto players = hostLobbyClient->getLobbyPlayers();
-			bool allReady = true;
-			for(const auto &p : players)
-			{
-				if(!p.bReady)
-					allReady = false;
-			}
-
-			if(!hostReady)
-			{
-				SPDLOG_LOGGER_INFO(logger, "Host marked as ready");
-				hostLobbyClient->sendReady();
-				hostReady = true;
-			}
-			else if(!allReady || players.size() < 2)
-			{
-				SPDLOG_LOGGER_INFO(logger, "Host marked as unready");
-				hostLobbyClient->sendUnready();
-				hostReady = false;
-			}
-			else
-			{
-				SPDLOG_LOGGER_INFO(logger, "Host starting game...");
-				hostLobbyClient->sendStartGame();
-			}
-
-			menu.clearStartGameFlag();
-		}
-
 		if(menu.shouldConnect() && menu.getState() == Menu::State::JOIN_LOBBY && !joinLobbyClient)
 		{
 			SPDLOG_LOGGER_INFO(logger, "Connecting to game at {}:{} as player '{}'", menu.getServerIp(),
@@ -304,7 +134,6 @@ int main()
 				joinLobbyClient = std::make_unique<LobbyClient>(menu.getPlayerName(),
 				                                                Endpoint{ipAddress.value(), menu.getServerPort()});
 				joinLobbyClient->connect();
-				menu.clearConnectFlag();
 
 				menu.setState(Menu::State::LOBBY_CLIENT);
 				menu.setTitle("IN LOBBY");
@@ -316,8 +145,8 @@ int main()
 			{
 				SPDLOG_LOGGER_ERROR(logger, "Failed to connect to server: {}", e.what());
 				joinLobbyClient.reset();
-				menu.clearConnectFlag();
 			}
+			menu.clearConnectFlag();
 		}
 
 		// reset join lobby client if we left the lobby client screen
@@ -332,15 +161,14 @@ int main()
 		{
 			try
 			{
-				auto gameStartResult = joinLobbyClient->checkForGameStart();
+				auto gameStartResult = joinLobbyClient->waitForGameStart(sf::milliseconds(100));
 				if(gameStartResult.has_value())
 				{
 					SPDLOG_LOGGER_INFO(logger, "Client received GAME_START packet, starting game...");
-					auto playerStates = gameStartResult.value();
 
 					menuMusic.stop();
 
-					runGameLoop(window, *joinLobbyClient, playerStates, logger);
+					runGameLoop(window, *joinLobbyClient, *gameStartResult, logger);
 
 					joinLobbyClient.reset();
 					clientReady = false;
@@ -350,7 +178,6 @@ int main()
 				{
 					joinLobbyClient->pollLobbyUpdate();
 					menu.updateLobbyDisplay(joinLobbyClient->getLobbyPlayers());
-
 					menu.updateClientButton(clientReady);
 				}
 			}
@@ -370,12 +197,6 @@ int main()
 				SPDLOG_LOGGER_INFO(logger, "Client marked as ready");
 				joinLobbyClient->sendReady();
 				clientReady = true;
-			}
-			else
-			{
-				SPDLOG_LOGGER_INFO(logger, "Client marked as unready");
-				joinLobbyClient->sendUnready();
-				clientReady = false;
 			}
 			menu.clearStartGameFlag();
 		}

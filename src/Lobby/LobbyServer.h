@@ -20,8 +20,9 @@ class LobbyServer
 	LobbyServer(uint16_t tcpPort, const std::shared_ptr<spdlog::logger> &logger);
 	~LobbyServer();
 	void lobbyLoop(); // blocks until all players ready
+	void deduplicatePlayerName(std::string &name) const;
 	WorldState startGame(WorldState &worldState);
-	void requestShutdown();
+	void endGame(EntityId winner);
 	bool isShutdownRequested() const
 	{
 		return m_shutdownRequested;

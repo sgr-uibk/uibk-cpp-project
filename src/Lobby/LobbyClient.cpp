@@ -113,30 +113,6 @@ void LobbyClient::sendReady()
 	m_bReady = true;
 }
 
-void LobbyClient::sendUnready()
-{
-	sf::Packet unreadyPkt = createPkt(ReliablePktType::LOBBY_UNREADY);
-	unreadyPkt << m_clientId;
-
-	if(checkedSend(m_lobbySock, unreadyPkt) != sf::Socket::Status::Done)
-	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send LOBBY_UNREADY");
-	}
-	SPDLOG_LOGGER_INFO(m_logger, "Sent unready packet, clientId {}", m_clientId);
-	m_bReady = false;
-}
-
-void LobbyClient::sendStartGame()
-{
-	sf::Packet startPkt = createPkt(ReliablePktType::START_GAME_REQUEST);
-
-	if(checkedSend(m_lobbySock, startPkt) != sf::Socket::Status::Done)
-	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send START_GAME_REQUEST");
-	}
-	SPDLOG_LOGGER_INFO(m_logger, "Host requested game start");
-}
-
 bool LobbyClient::pollLobbyUpdate()
 {
 	sf::Packet updatePkt;
@@ -222,56 +198,17 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packe
 	return states;
 }
 
-std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::checkForGameStart()
+std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::waitForGameStart(sf::Time const timeout)
 {
 	sf::Packet startPkt;
-	bool wasBlocking = m_lobbySock.isBlocking();
-	m_lobbySock.setBlocking(false);
+	sf::SocketSelector ss;
+	ss.add(m_lobbySock);
 
-	sf::Socket::Status status = checkedReceive(m_lobbySock, startPkt);
-
-	// restore blocking state
-	m_lobbySock.setBlocking(wasBlocking);
-
-	if(status != sf::Socket::Status::Done)
-		return std::nullopt;
-
-	uint8_t type;
-	startPkt >> type;
-
-	switch(type)
-	{
-	case uint8_t(ReliablePktType::SERVER_SHUTDOWN):
-		SPDLOG_LOGGER_WARN(m_logger, "Server is shutting down (host disconnected)");
-		throw ServerShutdownException();
-
-	case uint8_t(ReliablePktType::LOBBY_UPDATE): {
-		uint32_t numPlayers;
-		startPkt >> numPlayers;
-		m_lobbyPlayers.clear();
-		for(uint32_t i = 0; i < numPlayers; ++i)
-		{
-			LobbyPlayerInfo playerInfo;
-			startPkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
-			m_lobbyPlayers.push_back(playerInfo);
-		}
-		SPDLOG_LOGGER_DEBUG(m_logger, "Received lobby update with {} players while waiting", numPlayers);
-		return std::nullopt;
-	}
-	case uint8_t(ReliablePktType::GAME_START):
-		return parseGameStartPacket(startPkt);
-
-	default:
-		SPDLOG_LOGGER_WARN(m_logger, "Unhandled reliable packet type: {}.", type);
-		return std::nullopt;
-	}
-}
-
-std::array<PlayerState, MAX_PLAYERS> LobbyClient::waitForGameStart()
-{
 	while(true)
 	{
-		sf::Packet startPkt;
+		if(!ss.wait(timeout))
+			return std::nullopt;
+
 		if(checkedReceive(m_lobbySock, startPkt) != sf::Socket::Status::Done)
 		{
 			SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive GAME_START");

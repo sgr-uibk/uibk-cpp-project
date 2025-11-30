@@ -11,7 +11,6 @@ class Menu
 	enum class State
 	{
 		MAIN,
-		LOBBY_HOST,
 		LOBBY_CLIENT,
 		JOIN_LOBBY,
 		SETTINGS,

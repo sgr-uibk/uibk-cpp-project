@@ -758,13 +758,8 @@ void Menu::handleClick(sf::Vector2f mousePos)
 			if(m_state == State::MAIN)
 			{
 				if(i == 0)
-				{
-					m_state = State::LOBBY_HOST;
+				{ // host game button
 					m_title.setString("WAITING FOR PLAYERS");
-					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition(
-						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-					setupLobbyHost();
 				}
 				else if(i == 1)
 				{
@@ -788,56 +783,6 @@ void Menu::handleClick(sf::Vector2f mousePos)
 				else if(i == 3)
 				{
 					m_exit = true;
-				}
-			}
-			else if(m_state == State::LOBBY_HOST)
-			{
-				if(i == 0)
-				{
-					const std::vector<std::string> maps = {"Test1", "Test2", "Test3", "Test4"};
-					auto it = std::find(maps.begin(), maps.end(), m_selectedMap);
-					if(it != maps.end())
-					{
-						++it;
-						if(it == maps.end())
-							it = maps.begin();
-						m_selectedMap = *it;
-					}
-					else
-					{
-						m_selectedMap = maps[0];
-					}
-					setupLobbyHost();
-				}
-				else if(i == 1)
-				{
-					const std::vector<std::string> modes = {"Deathmatch", "TestMode2", "TestMode3", "TestMode4"};
-					auto it = std::find(modes.begin(), modes.end(), m_selectedMode);
-					if(it != modes.end())
-					{
-						++it;
-						if(it == modes.end())
-							it = modes.begin();
-						m_selectedMode = *it;
-					}
-					else
-					{
-						m_selectedMode = modes[0];
-					}
-					setupLobbyHost();
-				}
-				else if(i == 2)
-				{
-					m_startGame = true;
-				}
-				else if(i == 3)
-				{
-					m_state = State::MAIN;
-					m_title.setString("TANK GAME");
-					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition(
-						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-					setupMainMenu();
 				}
 			}
 			else if(m_state == State::JOIN_LOBBY)
@@ -969,7 +914,7 @@ void Menu::draw(sf::RenderWindow &window) const
 
 void Menu::updateLobbyDisplay(const std::vector<LobbyPlayerInfo> &players)
 {
-	if(m_state != State::LOBBY_HOST && m_state != State::LOBBY_CLIENT)
+	if(m_state != State::LOBBY_CLIENT)
 		return;
 
 	while(m_lobbyTexts.size() > 1)
@@ -1011,7 +956,7 @@ void Menu::updateLobbyDisplay(const std::vector<LobbyPlayerInfo> &players)
 
 void Menu::updateHostButton(bool canStartGame, bool hasEnoughPlayers, bool hostReady)
 {
-	if(m_state != State::LOBBY_HOST || m_buttonTexts.size() < 3)
+	if(m_buttonTexts.size() < 3)
 		return;
 
 	const int buttonIdx = 2;

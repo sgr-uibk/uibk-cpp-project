@@ -77,16 +77,11 @@ PlayerState *GameServer::matchLoop()
 
 void GameServer::processPackets()
 {
-	// process ALL available packets
-	while(true)
+	sf::Packet rxPkt;
+	std::optional<sf::IpAddress> srcAddrOpt;
+	uint16_t srcPort;
+	while(checkedReceive(m_gameSock, rxPkt, srcAddrOpt, srcPort) == sf::Socket::Status::Done)
 	{
-		sf::Packet rxPkt;
-		std::optional<sf::IpAddress> srcAddrOpt;
-		uint16_t srcPort;
-
-		if(checkedReceive(m_gameSock, rxPkt, srcAddrOpt, srcPort) != sf::Socket::Status::Done)
-			break;
-
 		uint8_t type;
 		rxPkt >> type;
 		switch(UnreliablePktType(type))
@@ -141,23 +136,7 @@ void GameServer::processPackets()
 				SPDLOG_LOGGER_WARN(m_logger, "Dropping SHOOT packet from invalid player id {}", clientId);
 			break;
 		}
-		case UnreliablePktType::SELECT_SLOT: {
-			uint32_t clientId;
-			int32_t slot;
-			rxPkt >> clientId;
-			rxPkt >> slot;
-			auto const &states = m_world.getPlayers();
-			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
-			{
-				PlayerState &ps = m_world.getPlayerById(clientId);
-				ps.setSelectedSlot(slot);
-				SPDLOG_LOGGER_DEBUG(m_logger, "Player {} selected slot {}", clientId, slot);
-			}
-			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping SELECT_SLOT packet from invalid player id {}", clientId);
-			break;
-		}
-		case UnreliablePktType::USE_ITEM: {
+		case UnreliablePktType::USE_ITEM: { // todo select based on server state
 			uint32_t clientId;
 			rxPkt >> clientId;
 			auto const &states = m_world.getPlayers();

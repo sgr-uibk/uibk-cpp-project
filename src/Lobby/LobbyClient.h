@@ -22,11 +22,8 @@ class LobbyClient
 	void bindGameSocket();
 	void connect();
 	void sendReady();
-	void sendUnready();
-	void sendStartGame();
 	bool pollLobbyUpdate();
-	std::array<PlayerState, MAX_PLAYERS> waitForGameStart();
-	std::optional<std::array<PlayerState, MAX_PLAYERS>> checkForGameStart(); // Non-blocking check
+	std::optional<std::array<PlayerState, MAX_PLAYERS>> waitForGameStart(sf::Time timeout);
 
 	[[nodiscard]] bool getReadiness() const
 	{
