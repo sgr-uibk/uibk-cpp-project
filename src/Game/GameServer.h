@@ -16,7 +16,6 @@ class GameServer
 	uint16_t m_gamePort;
 	WorldState m_world;
 	sf::Clock m_tickClock;
-	size_t m_numAlive;
 	Tick m_authTick = 0;
 	std::array<int32_t, MAX_PLAYERS> m_lastClientTicks = {0};
 

@@ -4,7 +4,7 @@
 #include <spdlog/spdlog.h>
 
 GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_ptr<spdlog::logger> const &logger)
-	: m_gamePort(gamePort), m_world(WINDOW_DIMf), m_numAlive(MAX_PLAYERS), m_logger(logger), m_lobby(lobbyServer)
+	: m_gamePort(gamePort), m_world(WINDOW_DIMf), m_logger(logger), m_lobby(lobbyServer)
 {
 	for(auto const &p : lobbyServer.m_slots)
 	{
@@ -27,7 +27,8 @@ GameServer::~GameServer()
 
 PlayerState *GameServer::matchLoop()
 {
-	while(m_numAlive > 1)
+	PlayerState *pWinner = nullptr;
+	while(true)
 	{
 		processPackets();
 
@@ -47,10 +48,13 @@ PlayerState *GameServer::matchLoop()
 		m_world.removeInactiveItems();
 
 		size_t cAlive = 0;
-		PlayerState *pWinner = nullptr;
 		for(auto &p : m_world.getPlayers())
-			if(cAlive += p.isAlive())
+		{
+			bool const bAlive = p.isAlive();
+			cAlive += bAlive;
+			if(bAlive)
 				pWinner = &p;
+		}
 
 		switch(cAlive)
 		{
@@ -59,12 +63,11 @@ PlayerState *GameServer::matchLoop()
 			return pWinner;
 		case 0: // Technically possible that all players die in the same tick
 			SPDLOG_LOGGER_WARN(m_logger, "Game ended in a draw.");
-			break;
+			return nullptr;
 		default:
 			floodWorldState();
 		}
 	}
-	return nullptr;
 }
 
 void GameServer::processPackets()
