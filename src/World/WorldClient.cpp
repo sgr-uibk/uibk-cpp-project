@@ -32,7 +32,7 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId,
 
 std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 {
-	float const frameDelta = m_frameClock.restart().asSeconds();
+	int32_t const frameDelta = m_frameClock.restart().asMilliseconds();
 	m_clientTick++;
 	bool const bServerTickExpired = m_tickClock.getElapsedTime().asMilliseconds() >= UNRELIABLE_TICK_MS;
 	if(bServerTickExpired)

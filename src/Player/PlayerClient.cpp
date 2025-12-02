@@ -10,7 +10,7 @@ PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
 	m_sprite.setPosition(m_state.m_pos);
 }
 
-void PlayerClient::update(float)
+void PlayerClient::update(int32_t dt)
 {
 	// smoothing / interpolation can be inserted here
 	syncSpriteToState();
