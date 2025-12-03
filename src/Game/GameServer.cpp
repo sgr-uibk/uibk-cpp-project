@@ -32,11 +32,11 @@ PlayerState *GameServer::matchLoop()
 		processPackets();
 
 		// maintain fixed tick rate updates
-		float dt = m_tickClock.restart().asSeconds();
-		if(dt < UNRELIABLE_TICK_RATE)
-			sf::sleep(sf::seconds(UNRELIABLE_TICK_RATE - dt));
-		m_world.update(UNRELIABLE_TICK_RATE);
-
+		int32_t dt = m_tickClock.getElapsedTime().asMilliseconds();
+		sf::sleep(sf::milliseconds(UNRELIABLE_TICK_MS - dt));
+		m_tickClock.restart();
+		++m_authTick;
+		m_world.update(dt);
 		spawnItems();
 
 		m_world.checkProjectilePlayerCollisions();
@@ -46,30 +46,22 @@ PlayerState *GameServer::matchLoop()
 		m_world.removeInactiveProjectiles();
 		m_world.removeInactiveItems();
 
-		floodWorldState();
-
-		int numAlive = 0;
+		size_t cAlive = 0;
 		PlayerState *pWinner = nullptr;
 		for(auto &p : m_world.getPlayers())
-		{
-			if(p.isAlive())
-			{
-				numAlive++;
+			if(cAlive += p.isAlive())
 				pWinner = &p;
-				SPDLOG_LOGGER_DEBUG(m_logger, "Player {} is alive: hp={}, pos=({},{})", p.m_id, p.getHealth(),
-				                    p.getPosition().x, p.getPosition().y);
-			}
-		}
-		if(numAlive == 1)
+
+		switch(cAlive)
 		{
+		case 1:
 			SPDLOG_LOGGER_INFO(m_logger, "Game ended, winner {}.", pWinner->m_id);
 			return pWinner;
-		}
-		if(numAlive == 0)
-		{
-			// Technically possible that all players die in the same tick
+		case 0: // Technically possible that all players die in the same tick
 			SPDLOG_LOGGER_WARN(m_logger, "Game ended in a draw.");
 			break;
+		default:
+			floodWorldState();
 		}
 	}
 	return nullptr;
@@ -84,6 +76,8 @@ void GameServer::processPackets()
 	{
 		uint8_t type;
 		rxPkt >> type;
+		Tick tick;
+		rxPkt >> tick;
 		switch(UnreliablePktType(type))
 		{
 		case UnreliablePktType::MOVE: {
@@ -94,14 +88,20 @@ void GameServer::processPackets()
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
+				if(m_lastClientTicks[clientId - 1] >= tick)
+				{
+					SPDLOG_LOGGER_WARN(m_logger, "MOVE: Outdated pkt from {}, (know {}, got {})",
+					                   clientId, m_lastClientTicks[clientId - 1], tick);
+					break;
+				}
+				m_lastClientTicks[clientId - 1] = tick;
 				PlayerState &ps = m_world.getPlayerById(clientId);
-
 				ps.moveOn(m_world.getMap(), posDelta);
 				SPDLOG_LOGGER_INFO(m_logger, "Recv MOVE id {} pos=({},{}), rotDeg={}", clientId, ps.m_pos.x, ps.m_pos.y,
 				                   ps.m_rot.asDegrees());
 			}
 			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping MOVE packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(m_logger, "MOVE: Dropping packet from invalid player id {}", clientId);
 			break;
 		}
 		case UnreliablePktType::SHOOT: {
@@ -178,17 +178,9 @@ void GameServer::spawnItems()
 
 void GameServer::floodWorldState()
 {
-	int numAlive = 0;
-	for(auto &p : m_world.getPlayers())
-		numAlive += p.isAlive();
-	if(numAlive <= 1)
-	{
-		SPDLOG_LOGGER_INFO(m_logger, "Game ended, alive players: {}. Returning to lobby.", numAlive);
-		return;
-	}
-
 	// flood snapshots to all known clients
-	sf::Packet snapPkt = createPkt(UnreliablePktType::SNAPSHOT);
+	sf::Packet snapPkt = createTickedPkt(UnreliablePktType::SNAPSHOT, m_authTick);
+	snapPkt << m_lastClientTicks;
 	m_world.serialize(snapPkt);
 	for(LobbyPlayer &p : m_lobby.m_slots)
 	{

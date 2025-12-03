@@ -4,19 +4,26 @@
 
 #include "Utilities.h"
 
-GameClient::GameClient(WorldClient &world, LobbyClient &lobby, const std::shared_ptr<spdlog::logger> &logger)
-	: m_world(world), m_lobby(lobby), m_logger(logger),
+GameClient::GameClient(WorldClient &world, LobbyClient &lobby, std::shared_ptr<spdlog::logger> const &logger)
+	: m_world(world), m_lobby(lobby), m_gameServer({lobby.m_lobbySock.getRemoteAddress().value(), PORT_UDP}),
 	  // TODO, the server needs to send its udp port to the clients, or take control over that away from the users
-	  m_gameServer({lobby.m_lobbySock.getRemoteAddress().value(), PORT_UDP})
+	  m_logger(logger)
 {
 }
 
 GameClient::~GameClient() = default;
 
-void GameClient::handleUserInputs(sf::RenderWindow &window) const
+void GameClient::update(sf::RenderWindow &window) const
 {
 	m_world.pollEvents();
-	std::optional<sf::Packet> outPktOpt = m_world.update();
+	m_world.m_interp.interpolateEnemies();
+
+	bool const w = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W);
+	bool const s = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S);
+	bool const a = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
+	bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
+	sf::Vector2f const posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
+	std::optional<sf::Packet> outPktOpt = m_world.update(posDelta);
 	m_world.draw(window);
 	window.display();
 
@@ -29,7 +36,7 @@ void GameClient::handleUserInputs(sf::RenderWindow &window) const
 	}
 }
 
-void GameClient::syncFromServer() const
+void GameClient::processUnreliablePackets()
 {
 	sf::Packet snapPkt;
 	std::optional<sf::IpAddress> srcAddrOpt;
@@ -37,13 +44,11 @@ void GameClient::syncFromServer() const
 	if(sf::Socket::Status st = checkedReceive(m_lobby.m_gameSock, snapPkt, srcAddrOpt, srcPort);
 	   st == sf::Socket::Status::Done)
 	{
-		expectPkt(snapPkt, UnreliablePktType::SNAPSHOT);
-		WorldState snapshot{WINDOW_DIMf};
-		snapshot.deserialize(snapPkt);
-		m_world.applyServerSnapshot(snapshot);
-		auto ops = m_world.getOwnPlayerState();
-		SPDLOG_LOGGER_INFO(m_logger, "Applied snapshot: ({:.0f},{:.0f}), {:.0f}°, hp={}", ops.m_pos.x, ops.m_pos.y,
-		                   ops.m_rot.asDegrees(), ops.m_health);
+		Tick const authTick = expectTickedPkt(snapPkt, UnreliablePktType::SNAPSHOT);
+		if(WorldState const *snapState = m_world.m_interp.storeSnapshot(authTick, snapPkt))
+		{
+			m_world.m_interp.syncLocalPlayer(*snapState);
+		}
 	}
 	else if(st != sf::Socket::Status::NotReady)
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed receiving snapshot pkt: {}", (int)st);

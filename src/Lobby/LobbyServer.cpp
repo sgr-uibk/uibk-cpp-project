@@ -72,7 +72,7 @@ void LobbyServer::acceptNewClient()
 		return;
 	assert(newClientSock.getRemoteAddress().has_value()); // Know exists from status done.
 
-	if(m_nextId > MAX_PLAYERS)
+	if(m_tentativeId > MAX_PLAYERS)
 	{
 		SPDLOG_LOGGER_WARN(m_logger, "Maximum lobby size reached, rejecting player.");
 		// TODO Tell them they were rejected.
@@ -81,7 +81,7 @@ void LobbyServer::acceptNewClient()
 	}
 
 	sf::IpAddress const remoteAddr = newClientSock.getRemoteAddress().value();
-	LobbyPlayer p{.id = m_nextId, .udpAddr = remoteAddr, .tcpSocket = std::move(newClientSock)};
+	LobbyPlayer p{.id = m_tentativeId, .udpAddr = remoteAddr, .tcpSocket = std::move(newClientSock)};
 
 	sf::Packet joinReqPkt;
 	if(checkedReceive(p.tcpSocket, joinReqPkt) != sf::Socket::Status::Done)
@@ -118,7 +118,7 @@ void LobbyServer::acceptNewClient()
 
 	// All good from server side. Make the client valid.
 	p.bValid = true;
-	m_nextId++;
+	m_tentativeId++;
 	// Add the client to the pool, now that registration is over, continue non-blocking.
 	p.tcpSocket.setBlocking(false);
 	m_multiSock.add(p.tcpSocket);
@@ -165,7 +165,7 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 	}
 }
 
-WorldState LobbyServer::startGame(WorldState &worldState)
+void LobbyServer::startGame(WorldState &worldState)
 {
 	static std::mt19937_64 rng{}; // deterministic spawn points
 	auto spawns = worldState.getMap().getSpawns();
@@ -199,7 +199,6 @@ WorldState LobbyServer::startGame(WorldState &worldState)
 		if(checkedSend(p.tcpSocket, startPkt) != sf::Socket::Status::Done)
 			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send GAME_START to {} (id {})", p.name, p.id);
 	}
-	return worldState;
 }
 
 void LobbyServer::endGame(EntityId winner)

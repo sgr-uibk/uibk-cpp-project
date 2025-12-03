@@ -9,23 +9,24 @@ class PlayerClient
   public:
 	using HealthCallback = std::function<void(int current, int max)>;
 
-	PlayerClient(PlayerState &state, const sf::Color &color);
-	PlayerClient(const PlayerClient &) = default;
+	PlayerClient(PlayerState &state, sf::Color const &color);
+	PlayerClient(PlayerClient const &) = default;
 
-	void update(float dt);
+	void update(int32_t dt);
 	void draw(sf::RenderWindow &window) const;
 
 	// apply authoritative server state (reconciliation)
-	void applyServerState(const PlayerState &serverState);
+	void applyServerState(PlayerState const &serverState);
 	// input / local movement (prediction)
 	void applyLocalMove(MapState const &map, sf::Vector2f delta);
 
-	const PlayerState &getState() const
+	PlayerState const &getState() const
 	{
 		return m_state;
 	}
 
 	void registerHealthCallback(HealthCallback cb);
+	void interp(PlayerState const &s0, PlayerState const &s1, float alpha);
 
   private:
 	void updateSprite();

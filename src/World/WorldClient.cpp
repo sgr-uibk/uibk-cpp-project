@@ -1,27 +1,26 @@
 #include <cmath>
+#include <numeric>
+#include <ranges>
 #include <spdlog/spdlog.h>
 #include "WorldClient.h"
 #include "Utilities.h"
 #include "ResourceManager.h"
 
-template <std::size_t N, std::size_t... I>
-static std::array<PlayerClient, N> make_players_impl(std::array<PlayerState, N> &states,
-                                                     const std::array<sf::Color, N> &colors, std::index_sequence<I...>)
-{
-	return {PlayerClient(states[I], colors[I])...};
-}
-
+// https://www.trivialorwrong.com/2015/12/08/meta-sequences-in-c++.html
 template <std::size_t N>
-static std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states,
-                                                const std::array<sf::Color, N> &colors)
+std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states, std::array<sf::Color, N> const &colors)
 {
-	return make_players_impl<N>(states, colors, std::make_index_sequence<N>{});
+	return [&]<std::size_t... I>(std::index_sequence<I...>) {
+		return std::array<PlayerClient, N>{PlayerClient(states[I], colors[I])...};
+	}(std::make_index_sequence<N>{});
 }
 
-WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players)
+WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId,
+                         std::array<PlayerState, MAX_PLAYERS> &players)
 	: m_bAcceptInput(true), m_pauseMenu(window), m_state(sf::Vector2f(window.getSize())),
 	  m_itemBar(m_state.getPlayerById(ownPlayerId), window), m_window(window), m_mapClient(m_state.getMap()),
-	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId)
+	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
+	  m_interp(m_state.getMap(), ownPlayerId, m_players)
 {
 	for(auto &ps : players)
 	{
@@ -40,7 +39,7 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::ar
 	m_tickClock.start();
 }
 
-void WorldClient::propagateUpdate(float dt)
+void WorldClient::propagateUpdate(int32_t dt)
 {
 	for(auto &pc : m_players)
 		pc.update(dt);
@@ -50,10 +49,13 @@ void WorldClient::propagateUpdate(float dt)
 		item.update(dt);
 }
 
-std::optional<sf::Packet> WorldClient::update()
+std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 {
-	float const frameDelta = m_frameClock.restart().asSeconds();
-
+	int32_t const frameDelta = m_frameClock.restart().asMilliseconds();
+	m_clientTick++;
+	bool const bServerTickExpired = m_tickClock.getElapsedTime().asMilliseconds() >= UNRELIABLE_TICK_MS;
+	if(bServerTickExpired)
+		m_tickClock.restart();
 	propagateUpdate(frameDelta);
 	if(m_pauseMenu.isPaused() || !m_bAcceptInput)
 	{ // skip game logic
@@ -62,7 +64,6 @@ std::optional<sf::Packet> WorldClient::update()
 
 	sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
 	sf::Vector2f mouseWorldPos = m_window.mapPixelToCoords(mousePixelPos, m_worldView);
-
 	sf::Vector2f playerPos = m_state.getPlayerById(m_ownPlayerId).getPosition();
 	sf::Vector2f aimDir = mouseWorldPos - playerPos;
 	float aimRad = std::atan2(aimDir.x, -aimDir.y);
@@ -75,13 +76,6 @@ std::optional<sf::Packet> WorldClient::update()
 		pkt << m_itemBar.getSelection();
 		return std::optional(pkt);
 	}
-
-	bool const w = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W);
-	bool const s = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S);
-	bool const a = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
-	bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
-	const sf::Vector2f posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
-
 	// TODO Can't shoot and move in the same frame like this
 	bool const shoot =
 		sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Space) || sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
@@ -92,15 +86,18 @@ std::optional<sf::Packet> WorldClient::update()
 		pkt << aimAngle;
 		return std::optional(pkt);
 	}
-
-	if(m_tickClock.getElapsedTime() > sf::seconds(UNRELIABLE_TICK_RATE))
-	{
-		sf::Packet pkt = createPkt(UnreliablePktType::MOVE);
-		pkt << m_ownPlayerId;
-		pkt << posDelta;
-		pkt << aimAngle;
-		m_tickClock.restart();
-		return std::optional(pkt);
+	if(posDelta != sf::Vector2f{0, 0})
+	{ // now we can safely normalize
+		posDelta *= UNRELIABLE_TICK_HZ / (RENDER_TICK_HZ * posDelta.length());
+		m_interp.predictMovement(posDelta);
+		if(bServerTickExpired)
+		{
+			sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
+			pkt << m_ownPlayerId;
+			pkt << m_interp.getCumulativeInputs(m_clientTick);
+			pkt << aimAngle;
+			return std::optional(pkt);
+		}
 	}
 
 	return std::nullopt;
@@ -130,7 +127,7 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	m_pauseMenu.draw(window);
 }
 
-void WorldClient::applyServerSnapshot(const WorldState &snapshot)
+void WorldClient::applyServerSnapshot(WorldState const &snapshot)
 {
 	m_state = snapshot;
 	// the map is static for now (deserialize does not extract a Map) as serialize doesn't shove one in.
@@ -191,7 +188,6 @@ void WorldClient::pollEvents()
 				m_pauseMenu.handleClick(mousePos);
 			}
 		}
-
 		else if(auto const *scrollEvent = event->getIf<sf::Event::MouseWheelScrolled>())
 		{
 			if(m_window.hasFocus() && !m_pauseMenu.isPaused())

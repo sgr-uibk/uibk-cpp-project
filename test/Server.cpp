@@ -19,10 +19,10 @@ int main(int argc, char **argv)
 	SPDLOG_LOGGER_INFO(logger, "Starting Server. TCP port {}, UDP port {}", tcpPort, udpPort);
 
 	LobbyServer lobbyServer(tcpPort, logger);
-	GameServer gameServer(lobbyServer, udpPort, logger);
 
 	while(true)
 	{
+		GameServer gameServer(lobbyServer, udpPort, logger);
 		lobbyServer.lobbyLoop();
 
 		int connectedPlayers = 0;

@@ -43,10 +43,10 @@ int main(int argc, char **argv)
 		GameClient gameClient(worldClient, lobbyClient, logger);
 
 		// Battle loop
-		while(true)
+		while(window.isOpen())
 		{
-			gameClient.handleUserInputs(window);
-			gameClient.syncFromServer();
+			gameClient.update(window);
+			gameClient.processUnreliablePackets();
 			if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
 				break; // game ended
 		}

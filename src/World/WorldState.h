@@ -7,11 +7,11 @@
 #include "Item/ItemState.h"
 #include "Networking.h"
 
-class WorldState
+struct WorldState
 {
-  public:
+	WorldState();
 	explicit WorldState(sf::Vector2f mapSize);
-	void update(float dt);
+	void update(int32_t dt);
 	void setPlayer(PlayerState const &p);
 
 	std::array<PlayerState, MAX_PLAYERS> &getPlayers();
@@ -52,12 +52,10 @@ class WorldState
 	void serialize(sf::Packet &pkt) const;
 	void deserialize(sf::Packet &pkt);
 
-	WorldState &operator=(const WorldState &);
+	WorldState &operator=(WorldState const &);
 
   private:
 	MapState m_map;
-	// Players are not removed on disconnect,
-	// as others can't join in the battle phase anyway.
 	std::array<PlayerState, MAX_PLAYERS> m_players;
 	std::vector<ProjectileState> m_projectiles;
 	std::vector<ItemState> m_items;

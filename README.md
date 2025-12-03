@@ -58,23 +58,14 @@ For references:
 
 ### Build for Windows
 First, download and install [Git](https://git-scm.com/install/windows) and [Git-LFS](https://git-lfs.com/). 
-Then run:
-```powershell
-git clone https://github.com/microsoft/vcpkg.git
-cd vcpkg
-.\bootstrap-vcpkg.bat
-set VCPKG_ROOT=%cd%
-set PATH=%VCPKG_ROOT%;%PATH%
-vcpkg integrate install
-cd ..
-```
 
-Clone this repository using `git clone ...` and open a shell inside its directory.
+Then, `git clone` this repository and open a shell inside its directory.
 Run:
 ```powershell
 git lfs install # (only once)
 git lfs checkout # to be safe
-cmake -DCMAKE_TOOLCHAIN_FILE="%CD%/vcpkg/scripts/buildsystems/vcpkg.cmake" -S . -B build
+# The following fetch and build external libraries, so can take a while at first
+cmake -S . -B build
 cmake --build build --config Release
 dir build
 ```
@@ -83,13 +74,14 @@ dir build
 ```shell
 sudo apt update && sudo apt install -y libsfml-dev cmake build-essential git git-lfs
 
-# if that fails, try explicitly specifying the dependencies for libsfml-dev
+# If that fails, try explicitly specifying the dependencies for libsfml-dev
 sudo apt install -y \
   libfreetype6-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
   libudev-dev libgl1-mesa-dev libflac-dev libogg-dev libvorbis-dev \
   libvorbisenc2 libvorbisfile3 libpthread-stubs0-dev git-lfs
 ```
-Clone this repository using `git clone ...` and open a shell inside its directory.
+
+Then, `git clone` this repository and open a shell inside its directory.
 ```shell
 git lfs install # (only once)
 git lfs checkout # to be safe

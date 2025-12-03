@@ -18,7 +18,7 @@ PlayerState::PlayerState(sf::Packet pkt)
 	deserialize(pkt);
 }
 
-void PlayerState::update(float dt)
+void PlayerState::update(int32_t dt)
 {
 	// cooldowns
 	m_shootCooldown.update(dt);

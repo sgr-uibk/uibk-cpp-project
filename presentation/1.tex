@@ -1,0 +1,160 @@
+\documentclass[aspectratio=169]{beamer}\usetheme{Luebeck} %\usecolortheme{structure}
+\definecolor{jred}{HTML}{bd0029}
+\definecolor{jblue}{HTML}{0078D7}
+\definecolor{primary}{HTML}{00B3B8}
+\definecolor{secondary}{HTML}{f39200}
+\useoutertheme{infolines}
+\setbeamertemplate{page number in head/foot}[framenumber]
+\useinnertheme{circles}
+\setbeamercolor{palette primary}{bg=primary, fg=white}
+\setbeamercolor{palette secondary}{bg=primary, fg=white}
+\setbeamercolor{palette tertiary}{bg=primary, fg=white}
+\setbeamercolor{palette quaternary}{bg=primary, fg=white}
+\setbeamercolor{structure}{fg=primary} % itemize, enumerate, etc
+\setbeamercolor{section in toc}{fg=primary} % TOC sections
+
+% Override palette coloring with secondary
+\setbeamercolor{subsection in head/foot}{bg=primary!80!white, fg=white}
+\usefonttheme{professionalfonts}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{multicol,subcaption}
+\usepackage[activate=true, expansion=true, spacing=false]{microtype}
+\beamertemplatenavigationsymbolsempty
+\usepackage{libertine}
+\usepackage{beramono}
+\usepackage{minted}
+\usepackage{setspace,enumerate}
+
+\renewcommand{\UrlFont}{\ttfamily\scriptsize} % smaller link font
+\graphicspath{{images}{../images}{../diagrams}}
+\def\colorize<#1>{\temporal<#1>{\color{gray!50!white}}{\color{jred}}{\color{black}}}
+\newcommand{\btu}{\color{black}\textunderscore}\author{\textbf{Simon Graber}, Julian Z\"oggeler, Maksim Bek}
+\date{2025-11-11}
+\title{TankGame}
+\subtitle{VU Advanced C++ Project}
+\titlegraphic{\includegraphics[width=2.5cm]{uibk-color}}
+
+\begin{document}
+\begin{frame}\titlepage\small\end{frame}
+%\begin{frame}\frametitle{ToC}\tableofcontents\end{frame}
+
+\begin{frame}\frametitle{Progress}
+	\begin{itemize}
+		\item Simon
+		      \begin{itemize}
+			      \item Software Architecture + Implementation
+			      \item Lobby, Game, Clients, Server, States, ResourceManager
+		      \end{itemize}
+		\item Julian
+		      \begin{itemize}
+			      \item Map parser, spectator mode WIP
+			      \item HUD, Window Resizing, Item UI
+		      \end{itemize}
+		\item Maksim
+		      \begin{itemize}
+			      \item GUI: Menu, Lobby
+			      \item Items, Power-Up Effects, Projectiles
+			      \item Integrate full game flow: Menu \textrightarrow\ Lobby \textrightarrow\ Battle
+		      \end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{ToDo}
+	\begin{itemize}
+		\item Simon
+		      \begin{itemize}
+			      \item Client side interpolation
+			      \item Bring back headless tests
+		      \end{itemize}
+		\item Julian
+		      \begin{itemize}
+			      \item Integrate Maps, Spectator mode
+			      \item Battle End Screen
+		      \end{itemize}
+		\item Maksim
+		      \begin{itemize}
+			      \item Refactoring, Polishing Menu/Lobby
+			      \item Full Damage System, destructible Walls
+		      \end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{Screenshots}
+	\begin{figure}[h]\captionsetup[subfigure]{labelformat=empty}\centering
+		\subfloat[Menu]{\includegraphics[width=0.45\textwidth]{menu.png}}\hfill
+		\subfloat[Lobby]{\includegraphics[width=0.45\textwidth]{lobby.png}}
+	\end{figure}
+\end{frame}
+
+\begin{frame}\frametitle{Screenshots (cont'd)}
+	\begin{figure}[h]\captionsetup[subfigure]{labelformat=empty}\centering
+		\subfloat[Settings]{\includegraphics[width=0.45\textwidth]{settings.png}}\hfill
+		\subfloat[Connect]{\includegraphics[width=0.45\textwidth]{connect.png}}
+	\end{figure}
+\end{frame}
+
+\begin{frame}\frametitle{Network Architecture}
+	\begin{figure}[h]\captionsetup[subfigure]{labelformat=empty}\centering
+		\subfloat[Packet Types]{\includegraphics[width=0.35\textwidth]{TankGame_Utils.pdf}}\hspace{1cm}
+		\subfloat[Macro States]{\includegraphics[width=0.55\textwidth]{MacroStates.pdf}}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{State classes}\centering
+	\includegraphics[width=\textwidth,height=0.8\textheight,keepaspectratio]{TankGame_Packets_and_State.pdf}
+\end{frame}
+
+\begin{frame}{Client classes}\centering
+	\includegraphics[width=\textwidth,height=0.8\textheight,keepaspectratio]{TankGame_StateClients.pdf}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+	\frametitle{ResourceManager}
+	\begin{figure}[h]
+		\begin{minted}[fontsize=\small,linenos, style=vs]{cpp}
+PlayerClient::PlayerClient(/*...*/)
+  : m_healthyTex(TextureManager::inst().load("tank_healthy.png")),
+    m_damagedTex(TextureManager::inst().load("tank_damaged.png")),
+    m_shootSound(SountBufferManager::inst().load("tank_firing.ogg")),
+    m_font(FontManager::inst().load("LiberationSans-Regular.ttf"))
+{/*...*/}
+
+using TextureManager = ResourceManager<sf::Texture>;
+using FontManager = ResourceManager<sf::Font>;
+using SoundBufferManager = ResourceManager<sf::SoundBuffer>;
+using MusicManager = ResourceManager<sf::Music>;
+         \end{minted}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{Running Multiplayer}\onehalfspacing\centering
+	\begin{itemize}
+		\item Localhost\quad Working since last week, no problems
+		\item LAN\quad Running since Sunday
+		\item WAN\quad Got it running on Monday
+		      \begin{itemize}
+			      \item Needed our own VPN, as UIBK enforces client isolation
+			      \item DynDNS, Wireguard, Firewall troubleshooting
+		      \end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Multiplayer Network stats}\centering
+	\begin{figure}[h]
+		\begin{minted}[fontsize=\small,linenos, style=vs]{cpp}
+200 packets transmitted, 199 received, 0.5% packet loss, time 199273ms
+rtt min/avg/max/mdev = 68.971/186.074/957.968/131.396 ms
+
+Avg Server -> Client traffic: 90kb/s
+Avc Client -> Server traffic: 5b/s
+         \end{minted}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{Multiplayer Network stats (cont'd)}\centering
+	\includegraphics[width=\textwidth,height=0.8\textheight,keepaspectratio]{Game_1_Packets.pdf}
+\end{frame}
+
+\end{document}

@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include "WorldState.h"
+#include "Game/InterpClient.h"
 #include "Player/PlayerClient.h"
 #include "Map/MapClient.h"
 #include "Projectile/ProjectileClient.h"
@@ -14,7 +15,7 @@ class WorldClient
   public:
 	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players);
 
-	std::optional<sf::Packet> update();
+	std::optional<sf::Packet> update(sf::Vector2f vector2);
 	void draw(sf::RenderWindow &window) const;
 
 	[[nodiscard]] PlayerState getOwnPlayerState() const
@@ -30,11 +31,12 @@ class WorldClient
 
 	sf::Clock m_frameClock;
 	sf::Clock m_tickClock;
+	Tick m_clientTick = 0;
 
 	PauseMenuClient m_pauseMenu;
 
   private:
-	void propagateUpdate(float dt);
+	void propagateUpdate(int32_t dt);
 	WorldState m_state;
 	ItemBarClient m_itemBar;
 	sf::RenderWindow &m_window;
@@ -45,4 +47,6 @@ class WorldClient
 	EntityId m_ownPlayerId;
 	sf::View m_worldView;
 	sf::View m_hudView;
+public:
+	InterpClient m_interp;
 };

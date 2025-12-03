@@ -4,3 +4,4 @@ SpaceBeforeParens: Never
 IndentExternBlock: NoIndent
 NamespaceIndentation: Inner
 SortIncludes: Never
+QualifierAlignment: Right
