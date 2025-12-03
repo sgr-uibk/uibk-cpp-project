@@ -13,7 +13,7 @@
 class GameClient
 {
   public:
-	GameClient(WorldClient &world, LobbyClient &lobby, const std::shared_ptr<spdlog::logger> &logger);
+	GameClient(WorldClient &world, LobbyClient &lobby);
 	~GameClient();
 	void update(sf::RenderWindow &window) const;
 	void processUnreliablePackets();
@@ -23,6 +23,4 @@ class GameClient
 	WorldClient &m_world;
 	LobbyClient &m_lobby;
 	Endpoint m_gameServer;
-
-	std::shared_ptr<spdlog::logger> m_logger;
 };

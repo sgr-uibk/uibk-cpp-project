@@ -4,7 +4,7 @@
 InterpClient::InterpClient(MapState const &map, EntityId const id, std::array<PlayerClient, MAX_PLAYERS> &players)
 	: m_map(map), m_id(id), m_players(players)
 {
-	SPDLOG_INFO("interp created, id={}, pl.id={}", m_id, m_player.getState().m_id);
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "interp created, id={}, pl.id={}", m_id, m_player.getState().m_id);
 }
 
 void InterpClient::predictMovement(sf::Vector2f posDelta)
@@ -39,8 +39,8 @@ WorldState *InterpClient::storeSnapshot(Tick authTick, sf::Packet snapPkt)
 	Tick latestKnown = m_snapshotBuffer.get().tick;
 	if(latestKnown >= authTick)
 	{
-		SPDLOG_WARN("Ignoring outdated snapshot created at server tick #{} (know {})",
-			authTick, latestKnown);
+		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Ignoring outdated snapshot created at server tick #{} (know {})",
+		                   authTick, latestKnown);
 		return nullptr;
 	}
 
@@ -56,10 +56,9 @@ WorldState *InterpClient::storeSnapshot(Tick authTick, sf::Packet snapPkt)
 	return &snapState;
 }
 
-
 void InterpClient::syncLocalPlayer(WorldState const &snap)
 {
-	PlayerState authState = snap.m_players[m_id-1];
+	PlayerState authState = snap.m_players[m_id - 1];
 	PlayerState localState = m_player.getState();
 
 	auto err = authState.m_pos - localState.m_pos;
@@ -77,7 +76,7 @@ void InterpClient::syncLocalPlayer(WorldState const &snap)
 	auto const replayedState = m_player.getState();
 	err = replayedState.m_pos - localState.m_pos;
 	if(err.lengthSquared() > 1e-3)
-		SPDLOG_WARN("Reconciliation error ({},{})", err.x, err.y);
+		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Reconciliation error ({},{})", err.x, err.y);
 #endif
 }
 
@@ -88,7 +87,7 @@ void InterpClient::interpolateEnemies()
 	long const renderTick = m_snapshotBuffer.get().tick - 1;
 	if(renderTick < 0)
 	{
-		SPDLOG_INFO("Interpolation not yet ready");
+		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Interpolation not yet ready");
 		return;
 	}
 
@@ -107,7 +106,7 @@ void InterpClient::interpolateEnemies()
 
 	if(s.ss0->tick + 1 != s.ss1->tick && s.ss0->tick && s.ss1->tick)
 	{
-		SPDLOG_ERROR("SS buffer out of sequence: {},{}", s.ss0->tick, s.ss1->tick);
+		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "SS buffer out of sequence: {},{}", s.ss0->tick, s.ss1->tick);
 		return;
 	}
 

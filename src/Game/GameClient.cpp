@@ -4,10 +4,9 @@
 
 #include "Utilities.h"
 
-GameClient::GameClient(WorldClient &world, LobbyClient &lobby, std::shared_ptr<spdlog::logger> const &logger)
-	: m_world(world), m_lobby(lobby), m_gameServer({lobby.m_lobbySock.getRemoteAddress().value(), PORT_UDP}),
-	  // TODO, the server needs to send its udp port to the clients, or take control over that away from the users
-	  m_logger(logger)
+GameClient::GameClient(WorldClient &world, LobbyClient &lobby)
+	: m_world(world), m_lobby(lobby), m_gameServer({lobby.m_lobbySock.getRemoteAddress().value(), PORT_UDP})
+// TODO, the server needs to send its udp port to the clients, or take control over that away from the users
 {
 }
 
@@ -32,7 +31,7 @@ void GameClient::update(sf::RenderWindow &window) const
 		// WorldClient.update() produces tick-rate-limited packets, so now is the right time to send.
 		if(checkedSend(m_lobby.m_gameSock, outPktOpt.value(), m_gameServer.ip, m_gameServer.port) !=
 		   sf::Socket::Status::Done)
-			SPDLOG_LOGGER_ERROR(m_logger, "UDP send failed");
+			SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "UDP send failed");
 	}
 }
 
@@ -51,7 +50,7 @@ void GameClient::processUnreliablePackets()
 		}
 	}
 	else if(st != sf::Socket::Status::NotReady)
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed receiving snapshot pkt: {}", (int)st);
+		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed receiving snapshot pkt: {}", (int)st);
 }
 
 // returns whether the game ends
@@ -70,13 +69,14 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 			reliablePkt >> winnerId;
 			// TODO save the player names somewhere, so that we can print the winner here
 			if(m_lobby.m_clientId == winnerId)
-				SPDLOG_LOGGER_INFO(m_logger, "I won the game!", winnerId);
+				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "I won the game!", winnerId);
 			else
-				SPDLOG_LOGGER_INFO(m_logger, "Battle is over, winner id {}, returning to lobby.", winnerId);
+				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Battle is over, winner id {}, returning to lobby.",
+				                   winnerId);
 			return true;
 		}
 		default:
-			SPDLOG_LOGGER_WARN(m_logger, "Unhandled reliable packet type: {}, size={}", type,
+			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Unhandled reliable packet type: {}, size={}", type,
 			                   reliablePkt.getDataSize());
 		}
 	}

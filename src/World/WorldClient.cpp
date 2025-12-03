@@ -26,7 +26,7 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId,
 	{
 		if(ps.m_id == 0)
 		{
-			SPDLOG_WARN("Not setting state for invalid player 0!");
+			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Not setting state for invalid player 0!");
 			continue;
 		}
 
@@ -189,7 +189,6 @@ void WorldClient::pollEvents()
 				m_pauseMenu.handleClick(mousePos);
 			}
 		}
-
 		else if(auto const *scrollEvent = event->getIf<sf::Event::MouseWheelScrolled>())
 		{
 			if(m_window.hasFocus() && !m_pauseMenu.isPaused())

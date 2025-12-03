@@ -43,7 +43,6 @@ class LobbyClient
 
   private:
 	bool m_bReady;
-	std::shared_ptr<spdlog::logger> m_logger;
 	std::vector<LobbyPlayerInfo> m_lobbyPlayers;
 
 	std::array<PlayerState, MAX_PLAYERS> parseGameStartPacket(sf::Packet &pkt);

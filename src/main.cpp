@@ -16,7 +16,7 @@
 void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<PlayerState, MAX_PLAYERS> &playerStates,
                  std::shared_ptr<spdlog::logger> logger)
 {
-	SPDLOG_LOGGER_INFO(logger, "Starting game with player ID {}", lobbyClient.m_clientId);
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting game with player ID {}", lobbyClient.m_clientId);
 
 	lobbyClient.m_lobbySock.setBlocking(false);
 
@@ -26,14 +26,14 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 		if(playerStates[i].m_id != 0)
 		{
 			validPlayerCount++;
-			SPDLOG_LOGGER_INFO(logger, "Player {}: pos=({:.1f},{:.1f}), rot={:.1f}°, hp={}", playerStates[i].m_id,
-			                   playerStates[i].getPosition().x, playerStates[i].getPosition().y,
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Player {}: pos=({:.1f},{:.1f}), rot={:.1f}°, hp={}",
+			                   playerStates[i].m_id, playerStates[i].getPosition().x, playerStates[i].getPosition().y,
 			                   playerStates[i].getRotation().asDegrees(), playerStates[i].getHealth());
 		}
 	}
-	SPDLOG_LOGGER_INFO(logger, "Starting game loop with {} valid players", validPlayerCount);
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting game loop with {} valid players", validPlayerCount);
 	WorldClient worldClient(window, lobbyClient.m_clientId, playerStates);
-	GameClient gameClient(worldClient, lobbyClient, logger);
+	GameClient gameClient(worldClient, lobbyClient);
 
 	while(window.isOpen())
 	{
@@ -41,27 +41,27 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 
 		if(worldClient.m_pauseMenu.isDisconnectRequested())
 		{
-			SPDLOG_LOGGER_INFO(logger, "Player disconnected via pause menu, returning to lobby...");
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Player disconnected via pause menu, returning to lobby...");
 			break;
 		}
 
 		gameClient.processUnreliablePackets();
 		if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
 		{
-			SPDLOG_LOGGER_INFO(logger, "Game ended, returning to lobby...");
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Game ended, returning to lobby...");
 			break;
 		}
 	}
 
 	lobbyClient.m_lobbySock.setBlocking(true);
 
-	SPDLOG_LOGGER_INFO(logger, "Game window closed, returning to lobby...");
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Game window closed, returning to lobby...");
 }
 
 int main()
 {
-	auto logger = createConsoleAndFileLogger("TankGame");
-	SPDLOG_LOGGER_INFO(logger, "Tank Game starting...");
+	auto logger = createConsoleAndFileLogger("Client");
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Tank Game starting...");
 
 	sf::RenderWindow window(sf::VideoMode(WINDOW_DIM), "Tank Game", sf::Style::Titlebar | sf::Style::Close);
 	window.setFramerateLimit(60);
@@ -74,18 +74,18 @@ int main()
 
 	while(window.isOpen())
 	{
-		while(const std::optional event = window.pollEvent())
+		while(std::optional const event = window.pollEvent())
 		{
 			if(event->is<sf::Event::Closed>())
 				window.close();
-			else if(const auto *mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>())
+			else if(auto const *mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>())
 			{
 				if(mouseButtonPressed->button == sf::Mouse::Button::Left)
 					menu.handleClick(window.mapPixelToCoords(mouseButtonPressed->position, window.getView()));
 			}
-			else if(const auto *mouseMoved = event->getIf<sf::Event::MouseMoved>())
+			else if(auto const *mouseMoved = event->getIf<sf::Event::MouseMoved>())
 				menu.handleMouseMove(window.mapPixelToCoords(mouseMoved->position, window.getView()));
-			else if(const auto *textEntered = event->getIf<sf::Event::TextEntered>())
+			else if(auto const *textEntered = event->getIf<sf::Event::TextEntered>())
 			{
 				if(textEntered->unicode < 128)
 					menu.handleTextInput(static_cast<char>(textEntered->unicode));
@@ -111,7 +111,7 @@ int main()
 
 		if(menu.shouldConnect() && menu.getState() == Menu::State::JOIN_LOBBY && !joinLobbyClient)
 		{
-			SPDLOG_LOGGER_INFO(logger, "Connecting to game at {}:{} as player '{}'", menu.getServerIp(),
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Connecting to game at {}:{} as player '{}'", menu.getServerIp(),
 			                   menu.getServerPort(), menu.getPlayerName());
 
 			try
@@ -130,11 +130,11 @@ int main()
 				menu.setTitle("IN LOBBY");
 				menu.setupLobbyClient();
 
-				SPDLOG_LOGGER_INFO(logger, "Connected to server, joined lobby");
+				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Connected to server, joined lobby");
 			}
-			catch(const std::exception &e)
+			catch(std::exception const &e)
 			{
-				SPDLOG_LOGGER_ERROR(logger, "Failed to connect to server: {}", e.what());
+				SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to connect to server: {}", e.what());
 				joinLobbyClient.reset();
 			}
 			menu.clearConnectFlag();
@@ -143,7 +143,7 @@ int main()
 		// reset join lobby client if we left the lobby client screen
 		if(menu.getState() != Menu::State::LOBBY_CLIENT && joinLobbyClient)
 		{
-			SPDLOG_LOGGER_INFO(logger, "Left lobby client screen, disconnecting...");
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Left lobby client screen, disconnecting...");
 			joinLobbyClient.reset();
 			clientReady = false;
 		}
@@ -155,7 +155,7 @@ int main()
 				auto gameStartResult = joinLobbyClient->waitForGameStart(sf::milliseconds(100));
 				if(gameStartResult.has_value())
 				{
-					SPDLOG_LOGGER_INFO(logger, "Client received GAME_START packet, starting game...");
+					SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Client received GAME_START packet, starting game...");
 
 					menuMusic.stop();
 
@@ -172,9 +172,9 @@ int main()
 					menu.updateClientButton(clientReady);
 				}
 			}
-			catch(const ServerShutdownException &e)
+			catch(ServerShutdownException const &e)
 			{
-				SPDLOG_LOGGER_WARN(logger, "Server has shut down: {}", e.what());
+				SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Server has shut down: {}", e.what());
 				joinLobbyClient.reset();
 				clientReady = false;
 				menu.reset();
@@ -185,7 +185,7 @@ int main()
 		{
 			if(!clientReady)
 			{
-				SPDLOG_LOGGER_INFO(logger, "Client marked as ready");
+				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Client marked as ready");
 				joinLobbyClient->sendReady();
 				clientReady = true;
 			}
@@ -197,6 +197,6 @@ int main()
 		window.display();
 	}
 
-	SPDLOG_LOGGER_INFO(logger, "Tank Game shutting down");
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Tank Game shutting down");
 	return 0;
 }

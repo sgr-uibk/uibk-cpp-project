@@ -17,16 +17,12 @@ struct LobbyPlayer
 class LobbyServer
 {
   public:
-	LobbyServer(uint16_t tcpPort, const std::shared_ptr<spdlog::logger> &logger);
+	explicit LobbyServer(uint16_t tcpPort);
 	~LobbyServer();
 	void lobbyLoop(); // blocks until all players ready
 	void startGame(WorldState &worldState);
 	void deduplicatePlayerName(std::string &name) const;
 	void endGame(EntityId winner);
-	bool isShutdownRequested() const
-	{
-		return m_shutdownRequested;
-	}
 
 	std::vector<LobbyPlayer> m_slots; // Vector, clients join sequentially
 
@@ -34,13 +30,10 @@ class LobbyServer
 	void acceptNewClient();
 	void handleClient(LobbyPlayer &);
 	void broadcastLobbyUpdate();
-	void broadcastServerShutdown();
 
 	sf::TcpListener m_listener;
 	sf::SocketSelector m_multiSock;
 	uint32_t m_tentativeId = 1;
-	std::shared_ptr<spdlog::logger> m_logger;
-	uint8_t m_cReady;
+	uint8_t m_cReady = 0;
 	bool m_gameStartRequested = false;
-	bool m_shutdownRequested = false;
 };

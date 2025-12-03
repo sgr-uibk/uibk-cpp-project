@@ -9,7 +9,7 @@
 class GameServer
 {
   public:
-	explicit GameServer(LobbyServer &lobbyServer, uint16_t gamePort, const std::shared_ptr<spdlog::logger> &logger);
+	explicit GameServer(LobbyServer &lobbyServer, uint16_t gamePort);
 	~GameServer();
 	PlayerState *matchLoop();
 
@@ -24,7 +24,6 @@ class GameServer
 	void floodWorldState();
 	void spawnItems();
 
-	std::shared_ptr<spdlog::logger> m_logger;
 	sf::UdpSocket m_gameSock;
 	LobbyServer &m_lobby;
 	sf::Clock m_itemSpawnClock;

@@ -3,8 +3,8 @@
 #include "GameConfig.h"
 #include <spdlog/spdlog.h>
 
-GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_ptr<spdlog::logger> const &logger)
-	: m_gamePort(gamePort), m_world(WINDOW_DIMf), m_logger(logger), m_lobby(lobbyServer)
+GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort)
+	: m_gamePort(gamePort), m_world(WINDOW_DIMf), m_lobby(lobbyServer)
 {
 	for(auto const &p : lobbyServer.m_slots)
 	{
@@ -13,7 +13,7 @@ GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_
 	sf::Socket::Status status = m_gameSock.bind(m_gamePort);
 	if(status != sf::Socket::Status::Done)
 	{
-		SPDLOG_LOGGER_ERROR(logger, "Failed to bind UDP port {}: {}", m_gamePort, int(status));
+		SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to bind UDP port {}: {}", m_gamePort, int(status));
 		throw std::runtime_error("Failed to bind UDP port");
 	}
 	m_gameSock.setBlocking(false);
@@ -60,10 +60,10 @@ PlayerState *GameServer::matchLoop()
 		switch(cAlive)
 		{
 		case 1:
-			SPDLOG_LOGGER_INFO(m_logger, "Game ended, winner {}.", pWinner->m_id);
+			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Game ended, winner {}.", pWinner->m_id);
 			return pWinner;
 		case 0: // Technically possible that all players die in the same tick
-			SPDLOG_LOGGER_WARN(m_logger, "Game ended in a draw.");
+			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Game ended in a draw.");
 			return nullptr;
 		default:
 			floodWorldState();
@@ -92,18 +92,18 @@ void GameServer::processPackets()
 			{
 				if(m_lastClientTicks[clientId - 1] >= tick)
 				{
-					SPDLOG_LOGGER_WARN(m_logger, "MOVE: Outdated pkt from {}, (know {}, got {})", clientId,
+					SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Outdated pkt from {}, (know {}, got {})", clientId,
 					                   m_lastClientTicks[clientId - 1], tick);
 					break;
 				}
 				m_lastClientTicks[clientId - 1] = tick;
 				PlayerState &ps = m_world.getPlayerById(clientId);
 				ps.moveOn(m_world.getMap(), posDelta);
-				SPDLOG_LOGGER_INFO(m_logger, "Recv MOVE id {} pos=({},{}), rotDeg={}", clientId, ps.m_pos.x, ps.m_pos.y,
-				                   ps.m_rot.asDegrees());
+				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Recv MOVE id {} pos=({},{}), rotDeg={}", clientId,
+				                   ps.m_pos.x, ps.m_pos.y, ps.m_rot.asDegrees());
 			}
 			else
-				SPDLOG_LOGGER_WARN(m_logger, "MOVE: Dropping packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Dropping packet from invalid player id {}", clientId);
 			break;
 		}
 		case UnreliablePktType::SHOOT: {
@@ -125,12 +125,12 @@ void GameServer::processPackets()
 					// Apply damage multiplier from powerups
 					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
 					m_world.addProjectile(position, velocity, clientId, damage);
-					SPDLOG_LOGGER_INFO(m_logger, "Player {} shooting at t={}, angle={}, dmg={}", clientId, tick,
-					                   aimAngle.asDegrees(), damage);
+					SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} shooting at t={}, angle={}, dmg={}", clientId,
+					                   tick, aimAngle.asDegrees(), damage);
 				}
 			}
 			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping SHOOT packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping SHOOT packet from invalid player id {}", clientId);
 			break;
 		}
 		case UnreliablePktType::USE_ITEM: {
@@ -142,15 +142,16 @@ void GameServer::processPackets()
 			{
 				PlayerState &ps = m_world.getPlayerById(clientId);
 				ps.useItem(slot);
-				SPDLOG_LOGGER_INFO(m_logger, "Player {} used item at t={}, slot #{}", clientId, tick, slot);
+				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} used item at t={}, slot #{}", clientId, tick,
+				                   slot);
 			}
 			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping USE_ITEM packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping USE_ITEM packet from invalid player id {}", clientId);
 			break;
 		}
 		default:
 			std::string srcAddr = srcAddrOpt.has_value() ? srcAddrOpt.value().toString() : std::string("?");
-			SPDLOG_LOGGER_WARN(m_logger, "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr, srcPort);
+			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr, srcPort);
 		}
 	}
 }
@@ -169,7 +170,7 @@ void GameServer::spawnItems()
 		PowerupType type = static_cast<PowerupType>(1 + (rand() % 5));
 
 		m_world.addItem(position, type);
-		SPDLOG_LOGGER_INFO(m_logger, "Spawned powerup type {} at ({}, {})", static_cast<int>(type), x, y);
+		SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Spawned powerup type {} at ({}, {})", static_cast<int>(type), x, y);
 	}
 }
 
@@ -185,7 +186,7 @@ void GameServer::floodWorldState()
 			continue;
 		if(checkedSend(m_gameSock, snapPkt, p.udpAddr, p.gamePort) != sf::Socket::Status::Done)
 		{
-			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send snapshot to {}:{}", p.udpAddr.toString(), p.gamePort);
+			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send snapshot to {}:{}", p.udpAddr.toString(), p.gamePort);
 		}
 	}
 }

@@ -4,16 +4,15 @@
 LobbyClient::LobbyClient(std::string const &name, Endpoint const lobbyServer)
 	: m_clientId(0), m_name(name), m_bReady(false)
 {
-	m_logger = createConsoleAndFileLogger(name);
 	if(m_lobbySock.connect(lobbyServer.ip, lobbyServer.port) != sf::Socket::Status::Done)
 	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to connect to lobby");
+		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to connect to lobby");
 		std::exit(1);
 	}
 	m_lobbySock.setBlocking(true);
 	// Bind to the local game socket now, the server should know everything about the client as early as possible.
 	bindGameSocket();
-	SPDLOG_LOGGER_INFO(m_logger, "Starting Client. Server {}, lobby:{}, game:{}, client name {}",
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting Client. Server {}, lobby:{}, game:{}, client name {}",
 	                   lobbyServer.ip.toString(), lobbyServer.port, m_gameSock.getLocalPort(), m_name);
 }
 
@@ -34,14 +33,14 @@ void LobbyClient::bindGameSocket()
 		status = m_gameSock.bind(gamePort);
 		if(status == sf::Socket::Status::Done)
 		{
-			SPDLOG_LOGGER_INFO(m_logger, "UDP Bind on port {} succeeded.", gamePort);
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "UDP Bind on port {} succeeded.", gamePort);
 			break;
 		}
 		m_gameSock.unbind();
 	}
 	if(status != sf::Socket::Status::Done)
 	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to bind to any UDP port [{}, {}]", m_gameSock.getLocalPort(),
+		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to bind to any UDP port [{}, {}]", m_gameSock.getLocalPort(),
 		                    m_gameSock.getLocalPort() + MAX_PLAYERS);
 		std::exit(1);
 	}
@@ -55,7 +54,7 @@ void LobbyClient::connect()
 	joinPkt << m_name << m_gameSock.getLocalPort();
 	if(checkedSend(m_lobbySock, joinPkt) != sf::Socket::Status::Done)
 	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send JOIN_REQ");
+		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to send JOIN_REQ");
 		std::exit(1);
 	}
 
@@ -75,21 +74,22 @@ void LobbyClient::connect()
 
 			if(assignedName != m_name)
 			{
-				SPDLOG_LOGGER_INFO(m_logger, "Name changed from '{}' to '{}' due to duplicate", m_name, assignedName);
+				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Name changed from '{}' to '{}' due to duplicate", m_name,
+				                   assignedName);
 				m_name = assignedName;
 			}
 
-			SPDLOG_LOGGER_INFO(m_logger, "Joined lobby, got id {} with name '{}'", m_clientId, m_name);
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Joined lobby, got id {} with name '{}'", m_clientId, m_name);
 		}
 		else
 		{
-			SPDLOG_LOGGER_ERROR(m_logger, "Unexpected packet type {}", type);
+			SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Unexpected packet type {}", type);
 			std::exit(1);
 		}
 	}
 	else
 	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive JOIN_ACK: {}", int(error));
+		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to receive JOIN_ACK: {}", int(error));
 #ifdef SFML_SYSTEM_LINUX
 		perror("Error from OS");
 #endif
@@ -105,9 +105,9 @@ void LobbyClient::sendReady()
 
 	if(checkedSend(m_lobbySock, readyPkt) != sf::Socket::Status::Done)
 	{
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send LOBBY_READY");
+		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to send LOBBY_READY");
 	}
-	SPDLOG_LOGGER_INFO(m_logger, "Sent ready packet, clientId {}", m_clientId);
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Sent ready packet, clientId {}", m_clientId);
 	m_bReady = true;
 }
 
@@ -126,7 +126,7 @@ bool LobbyClient::pollLobbyUpdate()
 	{
 		if(status != sf::Socket::Status::NotReady)
 		{
-			SPDLOG_LOGGER_WARN(m_logger, "pollLobbyUpdate: receive status = {}", static_cast<int>(status));
+			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "pollLobbyUpdate: receive status = {}", static_cast<int>(status));
 		}
 		return false;
 	}
@@ -136,7 +136,7 @@ bool LobbyClient::pollLobbyUpdate()
 
 	if(type != uint8_t(ReliablePktType::LOBBY_UPDATE))
 	{
-		SPDLOG_LOGGER_WARN(m_logger, "Expected LOBBY_UPDATE, got packet type {}", type);
+		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Expected LOBBY_UPDATE, got packet type {}", type);
 		return false;
 	}
 
@@ -150,10 +150,11 @@ bool LobbyClient::pollLobbyUpdate()
 		LobbyPlayerInfo playerInfo;
 		updatePkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
 		m_lobbyPlayers.push_back(playerInfo);
-		SPDLOG_LOGGER_INFO(m_logger, "  Player {}: '{}' (ready={})", playerInfo.id, playerInfo.name, playerInfo.bReady);
+		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "  Player {}: '{}' (ready={})", playerInfo.id, playerInfo.name,
+		                   playerInfo.bReady);
 	}
 
-	SPDLOG_LOGGER_INFO(m_logger, "Received lobby update with {} players", numPlayers);
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Received lobby update with {} players", numPlayers);
 	return true;
 }
 
@@ -165,7 +166,7 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packe
 
 	size_t numPlayers;
 	pkt >> numPlayers;
-	SPDLOG_LOGGER_INFO(m_logger, "Received GAME_START for {} players", numPlayers);
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Received GAME_START for {} players", numPlayers);
 
 	for(unsigned i = 0; i < numPlayers; ++i)
 	{
@@ -174,8 +175,8 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packe
 		pkt >> pos >> rot;
 
 		states[i] = PlayerState(i + 1, pos, rot);
-		SPDLOG_LOGGER_INFO(m_logger, "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg", i + 1,
-		                   m_lobbyPlayers[i].name, pos.x, pos.y, rot.asDegrees());
+		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg",
+		                   i + 1, m_lobbyPlayers[i].name, pos.x, pos.y, rot.asDegrees());
 	}
 	return states;
 }
@@ -193,7 +194,7 @@ std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::waitForGameStar
 
 		if(checkedReceive(m_lobbySock, startPkt) != sf::Socket::Status::Done)
 		{
-			SPDLOG_LOGGER_ERROR(m_logger, "Failed to receive GAME_START");
+			SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to receive GAME_START");
 			std::exit(1);
 		}
 
@@ -212,14 +213,15 @@ std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::waitForGameStar
 				startPkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
 				m_lobbyPlayers.push_back(playerInfo);
 			}
-			SPDLOG_LOGGER_DEBUG(m_logger, "Received lobby update with {} players while waiting", numPlayers);
+			SPDLOG_LOGGER_DEBUG(spdlog::get("Client"), "Received lobby update with {} players while waiting",
+			                    numPlayers);
 			break;
 		}
 		case uint8_t(ReliablePktType::GAME_START):
 			return parseGameStartPacket(startPkt);
 
 		default:
-			SPDLOG_LOGGER_WARN(m_logger, "Unhandled reliable packet type: {}.", type);
+			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Unhandled reliable packet type: {}.", type);
 		}
 		sf::sleep(sf::milliseconds(100));
 	}
