@@ -33,11 +33,11 @@ PlayerState *GameServer::matchLoop()
 		processPackets();
 
 		// maintain fixed tick rate updates
-		int32_t dt = m_tickClock.getElapsedTime().asMilliseconds();
-		sf::sleep(sf::milliseconds(UNRELIABLE_TICK_MS - dt));
+		float dt = m_tickClock.getElapsedTime().asSeconds();
+		sf::sleep(sf::seconds(UNRELIABLE_TICK_TIME - dt));
 		m_tickClock.restart();
 		++m_authTick;
-		m_world.update(UNRELIABLE_TICK_MS);
+		m_world.update(UNRELIABLE_TICK_TIME);
 
 		spawnItems();
 
@@ -99,8 +99,6 @@ void GameServer::processPackets()
 				m_lastClientTicks[clientId - 1] = tick;
 				PlayerState &ps = m_world.getPlayerById(clientId);
 				ps.moveOn(m_world.getMap(), posDelta);
-				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Recv MOVE id {} pos=({},{}), rotDeg={}", clientId,
-				                   ps.m_pos.x, ps.m_pos.y, ps.m_rot.asDegrees());
 			}
 			else
 				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Dropping packet from invalid player id {}", clientId);
@@ -146,12 +144,14 @@ void GameServer::processPackets()
 				                   slot);
 			}
 			else
-				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping USE_ITEM packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping USE_ITEM packet from invalid player id {}",
+				                   clientId);
 			break;
 		}
 		default:
 			std::string srcAddr = srcAddrOpt.has_value() ? srcAddrOpt.value().toString() : std::string("?");
-			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr, srcPort);
+			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr,
+			                   srcPort);
 		}
 	}
 }
@@ -186,7 +186,8 @@ void GameServer::floodWorldState()
 			continue;
 		if(checkedSend(m_gameSock, snapPkt, p.udpAddr, p.gamePort) != sf::Socket::Status::Done)
 		{
-			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send snapshot to {}:{}", p.udpAddr.toString(), p.gamePort);
+			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send snapshot to {}:{}", p.udpAddr.toString(),
+			                    p.gamePort);
 		}
 	}
 }

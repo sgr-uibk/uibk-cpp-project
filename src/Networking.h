@@ -11,7 +11,7 @@ constexpr uint16_t PORT_UDP = 3074;
 constexpr uint32_t PROTOCOL_VERSION = 1;
 constexpr int32_t RENDER_TICK_HZ = 60;
 constexpr int32_t UNRELIABLE_TICK_HZ = 20;
-constexpr int32_t UNRELIABLE_TICK_MS = 1000 / UNRELIABLE_TICK_HZ;
+constexpr float UNRELIABLE_TICK_TIME = 1.f / UNRELIABLE_TICK_HZ;
 constexpr sf::Vector2u WINDOW_DIM{800, 600};
 constexpr sf::Vector2f WINDOW_DIMf{WINDOW_DIM};
 typedef uint32_t EntityId;

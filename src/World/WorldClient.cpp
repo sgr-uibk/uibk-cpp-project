@@ -39,7 +39,7 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId,
 	m_tickClock.start();
 }
 
-void WorldClient::propagateUpdate(int32_t dt)
+void WorldClient::propagateUpdate(float dt)
 {
 	for(auto &pc : m_players)
 		pc.update(dt);
@@ -51,9 +51,9 @@ void WorldClient::propagateUpdate(int32_t dt)
 
 std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 {
-	int32_t const frameDelta = m_frameClock.restart().asMilliseconds();
+	int32_t const frameDelta = m_frameClock.restart().asSeconds();
 	m_clientTick++;
-	bool const bServerTickExpired = m_tickClock.getElapsedTime().asMilliseconds() >= UNRELIABLE_TICK_MS;
+	bool const bServerTickExpired = m_tickClock.getElapsedTime().asSeconds() >= UNRELIABLE_TICK_TIME;
 	if(bServerTickExpired)
 		m_tickClock.restart();
 	propagateUpdate(frameDelta);
@@ -128,16 +128,10 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	m_pauseMenu.draw(window);
 }
 
-void WorldClient::applyServerSnapshot(WorldState const &snapshot)
+// Applies server state that does not get interpolated, such as player inventory, items, etc.
+void WorldClient::applyNonInterpState(WorldState const &snapshot)
 {
 	m_state = snapshot;
-	// the map is static for now (deserialize does not extract a Map) as serialize doesn't shove one in.
-	// m_mapClient.setMapState(m_state.map());
-
-	auto const states = m_state.getPlayers();
-	assert(states.size() == m_players.size());
-	for(size_t i = 0; i < m_players.size(); ++i)
-		m_players[i].applyServerState(states[i]);
 
 	auto const &projectileStates = m_state.getProjectiles();
 	m_projectiles.clear();

@@ -12,7 +12,7 @@ WorldState::WorldState(sf::Vector2f mapSize) : m_map(mapSize), m_players()
 {
 }
 
-void WorldState::update(int32_t dt)
+void WorldState::update(float dt)
 {
 	for(auto &p : m_players)
 		p.update(dt);

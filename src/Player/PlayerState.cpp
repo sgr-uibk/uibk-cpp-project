@@ -18,7 +18,7 @@ PlayerState::PlayerState(sf::Packet pkt)
 	deserialize(pkt);
 }
 
-void PlayerState::update(int32_t dt)
+void PlayerState::update(float dt)
 {
 	// cooldowns
 	m_shootCooldown.update(dt);
@@ -127,7 +127,7 @@ void PlayerState::applyPowerup(PowerupType type)
 			// apply instant effects
 			if(type == PowerupType::HEALTH_PACK)
 			{
-				heal(PowerupConstants::HEALTH_PACK_HEAL);
+				heal(GameConfig::Powerup::HEALTH_PACK_HEAL);
 			}
 			return;
 		}
@@ -137,7 +137,7 @@ void PlayerState::applyPowerup(PowerupType type)
 	m_powerups[0].apply(type);
 	if(type == PowerupType::HEALTH_PACK)
 	{
-		heal(PowerupConstants::HEALTH_PACK_HEAL);
+		heal(GameConfig::Powerup::HEALTH_PACK_HEAL);
 	}
 }
 
@@ -164,21 +164,21 @@ const PowerupEffect *PlayerState::getPowerup(PowerupType type) const
 float PlayerState::getSpeedMultiplier() const
 {
 	if(hasPowerup(PowerupType::SPEED_BOOST))
-		return PowerupConstants::SPEED_BOOST_MULTIPLIER;
+		return GameConfig::Powerup::SPEED_BOOST_MULTIPLIER;
 	return 1.f;
 }
 
 int PlayerState::getDamageMultiplier() const
 {
 	if(hasPowerup(PowerupType::DAMAGE_BOOST))
-		return PowerupConstants::DAMAGE_BOOST_MULTIPLIER;
+		return GameConfig::Powerup::DAMAGE_BOOST_MULTIPLIER;
 	return 1;
 }
 
 float PlayerState::getShootCooldown() const
 {
 	if(hasPowerup(PowerupType::RAPID_FIRE))
-		return PowerupConstants::RAPID_FIRE_COOLDOWN;
+		return GameConfig::Powerup::RAPID_FIRE_COOLDOWN;
 	return GameConfig::Player::SHOOT_COOLDOWN;
 }
 

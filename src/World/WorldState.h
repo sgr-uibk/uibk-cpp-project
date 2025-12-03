@@ -11,12 +11,12 @@ struct WorldState
 {
 	WorldState();
 	explicit WorldState(sf::Vector2f mapSize);
-	void update(int32_t dt);
+	void update(float dt);
 	void setPlayer(PlayerState const &p);
 
 	std::array<PlayerState, MAX_PLAYERS> &getPlayers();
 	PlayerState &getPlayerById(size_t id);
-	const PlayerState &getPlayerById(size_t id) const;
+	PlayerState const &getPlayerById(size_t id) const;
 	[[nodiscard]] MapState &getMap();
 
 	uint32_t addProjectile(sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId, int damage = 25);
@@ -29,7 +29,7 @@ struct WorldState
 	{
 		return m_projectiles;
 	}
-	const std::vector<ProjectileState> &getProjectiles() const
+	std::vector<ProjectileState> const &getProjectiles() const
 	{
 		return m_projectiles;
 	}
@@ -37,7 +37,7 @@ struct WorldState
 	{
 		return m_items;
 	}
-	const std::vector<ItemState> &getItems() const
+	std::vector<ItemState> const &getItems() const
 	{
 		return m_items;
 	}

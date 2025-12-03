@@ -17,7 +17,7 @@ struct PlayerState
 	PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth = 100);
 
 	// Simulation
-	void update(int32_t dt);
+	void update(float dt);
 	void moveOn(MapState const &map, sf::Vector2f posDelta);
 	void setRotation(sf::Angle);
 	void takeDamage(int amount);
@@ -30,7 +30,7 @@ struct PlayerState
 
 	void applyPowerup(PowerupType type);
 	bool hasPowerup(PowerupType type) const;
-	const PowerupEffect *getPowerup(PowerupType type) const;
+	PowerupEffect const *getPowerup(PowerupType type) const;
 	float getSpeedMultiplier() const;
 	int getDamageMultiplier() const;
 	float getShootCooldown() const;
@@ -38,7 +38,7 @@ struct PlayerState
 	bool addToInventory(PowerupType type);
 	void useItem(size_t slot);
 	PowerupType getInventoryItem(int slot) const;
-	const std::array<PowerupType, 9> &getInventory() const
+	std::array<PowerupType, 9> const &getInventory() const
 	{
 		return m_inventory;
 	}

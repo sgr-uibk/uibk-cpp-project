@@ -5,13 +5,13 @@
 class ProjectileClient
 {
   public:
-	ProjectileClient(const ProjectileState &state);
+	ProjectileClient(ProjectileState const &state);
 
-	void syncSpriteToState(const ProjectileState &state);
+	void syncSpriteToState(ProjectileState const &state);
 
 	void draw(sf::RenderWindow &window) const;
 
-	void update(int32_t dt);
+	void update(float dt);
 
 	uint32_t getId() const
 	{

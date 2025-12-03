@@ -22,7 +22,7 @@ class WorldClient
 		return m_players[m_ownPlayerId - 1].getState();
 	}
 
-	void applyServerSnapshot(WorldState const &snapshot);
+	void applyNonInterpState(WorldState const &snapshot);
 	WorldState &getState();
 	void pollEvents();
 
@@ -33,7 +33,7 @@ class WorldClient
 	Tick m_clientTick = 0;
 
   private:
-	void propagateUpdate(int32_t dt);
+	void propagateUpdate(float dt);
 	WorldState m_state;
 	ItemBarClient m_itemBar;
 	sf::RenderWindow &m_window;

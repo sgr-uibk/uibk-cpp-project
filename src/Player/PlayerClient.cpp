@@ -16,7 +16,7 @@ PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
 	updateNameText();
 }
 
-void PlayerClient::update([[maybe_unused]] int32_t dt)
+void PlayerClient::update([[maybe_unused]] float dt)
 {
 	// smoothing / interpolation can be inserted here
 	syncSpriteToState();

@@ -12,7 +12,7 @@ class PlayerClient
 	PlayerClient(PlayerState &state, sf::Color const &color);
 	PlayerClient(PlayerClient const &) = default;
 
-	void update(int32_t dt);
+	void update(float dt);
 	void draw(sf::RenderWindow &window) const;
 
 	// apply authoritative server state (reconciliation)

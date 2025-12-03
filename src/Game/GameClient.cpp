@@ -47,6 +47,7 @@ void GameClient::processUnreliablePackets()
 		if(WorldState const *snapState = m_world.m_interp.storeSnapshot(authTick, snapPkt))
 		{
 			m_world.m_interp.syncLocalPlayer(*snapState);
+			m_world.applyNonInterpState(*snapState);
 		}
 	}
 	else if(st != sf::Socket::Status::NotReady)
