@@ -23,10 +23,7 @@ sf::FloatRect ItemState::getBounds() const
 
 void ItemState::serialize(sf::Packet &packet) const
 {
-	packet << m_id;
-	packet << m_position;
-	packet << static_cast<uint8_t>(m_type);
-	packet << m_active;
+	packet << m_id << m_position << static_cast<uint8_t>(m_type) << m_active;
 }
 
 void ItemState::deserialize(sf::Packet &packet)

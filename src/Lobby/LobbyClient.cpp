@@ -52,8 +52,7 @@ void LobbyClient::connect()
 {
 	sf::Packet joinPkt = createPkt(ReliablePktType::JOIN_REQ);
 	joinPkt << PROTOCOL_VERSION;
-	joinPkt << m_name;
-	joinPkt << m_gameSock.getLocalPort();
+	joinPkt << m_name << m_gameSock.getLocalPort();
 	if(checkedSend(m_lobbySock, joinPkt) != sf::Socket::Status::Done)
 	{
 		SPDLOG_LOGGER_ERROR(m_logger, "Failed to send JOIN_REQ");
@@ -72,8 +71,7 @@ void LobbyClient::connect()
 		if(type == uint8_t(ReliablePktType::JOIN_ACK))
 		{
 			std::string assignedName;
-			joinAckPkt >> m_clientId;
-			joinAckPkt >> assignedName;
+			joinAckPkt >> m_clientId >> assignedName;
 
 			if(assignedName != m_name)
 			{

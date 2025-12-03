@@ -38,6 +38,7 @@ PlayerState *GameServer::matchLoop()
 		m_tickClock.restart();
 		++m_authTick;
 		m_world.update(UNRELIABLE_TICK_MS);
+
 		spawnItems();
 
 		m_world.checkProjectilePlayerCollisions();
@@ -78,23 +79,21 @@ void GameServer::processPackets()
 	while(checkedReceive(m_gameSock, rxPkt, srcAddrOpt, srcPort) == sf::Socket::Status::Done)
 	{
 		uint8_t type;
-		rxPkt >> type;
 		Tick tick;
-		rxPkt >> tick;
+		rxPkt >> type >> tick;
 		switch(UnreliablePktType(type))
 		{
 		case UnreliablePktType::MOVE: {
 			uint32_t clientId;
 			sf::Vector2f posDelta;
-			rxPkt >> clientId;
-			rxPkt >> posDelta;
+			rxPkt >> clientId >> posDelta;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
 				if(m_lastClientTicks[clientId - 1] >= tick)
 				{
-					SPDLOG_LOGGER_WARN(m_logger, "MOVE: Outdated pkt from {}, (know {}, got {})",
-					                   clientId, m_lastClientTicks[clientId - 1], tick);
+					SPDLOG_LOGGER_WARN(m_logger, "MOVE: Outdated pkt from {}, (know {}, got {})", clientId,
+					                   m_lastClientTicks[clientId - 1], tick);
 					break;
 				}
 				m_lastClientTicks[clientId - 1] = tick;
@@ -110,8 +109,7 @@ void GameServer::processPackets()
 		case UnreliablePktType::SHOOT: {
 			uint32_t clientId;
 			sf::Angle aimAngle;
-			rxPkt >> clientId;
-			rxPkt >> aimAngle;
+			rxPkt >> clientId >> aimAngle;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{

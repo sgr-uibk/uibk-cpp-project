@@ -37,13 +37,8 @@ sf::FloatRect ProjectileState::getBounds() const
 
 void ProjectileState::serialize(sf::Packet &packet) const
 {
-	packet << m_id;
-	packet << m_position;
-	packet << m_velocity;
-	packet << m_ownerId;
-	packet << static_cast<int32_t>(m_damage);
-	packet << m_active;
-	packet << m_lifetime;
+	packet << m_id << m_position << m_velocity << m_ownerId;
+	packet << static_cast<int32_t>(m_damage) << m_active << m_lifetime;
 }
 
 void ProjectileState::deserialize(sf::Packet &packet)

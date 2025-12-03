@@ -104,8 +104,7 @@ void LobbyServer::acceptNewClient()
 		p.tcpSocket.disconnect();
 		return;
 	}
-	joinReqPkt >> p.name;
-	joinReqPkt >> p.gamePort;
+	joinReqPkt >> p.name >> p.gamePort;
 	SPDLOG_LOGGER_INFO(m_logger, "Client id {}, udpPort {}, requested name '{}' ", p.id, p.gamePort, p.name);
 	assert(p.id && p.gamePort);
 
@@ -188,8 +187,7 @@ void LobbyServer::startGame(WorldState &worldState)
 	startPkt << playerStates.size();
 	for(auto const &playerState : playerStates)
 	{
-		startPkt << playerState.getPosition();
-		startPkt << playerState.getRotation();
+		startPkt << playerState.getPosition() << playerState.getRotation();
 	}
 	// Distribute spawn points with GAME_START pkt
 	for(auto &p : m_slots)

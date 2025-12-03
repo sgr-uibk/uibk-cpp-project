@@ -81,8 +81,7 @@ struct PowerupEffect
 	void serialize(sf::Packet &packet) const
 	{
 		packet << static_cast<uint8_t>(type);
-		packet << duration;
-		packet << static_cast<int32_t>(value);
+		packet << duration << static_cast<int32_t>(value);
 	}
 
 	void deserialize(sf::Packet &packet)
