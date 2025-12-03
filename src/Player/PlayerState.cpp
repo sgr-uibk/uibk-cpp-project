@@ -60,18 +60,17 @@ void PlayerState::setRotation(sf::Angle rot)
 	m_rot = rot;
 }
 
-void PlayerState::takeDamage(int const amount)
+void PlayerState::takeDamage(int amount)
 {
-	int remainingDamage = amount;
 
 	// check for shield powerup
 	for(auto &powerup : m_powerups)
 	{
 		if(powerup.type == PowerupType::SHIELD && powerup.value > 0)
 		{
-			int shieldAbsorbed = std::min(remainingDamage, powerup.value);
+			int shieldAbsorbed = std::min(amount, powerup.value);
 			powerup.value -= shieldAbsorbed;
-			remainingDamage -= shieldAbsorbed;
+			amount -= shieldAbsorbed;
 
 			// deactivate shield if depleted
 			if(powerup.value <= 0)
@@ -81,9 +80,9 @@ void PlayerState::takeDamage(int const amount)
 		}
 	}
 
-	if(remainingDamage > 0)
+	if(amount > 0)
 	{
-		m_health = std::max(0, m_health - remainingDamage);
+		m_health = std::max(0, m_health - amount);
 	}
 }
 
