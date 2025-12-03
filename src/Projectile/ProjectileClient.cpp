@@ -14,7 +14,7 @@ void ProjectileClient::syncSpriteToState(const ProjectileState &state)
 	m_shape.setPosition(m_state.getPosition());
 }
 
-void ProjectileClient::update(float dt)
+void ProjectileClient::update([[maybe_unused]] int32_t dt)
 {
 	// visual updates could be implemented in the future
 }

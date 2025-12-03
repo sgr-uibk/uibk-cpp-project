@@ -51,7 +51,7 @@ void ItemBarClient::draw(sf::RenderWindow &window) const
 		}
 	};
 
-	for(int i = 0; i < 9; ++i)
+	for(size_t i = 0; i < 9; ++i)
 	{
 		float x = start.x + i * (slotSize + slotSpacing);
 
@@ -95,7 +95,6 @@ void ItemBarClient::draw(sf::RenderWindow &window) const
 		slotNumber.setString(std::to_string(i + 1));
 		slotNumber.setCharacterSize(14);
 		slotNumber.setFillColor(sf::Color(200, 200, 200));
-		sf::FloatRect numBounds = slotNumber.getLocalBounds();
 		slotNumber.setPosition(sf::Vector2f(x + 5.f, start.y + 2.f));
 		window.draw(slotNumber);
 	}

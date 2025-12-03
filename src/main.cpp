@@ -11,13 +11,7 @@
 #include "Lobby/LobbyClient.h"
 #include "Lobby/LobbyServer.h"
 #include "Game/GameClient.h"
-#include "Game/GameServer.h"
 #include "World/WorldClient.h"
-
-static void cleanupGameLoop(LobbyClient &lobbyClient)
-{
-	lobbyClient.m_lobbySock.setBlocking(true);
-}
 
 void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<PlayerState, MAX_PLAYERS> &playerStates,
                  std::shared_ptr<spdlog::logger> logger)
@@ -43,7 +37,7 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 
 	while(window.isOpen())
 	{
-		gameClient.handleUserInputs(window);
+		gameClient.update(window);
 
 		if(worldClient.m_pauseMenu.isDisconnectRequested())
 		{
@@ -51,8 +45,7 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 			break;
 		}
 
-		gameClient.syncFromServer();
-
+		gameClient.processUnreliablePackets();
 		if(gameClient.processReliablePackets(lobbyClient.m_lobbySock))
 		{
 			SPDLOG_LOGGER_INFO(logger, "Game ended, returning to lobby...");
@@ -60,7 +53,8 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<
 		}
 	}
 
-	cleanupGameLoop(lobbyClient);
+	lobbyClient.m_lobbySock.setBlocking(true);
+
 	SPDLOG_LOGGER_INFO(logger, "Game window closed, returning to lobby...");
 }
 
@@ -74,11 +68,8 @@ int main()
 
 	Menu menu(WINDOW_DIM);
 	sf::Music &menuMusic = initMusic("audio/menu_loop.ogg");
-	std::unique_ptr<std::thread> serverThread;
 	std::unique_ptr<LobbyServer> lobbyServer;
-	std::unique_ptr<LobbyClient> hostLobbyClient;
 	std::unique_ptr<LobbyClient> joinLobbyClient;
-	bool hostReady = false;
 	bool clientReady = false;
 
 	while(window.isOpen())

@@ -5,8 +5,8 @@
 
 HealthBar::HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth)
 	: m_maxHealth(maxHealth), m_health(maxHealth), m_midThreshold(3 * maxHealth / 4), m_lowThreshold(maxHealth / 4),
-	  m_highColor(80, 200, 60), m_midColor(240, 200, 64), m_lowColor(220, 60, 60), m_size(size),
-	  m_font(ResourceManager<sf::Font>::inst().load("Font/LiberationSans-Regular.ttf")), m_text(m_font)
+	  m_highColor(80, 200, 60), m_midColor(240, 200, 64), m_lowColor(220, 60, 60), m_size(size), m_text(m_font),
+	  m_font(ResourceManager<sf::Font>::inst().load("Font/LiberationSans-Regular.ttf"))
 {
 	// Appearance inherited from Shape
 	m_bg.setSize(m_size);
@@ -74,7 +74,7 @@ int HealthBar::getMaxHealth() const
 	return m_maxHealth;
 }
 
-void HealthBar::update(float const dt)
+void HealthBar::update([[maybe_unused]] int32_t dt)
 {
 	updateVisuals();
 }

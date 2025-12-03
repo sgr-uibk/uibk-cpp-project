@@ -136,12 +136,6 @@ bool LobbyClient::pollLobbyUpdate()
 	uint8_t type;
 	updatePkt >> type;
 
-	if(type == uint8_t(ReliablePktType::SERVER_SHUTDOWN))
-	{
-		SPDLOG_LOGGER_WARN(m_logger, "Server is shutting down (host disconnected)");
-		throw ServerShutdownException();
-	}
-
 	if(type != uint8_t(ReliablePktType::LOBBY_UPDATE))
 	{
 		SPDLOG_LOGGER_WARN(m_logger, "Expected LOBBY_UPDATE, got packet type {}", type);
@@ -177,23 +171,13 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packe
 
 	for(unsigned i = 0; i < numPlayers; ++i)
 	{
-		uint32_t playerId;
-		std::string playerName;
 		sf::Vector2f pos;
 		sf::Angle rot;
-		pkt >> playerId >> playerName >> pos >> rot;
+		pkt >> pos >> rot;
 
-		if(playerId > 0 && playerId <= MAX_PLAYERS)
-		{
-			states[playerId - 1] = PlayerState(playerId, pos, rot);
-			states[playerId - 1].m_name = playerName;
-			SPDLOG_LOGGER_INFO(m_logger, "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg", playerId,
-			                   playerName, pos.x, pos.y, rot.asDegrees());
-		}
-		else
-		{
-			SPDLOG_LOGGER_ERROR(m_logger, "Invalid player ID {} in GAME_START", playerId);
-		}
+		states[i] = PlayerState(i + 1, pos, rot);
+		SPDLOG_LOGGER_INFO(m_logger, "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg", i + 1,
+		                   m_lobbyPlayers[i].name, pos.x, pos.y, rot.asDegrees());
 	}
 	return states;
 }
@@ -219,9 +203,6 @@ std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::waitForGameStar
 		startPkt >> type;
 		switch(type)
 		{
-		case uint8_t(ReliablePktType::SERVER_SHUTDOWN):
-			SPDLOG_LOGGER_WARN(m_logger, "Server is shutting down (host disconnected)");
-			throw ServerShutdownException();
 
 		case uint8_t(ReliablePktType::LOBBY_UPDATE): {
 			uint32_t numPlayers;

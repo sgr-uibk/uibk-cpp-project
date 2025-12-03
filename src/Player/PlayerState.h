@@ -17,7 +17,7 @@ struct PlayerState
 	PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth = 100);
 
 	// Simulation
-	void update();
+	void update(int32_t dt);
 	void moveOn(MapState const &map, sf::Vector2f posDelta);
 	void setRotation(sf::Angle);
 	void takeDamage(int amount);

@@ -36,7 +36,7 @@ PlayerState *GameServer::matchLoop()
 		sf::sleep(sf::milliseconds(UNRELIABLE_TICK_MS - dt));
 		m_tickClock.restart();
 		++m_authTick;
-		m_world.update(dt);
+		m_world.update(UNRELIABLE_TICK_MS);
 		spawnItems();
 
 		m_world.checkProjectilePlayerCollisions();
@@ -118,17 +118,13 @@ void GameServer::processPackets()
 				{
 					ps.shoot();
 
-					// spawn projectile at player position
 					sf::Vector2f position = ps.getPosition();
-
-					// calculate velocity from aim angle
-					sf::Vector2f velocity(std::sin(aimAngle.asRadians()) * GameConfig::Projectile::SPEED,
-					                      -std::cos(aimAngle.asRadians()) * GameConfig::Projectile::SPEED);
+					sf::Vector2f velocity(GameConfig::Projectile::SPEED, aimAngle);
 
 					// Apply damage multiplier from powerups
 					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
 					m_world.addProjectile(position, velocity, clientId, damage);
-					SPDLOG_LOGGER_INFO(m_logger, "Player {} shoots at angle {} (damage={})", clientId,
+					SPDLOG_LOGGER_INFO(m_logger, "Player {} shooting at t={}, angle={}, dmg={}", clientId, tick,
 					                   aimAngle.asDegrees(), damage);
 				}
 			}
@@ -145,7 +141,7 @@ void GameServer::processPackets()
 			{
 				PlayerState &ps = m_world.getPlayerById(clientId);
 				ps.useItem(slot);
-				SPDLOG_LOGGER_INFO(m_logger, "Player {} used item from slot {}", clientId, slot);
+				SPDLOG_LOGGER_INFO(m_logger, "Player {} used item at t={}, slot #{}", clientId, tick, slot);
 			}
 			else
 				SPDLOG_LOGGER_WARN(m_logger, "Dropping USE_ITEM packet from invalid player id {}", clientId);

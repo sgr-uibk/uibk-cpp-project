@@ -55,11 +55,6 @@ void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 	}
 }
 
-// void PlayerState::setPosition(sf::Vector2f pos)
-// {
-// 	m_position = pos;
-// }
-
 void PlayerState::setRotation(sf::Angle rot)
 {
 	m_rot = rot;
@@ -233,7 +228,7 @@ bool PlayerState::addToInventory(PowerupType type)
 
 void PlayerState::useItem(size_t const slot)
 {
-	if(slot >= static_cast<int>(m_inventory.size()))
+	if(slot >= m_inventory.size())
 		return;
 
 	PowerupType itemType = m_inventory[slot];

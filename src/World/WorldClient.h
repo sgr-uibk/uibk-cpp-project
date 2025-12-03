@@ -15,9 +15,8 @@ class WorldClient
   public:
 	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players);
 
-	std::optional<sf::Packet> update(sf::Vector2f vector2);
+	std::optional<sf::Packet> update(sf::Vector2f posDelta);
 	void draw(sf::RenderWindow &window) const;
-
 	[[nodiscard]] PlayerState getOwnPlayerState() const
 	{
 		return m_players[m_ownPlayerId - 1].getState();
@@ -28,12 +27,10 @@ class WorldClient
 	void pollEvents();
 
 	bool m_bAcceptInput;
-
 	sf::Clock m_frameClock;
 	sf::Clock m_tickClock;
-	Tick m_clientTick = 0;
-
 	PauseMenuClient m_pauseMenu;
+	Tick m_clientTick = 0;
 
   private:
 	void propagateUpdate(int32_t dt);

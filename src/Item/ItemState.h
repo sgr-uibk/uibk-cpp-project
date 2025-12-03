@@ -10,7 +10,7 @@ class ItemState
 	ItemState();
 	ItemState(uint32_t id, sf::Vector2f position, PowerupType type);
 
-	void update(float dt);
+	void update(int32_t dt);
 
 	uint32_t getId() const
 	{

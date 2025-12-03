@@ -10,7 +10,7 @@ ItemState::ItemState(uint32_t id, sf::Vector2f position, PowerupType type)
 {
 }
 
-void ItemState::update(float dt)
+void ItemState::update([[maybe_unused]] int32_t dt)
 {
 	// items currently don't need per-frame updates
 }

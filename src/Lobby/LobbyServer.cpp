@@ -176,7 +176,7 @@ void LobbyServer::startGame(WorldState &worldState)
 			continue;
 
 		// Every player gets a random spawn point and rotation
-		sf::Angle const rot = sf::degrees(float(rng()) / float(rng.max() / 360));
+		sf::Angle const rot = sf::degrees(360.f * rng() / rng.max());
 		PlayerState ps(c.id, spawns[c.id - 1]);
 
 		ps.m_rot = rot;
@@ -240,29 +240,6 @@ void LobbyServer::broadcastLobbyUpdate()
 			if(checkedSend(p.tcpSocket, updatePkt) != sf::Socket::Status::Done)
 			{
 				SPDLOG_LOGGER_WARN(m_logger, "Failed to send LOBBY_UPDATE to {} (id {})", p.name, p.id);
-			}
-		}
-	}
-
-	SPDLOG_LOGGER_DEBUG(m_logger, "Broadcasted lobby update to {} players", numPlayers);
-}
-
-void LobbyServer::broadcastServerShutdown()
-{
-	SPDLOG_LOGGER_INFO(m_logger, "Broadcasting SERVER_SHUTDOWN to all clients");
-	sf::Packet shutdownPkt = createPkt(ReliablePktType::SERVER_SHUTDOWN);
-
-	for(auto &p : m_slots)
-	{
-		if(p.bValid)
-		{
-			if(checkedSend(p.tcpSocket, shutdownPkt) != sf::Socket::Status::Done)
-			{
-				SPDLOG_LOGGER_WARN(m_logger, "Failed to send SERVER_SHUTDOWN to {} (id {})", p.name, p.id);
-			}
-			else
-			{
-				SPDLOG_LOGGER_INFO(m_logger, "Sent SERVER_SHUTDOWN to {} (id {})", p.name, p.id);
 			}
 		}
 	}

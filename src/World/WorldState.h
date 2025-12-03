@@ -22,6 +22,9 @@ struct WorldState
 	uint32_t addProjectile(sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId, int damage = 25);
 	void removeProjectile(uint32_t id);
 	void removeInactiveProjectiles();
+	uint32_t addItem(sf::Vector2f position, PowerupType type);
+	void removeItem(uint32_t id);
+	void removeInactiveItems();
 	std::vector<ProjectileState> &getProjectiles()
 	{
 		return m_projectiles;
@@ -30,10 +33,6 @@ struct WorldState
 	{
 		return m_projectiles;
 	}
-
-	uint32_t addItem(sf::Vector2f position, PowerupType type);
-	void removeItem(uint32_t id);
-	void removeInactiveItems();
 	std::vector<ItemState> &getItems()
 	{
 		return m_items;
@@ -54,7 +53,6 @@ struct WorldState
 
 	WorldState &operator=(WorldState const &);
 
-  private:
 	MapState m_map;
 	std::array<PlayerState, MAX_PLAYERS> m_players;
 	std::vector<ProjectileState> m_projectiles;

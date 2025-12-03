@@ -71,25 +71,28 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 
 	if(m_itemBar.handleItemUse())
 	{
-		sf::Packet pkt = createPkt(UnreliablePktType::USE_ITEM);
+		sf::Packet pkt = createTickedPkt(UnreliablePktType::USE_ITEM, m_clientTick);
 		pkt << m_ownPlayerId;
 		pkt << m_itemBar.getSelection();
 		return std::optional(pkt);
 	}
+
 	// TODO Can't shoot and move in the same frame like this
 	bool const shoot =
 		sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Space) || sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
 	if(shoot && m_state.getPlayerById(m_ownPlayerId).canShoot())
 	{
-		sf::Packet pkt = createPkt(UnreliablePktType::SHOOT);
+		sf::Packet pkt = createTickedPkt(UnreliablePktType::SHOOT, m_clientTick);
 		pkt << m_ownPlayerId;
 		pkt << aimAngle;
 		return std::optional(pkt);
 	}
+
 	if(posDelta != sf::Vector2f{0, 0})
 	{ // now we can safely normalize
 		posDelta *= UNRELIABLE_TICK_HZ / (RENDER_TICK_HZ * posDelta.length());
 		m_interp.predictMovement(posDelta);
+
 		if(bServerTickExpired)
 		{
 			sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
@@ -138,19 +141,19 @@ void WorldClient::applyServerSnapshot(WorldState const &snapshot)
 	for(size_t i = 0; i < m_players.size(); ++i)
 		m_players[i].applyServerState(states[i]);
 
-	const auto &projectileStates = m_state.getProjectiles();
+	auto const &projectileStates = m_state.getProjectiles();
 	m_projectiles.clear();
 	m_projectiles.reserve(projectileStates.size());
-	for(const auto &projState : projectileStates)
+	for(auto const &projState : projectileStates)
 	{
 		if(projState.isActive())
 			m_projectiles.emplace_back(projState);
 	}
 
-	const auto &itemStates = m_state.getItems();
+	auto const &itemStates = m_state.getItems();
 	m_items.clear();
 	m_items.reserve(itemStates.size());
-	for(const auto &itemState : itemStates)
+	for(auto const &itemState : itemStates)
 	{
 		if(itemState.isActive())
 			m_items.emplace_back(itemState);
@@ -188,6 +191,7 @@ void WorldClient::pollEvents()
 				m_pauseMenu.handleClick(mousePos);
 			}
 		}
+
 		else if(auto const *scrollEvent = event->getIf<sf::Event::MouseWheelScrolled>())
 		{
 			if(m_window.hasFocus() && !m_pauseMenu.isPaused())

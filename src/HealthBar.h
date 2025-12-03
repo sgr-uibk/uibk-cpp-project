@@ -18,7 +18,7 @@ class HealthBar : public sf::Drawable, public sf::Transformable
 	int getHealth() const;
 	int getMaxHealth() const;
 
-	void update(float dt);
+	void update(int32_t dt);
 	void healthCallback(int health, int max);
 
   private:

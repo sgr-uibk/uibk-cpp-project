@@ -11,7 +11,7 @@ class ProjectileClient
 
 	void draw(sf::RenderWindow &window) const;
 
-	void update(float dt);
+	void update(int32_t dt);
 
 	uint32_t getId() const
 	{
