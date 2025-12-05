@@ -51,7 +51,7 @@ void WorldClient::propagateUpdate(float dt)
 
 std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 {
-	int32_t const frameDelta = m_frameClock.restart().asSeconds();
+	float const frameDelta = m_frameClock.restart().asSeconds();
 	m_clientTick++;
 	bool const bServerTickExpired = m_tickClock.getElapsedTime().asSeconds() >= UNRELIABLE_TICK_TIME;
 	if(bServerTickExpired)
@@ -65,9 +65,7 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 	sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
 	sf::Vector2f mouseWorldPos = m_window.mapPixelToCoords(mousePixelPos, m_worldView);
 	sf::Vector2f playerPos = m_state.getPlayerById(m_ownPlayerId).getPosition();
-	sf::Vector2f aimDir = mouseWorldPos - playerPos;
-	float aimRad = std::atan2(aimDir.x, -aimDir.y);
-	sf::Angle aimAngle = sf::radians(aimRad);
+	sf::Angle aimAngle = playerPos.angleTo(mouseWorldPos);
 
 	if(m_itemBar.handleItemUse())
 	{
