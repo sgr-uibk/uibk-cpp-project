@@ -27,7 +27,7 @@ LobbyClient::~LobbyClient()
 void LobbyClient::bindGameSocket()
 {
 	auto status = sf::Socket::Status::NotReady;
-	for(uint16_t i = 0; i < MAX_PLAYERS + 1; ++i)
+	for(uint16_t i = 1; i < MAX_PLAYERS + 1; ++i)
 	{
 		uint16_t const gamePort = PORT_UDP + i;
 		status = m_gameSock.bind(gamePort);
