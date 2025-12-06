@@ -8,7 +8,7 @@ PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
 	  m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_nameText(m_font, m_state.m_name, 14)
 {
 	updateSprite();
-	m_sprite.setPosition(m_state.m_pos);
+	m_sprite.setPosition(m_state.m_iState.m_pos);
 
 	m_nameText.setFillColor(sf::Color::White);
 	m_nameText.setOutlineColor(sf::Color::Black);
@@ -62,10 +62,15 @@ sf::Angle lerp(sf::Angle const &a, sf::Angle const &b, float t)
 	return a + t * delta;
 }
 
-void PlayerClient::interp(PlayerState const &s0, PlayerState const &s1, float const alpha)
+void PlayerClient::interp(InterpPlayerState const &s0, InterpPlayerState const &s1, float const alpha)
 {
-	this->m_state.m_pos = lerp(s0.m_pos, s1.m_pos, alpha);
-	this->m_state.m_rot = lerp(s0.m_rot, s1.m_rot, alpha);
+	this->m_state.m_iState.m_pos = lerp(s0.m_pos, s1.m_pos, alpha);
+	this->m_state.m_iState.m_rot = lerp(s0.m_rot, s1.m_rot, alpha);
+}
+
+void PlayerClient::overwriteInterpState(InterpPlayerState authState)
+{
+	m_state.m_iState.overwriteBy(authState);
 }
 
 void PlayerClient::updateSprite()
@@ -80,8 +85,8 @@ void PlayerClient::updateSprite()
 
 void PlayerClient::syncSpriteToState()
 {
-	m_sprite.setPosition(m_state.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f));
-	m_sprite.setRotation(m_state.m_rot);
+	m_sprite.setPosition(m_state.m_iState.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f));
+	m_sprite.setRotation(m_state.m_iState.m_rot);
 
 	if(m_state.m_health <= 0)
 		m_sprite.setTexture(m_deadTex);
@@ -94,7 +99,7 @@ void PlayerClient::syncSpriteToState()
 void PlayerClient::updateNameText()
 {
 	sf::FloatRect textBounds = m_nameText.getLocalBounds();
-	sf::Vector2f tankCenter = m_state.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+	sf::Vector2f tankCenter = m_state.m_iState.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 
 	sf::Vector2f textPos(tankCenter.x - textBounds.size.x / 2.f - textBounds.position.x,
 	                     tankCenter.y - tankDimensions.y / 2.f - 18.f // 18 pixels above tank

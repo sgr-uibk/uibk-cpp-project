@@ -5,12 +5,12 @@
 
 struct LobbyPlayer
 {
-	uint32_t id{0};
-	std::string name;
-	bool bValid{false};
-	bool bReady{false};
+	uint32_t id = 0;
+	std::string name = "Invalid";
+	bool bValid = false;
+	bool bReady = false;
 	sf::IpAddress udpAddr;
-	uint16_t gamePort;
+	uint16_t gamePort = 0;
 	sf::TcpSocket tcpSocket;
 };
 
@@ -20,7 +20,7 @@ class LobbyServer
 	explicit LobbyServer(uint16_t tcpPort);
 	~LobbyServer();
 	void lobbyLoop(); // blocks until all players ready
-	void startGame(WorldState &worldState);
+	WorldState startGame();
 	void deduplicatePlayerName(std::string &name) const;
 	void endGame(EntityId winner);
 

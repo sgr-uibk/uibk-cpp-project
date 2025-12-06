@@ -20,8 +20,7 @@ int main(int argc, char **argv)
 	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting Client. TCP port {}, UDP port {}, name {}", lobbyPort, gamePort,
 	                   playerName);
 
-	LobbyClient lobbyClient(playerName, {serverAddr, lobbyPort});
-
+	LobbyClient lobbyClient(playerName, Endpoint{.ip = serverAddr, .port = lobbyPort});
 	lobbyClient.connect();
 
 	sf::RenderWindow window(sf::VideoMode(WINDOW_DIM), "TankGame Client", sf::Style::Resize);

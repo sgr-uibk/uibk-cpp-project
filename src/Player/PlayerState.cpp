@@ -1,19 +1,47 @@
 #include "Player/PlayerState.h"
 #include "Map/MapState.h"
 #include "Networking.h"
+#include "World/WorldState.h"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
-PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth)
-	: m_id(id), m_name(""), m_pos(pos), m_rot(rot), m_maxHealth(maxHealth), m_health(maxHealth)
+void InterpPlayerState::overwriteBy(InterpPlayerState const auth)
+{
+	*this = std::move(auth);
+}
+sf::Packet &operator>>(sf::Packet &pkt, InterpPlayerState &obj)
+{
+	pkt >> obj.m_pos >> obj.m_rot;
+	return pkt;
+}
+
+sf::Packet &operator<<(sf::Packet &pkt, InterpPlayerState const &obj)
+{
+	pkt << obj.m_pos << obj.m_rot;
+	return pkt;
+}
+
+PlayerState::PlayerState(EntityId id, sf::Vector2f pos, sf::Angle rot, int maxHealth)
+	: m_id(id), m_name(""), m_iState(pos, rot), m_maxHealth(maxHealth)
+{
+}
+PlayerState::PlayerState(EntityId id, InterpPlayerState ips, int maxHealth)
+	: m_id(id), m_iState(ips), m_maxHealth(maxHealth)
 {
 }
 
-PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, int maxHealth) : PlayerState(id, pos, sf::degrees(0), maxHealth)
+void PlayerState::assignSnappedState(PlayerState const &other)
+{
+	auto const iS = this->m_iState;
+	*this = other;
+	this->m_iState = iS;
+}
+
+PlayerState::PlayerState(EntityId id, sf::Vector2f pos, int maxHealth) : PlayerState(id, pos, sf::degrees(0), maxHealth)
 {
 }
 
-PlayerState::PlayerState(sf::Packet pkt)
+PlayerState::PlayerState(EntityId id, sf::Packet &pkt) : m_id(id)
 {
 	deserialize(pkt);
 }
@@ -37,27 +65,24 @@ void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 	constexpr float tankMoveSpeed = 5.f;
 	posDelta *= tankMoveSpeed * getSpeedMultiplier();
 	sf::RectangleShape nextShape(logicalDimensions);
-	nextShape.setPosition(m_pos + posDelta);
+	nextShape.setPosition(m_iState.m_pos + posDelta);
 
 	if(map.isColliding(nextShape))
-	{
-		// player crashed against something, deal them damage
+	{ // player crashed against something, deal them damage
 		takeDamage(10);
 	}
 	else
-	{
-		// no collision, let them move there
-		m_pos += posDelta;
-
+	{ // no collision, let them move there
+		m_iState.m_pos += posDelta;
 		float const angRad = std::atan2(posDelta.x, -posDelta.y);
 		sf::Angle const rot = sf::radians(angRad);
-		m_rot = rot;
+		m_iState.m_rot = rot;
 	}
 }
 
 void PlayerState::setRotation(sf::Angle rot)
 {
-	m_rot = rot;
+	m_iState.m_rot = rot;
 }
 
 void PlayerState::takeDamage(int amount)
@@ -143,7 +168,7 @@ void PlayerState::applyPowerup(PowerupType type)
 
 bool PlayerState::hasPowerup(PowerupType type) const
 {
-	for(const auto &powerup : m_powerups)
+	for(auto const &powerup : m_powerups)
 	{
 		if(powerup.type == type && powerup.isActive())
 			return true;
@@ -151,9 +176,9 @@ bool PlayerState::hasPowerup(PowerupType type) const
 	return false;
 }
 
-const PowerupEffect *PlayerState::getPowerup(PowerupType type) const
+PowerupEffect const *PlayerState::getPowerup(PowerupType type) const
 {
-	for(const auto &powerup : m_powerups)
+	for(auto const &powerup : m_powerups)
 	{
 		if(powerup.type == type && powerup.isActive())
 			return &powerup;
@@ -189,12 +214,12 @@ uint32_t PlayerState::getPlayerId() const
 
 sf::Vector2f PlayerState::getPosition() const
 {
-	return m_pos;
+	return m_iState.m_pos;
 }
 
 sf::Angle PlayerState::getRotation() const
 {
-	return m_rot;
+	return m_iState.m_rot;
 }
 
 int PlayerState::getHealth() const
@@ -247,15 +272,15 @@ PowerupType PlayerState::getInventoryItem(int slot) const
 
 void PlayerState::serialize(sf::Packet &pkt) const
 {
-	pkt << m_id << m_pos << m_rot << m_health << m_maxHealth;
+	pkt << m_iState << m_health << m_maxHealth;
 	pkt << m_shootCooldown.getRemaining();
 
-	for(const auto &powerup : m_powerups)
+	for(auto const &powerup : m_powerups)
 	{
 		powerup.serialize(pkt);
 	}
 
-	for(const auto &item : m_inventory)
+	for(auto const &item : m_inventory)
 	{
 		pkt << static_cast<uint8_t>(item);
 	}
@@ -263,7 +288,7 @@ void PlayerState::serialize(sf::Packet &pkt) const
 
 void PlayerState::deserialize(sf::Packet &pkt)
 {
-	pkt >> m_id >> m_pos >> m_rot >> m_health >> m_maxHealth;
+	pkt >> m_iState >> m_health >> m_maxHealth;
 
 	float cooldownRemaining;
 	pkt >> cooldownRemaining;

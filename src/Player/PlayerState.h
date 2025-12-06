@@ -9,13 +9,30 @@
 #include "Powerup.h"
 #include "GameConfig.h"
 
+struct InterpPlayerState
+{
+	InterpPlayerState() = default; // delete
+	InterpPlayerState(sf::Vector2f const pos, sf::Angle const rot) : m_pos(pos), m_rot(rot)
+	{
+	}
+	InterpPlayerState(sf::Packet &pkt)
+	{
+		pkt >> m_pos >> m_rot;
+	}
+	void overwriteBy(InterpPlayerState auth);
+	sf::Vector2f m_pos;
+	sf::Angle m_rot;
+};
+sf::Packet &operator>>(sf::Packet &pkt, InterpPlayerState &obj);
+sf::Packet &operator<<(sf::Packet &pkt, InterpPlayerState const &obj);
+
 struct PlayerState
 {
-	PlayerState() = default;
-	PlayerState(sf::Packet pkt);
-	PlayerState(uint32_t id, sf::Vector2f pos, int maxHealth = 100);
-	PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth = 100);
-
+	PlayerState(EntityId id, sf::Vector2f pos, int maxHealth = 100);
+	PlayerState(EntityId id, sf::Packet &pkt);
+	PlayerState(EntityId id, sf::Vector2f pos, sf::Angle rot, int maxHealth = 100);
+	PlayerState(EntityId id, InterpPlayerState ips, int maxHealth = 100);
+	void assignSnappedState(PlayerState const &other);
 	// Simulation
 	void update(float dt);
 	void moveOn(MapState const &map, sf::Vector2f posDelta);
@@ -55,8 +72,7 @@ struct PlayerState
 
 	EntityId m_id;
 	std::string m_name;
-	sf::Vector2f m_pos;
-	sf::Angle m_rot;
+	InterpPlayerState m_iState;
 	int m_maxHealth;
 	int m_health = m_maxHealth;
 	Cooldown m_shootCooldown{GameConfig::Player::SHOOT_COOLDOWN};

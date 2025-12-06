@@ -164,39 +164,50 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 	}
 }
 
-void LobbyServer::startGame(WorldState &worldState)
+template <std::size_t Sz, std::size_t... I>
+std::array<PlayerState, Sz> make_player_init_impl(std::vector<sf::Vector2f> const &spawns, std::mt19937_64 &rng,
+                                                  std::index_sequence<I...>)
 {
+	// compute rotation per index by calling rng; evaluated left-to-right due to comma fold below
+	// we must ensure rng is called exactly once per element; use a lambda to call rng and produce rot
+	auto make_one = [&](auto idx) {
+		(void)idx;
+		sf::Angle rot = sf::radians(float(rng()) / float(rng.max()));
+		return PlayerState(static_cast<int>(idx + 1), spawns[idx], rot);
+	};
+
+	// Expand to initialize the array. Use a lambda to force left-to-right evaluation order.
+	return {make_one(I)...};
+}
+
+template <std::size_t Sz>
+std::array<PlayerState, Sz> make_player_init(std::vector<sf::Vector2f> const &spawns, std::mt19937_64 &rng)
+{
+	return make_player_init_impl<Sz>(spawns, rng, std::make_index_sequence<Sz>{});
+}
+
+WorldState LobbyServer::startGame()
+{
+	auto const mapSize = WINDOW_DIMf;
+	MapState map(mapSize); // for now, later we'll randomly select a map here
+
 	static std::mt19937_64 rng{}; // deterministic spawn points
-	auto spawns = worldState.getMap().getSpawns();
-	std::shuffle(spawns.begin(), spawns.end(), rng);
-	for(auto const &c : m_slots)
-	{
-		if(!c.bValid)
-			continue;
+	auto spawns = map.getSpawns();
+	std::ranges::shuffle(spawns, rng);
 
-		// Every player gets a random spawn point and rotation
-		sf::Angle const rot = sf::degrees(360.f * rng() / rng.max());
-		PlayerState ps(c.id, spawns[c.id - 1]);
-
-		ps.m_rot = rot;
-		worldState.setPlayer(ps);
-	}
+	auto playerInit = make_player_init<MAX_PLAYERS>(spawns, rng);
 
 	sf::Packet startPkt = createPkt(ReliablePktType::GAME_START);
-	auto const &playerStates = worldState.getPlayers();
-	startPkt << playerStates.size();
-	for(auto const &playerState : playerStates)
-	{
-		startPkt << playerState.getPosition() << playerState.getRotation();
-	}
-	// Distribute spawn points with GAME_START pkt
-	for(auto &p : m_slots)
-	{
-		if(!p.bValid)
+	serializePlayerStateArray<MAX_PLAYERS>(startPkt, playerInit, std::make_index_sequence<MAX_PLAYERS>{});
+
+	for(auto &lp : m_slots)
+	{ // Distribute spawn points with GAME_START pkt
+		if(!lp.bValid)
 			continue;
-		if(checkedSend(p.tcpSocket, startPkt) != sf::Socket::Status::Done)
-			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send GAME_START to {} (id {})", p.name, p.id);
+		if(checkedSend(lp.tcpSocket, startPkt) != sf::Socket::Status::Done)
+			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send GAME_START to {} (id {})", lp.name, lp.id);
 	}
+	return WorldState{mapSize, std::move(playerInit)};
 }
 
 void LobbyServer::endGame(EntityId winner)

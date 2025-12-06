@@ -70,15 +70,7 @@ void LobbyClient::connect()
 		if(type == uint8_t(ReliablePktType::JOIN_ACK))
 		{
 			std::string assignedName;
-			joinAckPkt >> m_clientId >> assignedName;
-
-			if(assignedName != m_name)
-			{
-				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Name changed from '{}' to '{}' due to duplicate", m_name,
-				                   assignedName);
-				m_name = assignedName;
-			}
-
+			joinAckPkt >> m_clientId >> m_name;
 			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Joined lobby, got id {} with name '{}'", m_clientId, m_name);
 		}
 		else
@@ -150,35 +142,12 @@ bool LobbyClient::pollLobbyUpdate()
 		LobbyPlayerInfo playerInfo;
 		updatePkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
 		m_lobbyPlayers.push_back(playerInfo);
-		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "  Player {}: '{}' (ready={})", playerInfo.id, playerInfo.name,
+		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Player {}: '{}' (ready={})", playerInfo.id, playerInfo.name,
 		                   playerInfo.bReady);
 	}
 
 	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Received lobby update with {} players", numPlayers);
 	return true;
-}
-
-std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packet &pkt)
-{
-	std::array<PlayerState, MAX_PLAYERS> states{};
-	for(auto &state : states)
-		state.m_id = 0;
-
-	size_t numPlayers;
-	pkt >> numPlayers;
-	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Received GAME_START for {} players", numPlayers);
-
-	for(unsigned i = 0; i < numPlayers; ++i)
-	{
-		sf::Vector2f pos;
-		sf::Angle rot;
-		pkt >> pos >> rot;
-
-		states[i] = PlayerState(i + 1, pos, rot);
-		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg",
-		                   i + 1, m_lobbyPlayers[i].name, pos.x, pos.y, rot.asDegrees());
-	}
-	return states;
 }
 
 std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::waitForGameStart(sf::Time const timeout)
@@ -218,7 +187,7 @@ std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::waitForGameStar
 			break;
 		}
 		case uint8_t(ReliablePktType::GAME_START):
-			return parseGameStartPacket(startPkt);
+			return deserializePlayerStateArray<MAX_PLAYERS>(startPkt, std::make_index_sequence<MAX_PLAYERS>{});
 
 		default:
 			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Unhandled reliable packet type: {}.", type);

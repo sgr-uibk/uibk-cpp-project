@@ -17,7 +17,7 @@ struct LobbyPlayerInfo
 class LobbyClient
 {
   public:
-	explicit LobbyClient(const std::string &name, Endpoint lobbyServer = {sf::IpAddress::LocalHost, PORT_TCP});
+	explicit LobbyClient(std::string const &name, Endpoint lobbyServer = {sf::IpAddress::LocalHost, PORT_TCP});
 	~LobbyClient();
 	void bindGameSocket();
 	void connect();
@@ -30,7 +30,7 @@ class LobbyClient
 		return m_bReady;
 	}
 
-	[[nodiscard]] const std::vector<LobbyPlayerInfo> &getLobbyPlayers() const
+	[[nodiscard]] std::vector<LobbyPlayerInfo> const &getLobbyPlayers() const
 	{
 		return m_lobbyPlayers;
 	}
@@ -44,6 +44,4 @@ class LobbyClient
   private:
 	bool m_bReady;
 	std::vector<LobbyPlayerInfo> m_lobbyPlayers;
-
-	std::array<PlayerState, MAX_PLAYERS> parseGameStartPacket(sf::Packet &pkt);
 };

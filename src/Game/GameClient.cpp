@@ -44,10 +44,12 @@ void GameClient::processUnreliablePackets()
 	   st == sf::Socket::Status::Done)
 	{
 		Tick const authTick = expectTickedPkt(snapPkt, UnreliablePktType::SNAPSHOT);
-		if(WorldState const *snapState = m_world.m_interp.storeSnapshot(authTick, snapPkt))
-		{
-			m_world.m_interp.syncLocalPlayer(*snapState);
-			m_world.applyNonInterpState(*snapState);
+		WorldState const worldSnap(snapPkt);
+
+		if(m_world.m_interp.storeSnapshot(authTick, std::move(snapPkt), worldSnap))
+		{ // The received state is new and can be applied
+			m_world.m_interp.correctLocalPlayer(worldSnap);
+			m_world.applyNonInterpState(worldSnap);
 		}
 	}
 	else if(st != sf::Socket::Status::NotReady)

@@ -9,8 +9,8 @@
 
 struct WorldState
 {
-	WorldState();
-	explicit WorldState(sf::Vector2f mapSize);
+	explicit WorldState(sf::Packet &pkt);                                               // Client
+	WorldState(sf::Vector2f mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit); // Server
 	void update(float dt);
 	void setPlayer(PlayerState const &p);
 
@@ -49,9 +49,11 @@ struct WorldState
 
 	// serialization (full snapshot)
 	void serialize(sf::Packet &pkt) const;
-	void deserialize(sf::Packet &pkt);
 
-	WorldState &operator=(WorldState const &);
+	WorldState &operator=(WorldState const &) = delete;
+	WorldState &operator=(WorldState &) = delete;
+	WorldState &operator=(WorldState) = delete;
+	void assignExcludingInterp(WorldState const &);
 
 	MapState m_map;
 	std::array<PlayerState, MAX_PLAYERS> m_players;
@@ -59,4 +61,6 @@ struct WorldState
 	std::vector<ItemState> m_items;
 	uint32_t m_nextProjectileId{1};
 	uint32_t m_nextItemId{1};
+private:
+	void deserialize(sf::Packet &pkt);
 };
