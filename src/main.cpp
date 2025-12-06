@@ -13,8 +13,7 @@
 #include "Game/GameClient.h"
 #include "World/WorldClient.h"
 
-void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<PlayerState, MAX_PLAYERS> &playerStates,
-                 std::shared_ptr<spdlog::logger> logger)
+void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<PlayerState, MAX_PLAYERS> &playerStates)
 {
 	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting game with player ID {}", lobbyClient.m_clientId);
 
@@ -68,8 +67,7 @@ int main()
 
 	Menu menu(WINDOW_DIM);
 	sf::Music &menuMusic = initMusic("audio/menu_loop.ogg");
-	std::unique_ptr<LobbyServer> lobbyServer;
-	std::unique_ptr<LobbyClient> joinLobbyClient;
+	std::unique_ptr<LobbyClient> lobbyClient;
 	bool clientReady = false;
 
 	while(window.isOpen())
@@ -109,7 +107,7 @@ int main()
 			break;
 		}
 
-		if(menu.shouldConnect() && menu.getState() == Menu::State::JOIN_LOBBY && !joinLobbyClient)
+		if(menu.shouldConnect() && menu.getState() == Menu::State::JOIN_LOBBY && !lobbyClient)
 		{
 			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Connecting to game at {}:{} as player '{}'", menu.getServerIp(),
 			                   menu.getServerPort(), menu.getPlayerName());
@@ -122,9 +120,9 @@ int main()
 					throw std::runtime_error("Failed to resolve IP address: " + menu.getServerIp());
 				}
 
-				joinLobbyClient = std::make_unique<LobbyClient>(menu.getPlayerName(),
-				                                                Endpoint{ipAddress.value(), menu.getServerPort()});
-				joinLobbyClient->connect();
+				lobbyClient = std::make_unique<LobbyClient>(menu.getPlayerName(),
+				                                            Endpoint{ipAddress.value(), menu.getServerPort()});
+				lobbyClient->connect();
 
 				menu.setState(Menu::State::LOBBY_CLIENT);
 				menu.setTitle("IN LOBBY");
@@ -135,58 +133,54 @@ int main()
 			catch(std::exception const &e)
 			{
 				SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to connect to server: {}", e.what());
-				joinLobbyClient.reset();
+				lobbyClient.reset();
 			}
 			menu.clearConnectFlag();
 		}
 
 		// reset join lobby client if we left the lobby client screen
-		if(menu.getState() != Menu::State::LOBBY_CLIENT && joinLobbyClient)
+		if(menu.getState() != Menu::State::LOBBY_CLIENT && lobbyClient)
 		{
 			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Left lobby client screen, disconnecting...");
-			joinLobbyClient.reset();
+			lobbyClient.reset();
 			clientReady = false;
 		}
 
-		if(menu.getState() == Menu::State::LOBBY_CLIENT && joinLobbyClient)
+		if(menu.getState() == Menu::State::LOBBY_CLIENT && lobbyClient)
 		{
 			try
 			{
-				auto gameStartResult = joinLobbyClient->waitForGameStart(sf::milliseconds(100));
+				auto gameStartResult = lobbyClient->waitForGameStart(sf::milliseconds(100));
 				if(gameStartResult.has_value())
 				{
 					SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Client received GAME_START packet, starting game...");
 
 					menuMusic.stop();
-
-					runGameLoop(window, *joinLobbyClient, *gameStartResult, logger);
-
-					joinLobbyClient.reset();
+					runGameLoop(window, *lobbyClient, *gameStartResult);
 					clientReady = false;
-					menu.reset();
 				}
 				else
 				{
-					joinLobbyClient->pollLobbyUpdate();
-					menu.updateLobbyDisplay(joinLobbyClient->getLobbyPlayers());
+					lobbyClient->pollLobbyUpdate();
+					menu.updateLobbyDisplay(lobbyClient->getLobbyPlayers());
 					menu.updateClientButton(clientReady);
 				}
 			}
 			catch(ServerShutdownException const &e)
 			{
 				SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Server has shut down: {}", e.what());
-				joinLobbyClient.reset();
+				lobbyClient.reset();
 				clientReady = false;
 				menu.reset();
 			}
 		}
 
-		if(menu.shouldStartGame() && menu.getState() == Menu::State::LOBBY_CLIENT && joinLobbyClient)
+		if(menu.shouldStartGame() && menu.getState() == Menu::State::LOBBY_CLIENT && lobbyClient)
 		{
 			if(!clientReady)
 			{
 				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Client marked as ready");
-				joinLobbyClient->sendReady();
+				lobbyClient->sendReady();
 				clientReady = true;
 			}
 			menu.clearStartGameFlag();
