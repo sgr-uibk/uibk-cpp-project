@@ -1,5 +1,6 @@
 #include "WorldClient.h"
 
+#include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -226,18 +227,51 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	gameBackground.setFillColor(sf::Color(200, 200, 200));
 	window.draw(gameBackground);
 
-	m_mapClient.draw(window);
+	// Draw ground layer first
+	m_mapClient.drawGroundTiles(window);
 
-	for(auto const &item : m_items)
-		item.draw(window);
+	std::vector<RenderObject> renderQueue;
+	renderQueue.reserve(2000); // Pre-allocate space for better performance
 
-	for(auto const &proj : m_projectiles)
-		proj.draw(window);
+	m_mapClient.collectWallSprites(renderQueue);
 
 	for(auto const &pc : m_players)
 	{
-		if(pc.getState().m_id != 0)
-			pc.draw(window);
+		if(pc.getState().m_id != 0 && pc.getState().isAlive())
+		{
+			pc.collectRenderObjects(renderQueue);
+		}
+	}
+
+	for(auto const &item : m_items)
+	{
+		if(item.getState().isActive())
+		{
+			RenderObject obj;
+			sf::Vector2f pos = item.getShape().getPosition();
+			obj.sortY = pos.y;
+			obj.drawable = &item.getShape();
+			renderQueue.push_back(obj);
+		}
+	}
+
+	for(auto const &proj : m_projectiles)
+	{
+		if(proj.getState().isActive())
+		{
+			RenderObject obj;
+			sf::Vector2f pos = proj.getShape().getPosition();
+			obj.sortY = pos.y;
+			obj.drawable = &proj.getShape();
+			renderQueue.push_back(obj);
+		}
+	}
+
+	std::sort(renderQueue.begin(), renderQueue.end());
+
+	for(const auto &obj : renderQueue)
+	{
+		obj.draw(window);
 	}
 
 	// visible border around game area

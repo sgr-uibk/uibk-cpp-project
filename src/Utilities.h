@@ -2,7 +2,7 @@
 #include <spdlog/logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <stdexcept>
-#include "Networking.h"
+#include <SFML/Graphics.hpp>
 
 constexpr char DEFAULT_PATTERN[] = "[%L %T %P <%n> %s:%#\t] %^%v%$";
 
@@ -49,3 +49,24 @@ inline sf::Vector2f isoToCartesian(sf::Vector2f iso)
 
 	return {cartX, cartY};
 }
+
+// Render queue structure for Y-sorting
+struct RenderObject
+{
+	float sortY = 0.0f; // Y coordinate for depth sorting
+	const sf::Drawable *drawable = nullptr; // Pointer to persistent drawable
+	std::optional<sf::Sprite> tempSprite; // For temporary sprites (e.g., wall tiles)
+
+	void draw(sf::RenderWindow &window) const
+	{
+		if(tempSprite.has_value())
+			window.draw(*tempSprite);
+		else if(drawable)
+			window.draw(*drawable);
+	}
+
+	bool operator<(const RenderObject &other) const
+	{
+		return sortY < other.sortY;
+	}
+};

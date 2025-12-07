@@ -72,13 +72,6 @@ void PlayerClient::update(float dt)
 	updateNameText();
 }
 
-void PlayerClient::draw(sf::RenderWindow &window) const
-{
-	window.draw(m_hullSprite);
-	window.draw(m_turretSprite);
-	window.draw(m_nameText);
-}
-
 void PlayerClient::applyServerState(const PlayerState &serverState)
 {
 	int prevHealth = m_state.m_health;
@@ -153,4 +146,27 @@ void PlayerClient::updateNameText()
 	                     isoTankCenter.y - tankDimensions.y / 2.f - 18.f // 18 pixels above tank
 	);
 	m_nameText.setPosition(textPos);
+}
+
+void PlayerClient::collectRenderObjects(std::vector<RenderObject> &queue) const
+{
+	sf::Vector2f isoPos = m_hullSprite.getPosition();
+	float depthY = isoPos.y;
+	// Add hull
+	RenderObject hullObj;
+	hullObj.sortY = depthY;
+	hullObj.drawable = &m_hullSprite;
+	queue.push_back(hullObj);
+
+	// Add turret
+	RenderObject turretObj;
+	turretObj.sortY = depthY + 0.1f;
+	turretObj.drawable = &m_turretSprite;
+	queue.push_back(turretObj);
+
+	// Add name text
+	RenderObject textObj;
+	textObj.sortY = depthY + 1.0f;
+	textObj.drawable = &m_nameText;
+	queue.push_back(textObj);
 }

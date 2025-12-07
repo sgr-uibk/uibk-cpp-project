@@ -1,5 +1,6 @@
 #include "MapClient.h"
 #include "ResourceManager.h"
+#include "Utilities.h"
 #include <vector>
 #include <spdlog/spdlog.h>
 #include <filesystem>
@@ -29,13 +30,6 @@ MapClient::MapClient(MapState &state) : m_state(state)
 			spdlog::error("Failed to resolve tileset path: {} - {}", tileset->imagePath, e.what());
 		}
 	}
-}
-
-void MapClient::draw(sf::RenderWindow &window) const
-{
-	drawGroundTiles(window);
-
-	drawWallTiles(window);
 }
 
 sf::Vector2f MapClient::isoToScreen(int tileX, int tileY, int tileWidth, int tileHeight) const
@@ -152,6 +146,66 @@ void MapClient::drawWallTiles(sf::RenderWindow &window) const
 			tileSprite.setTextureRect(sf::IntRect({srcX, srcY}, {tileSpriteW, tileSpriteH}));
 			tileSprite.setPosition(spritePos);
 			window.draw(tileSprite);
+		}
+	}
+}
+
+void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
+{
+	if(!m_tilesetTexture.has_value())
+		return;
+
+	const auto &wallsLayer = m_state.getWallsLayer();
+	const auto &tileset = m_state.getTileset();
+
+	if(!wallsLayer.has_value() || !tileset.has_value())
+		return;
+
+	const int mapWidth = wallsLayer->width;
+	const int mapHeight = wallsLayer->height;
+	const int tileSpriteW = tileset->tileWidth;
+	const int tileSpriteH = tileset->tileHeight;
+	const int mapTileW = tileset->mapTileWidth;
+	const int mapTileH = tileset->mapTileHeight;
+	const int columns = tileset->columns;
+	const int firstGid = tileset->firstGid;
+
+	for(int y = 0; y < mapHeight; ++y)
+	{
+		for(int x = 0; x < mapWidth; ++x)
+		{
+			int idx = y * mapWidth + x;
+			int tileId = wallsLayer->data[idx];
+
+			if(tileId == 0)
+				continue;
+
+			const WallState *wall = m_state.getWallAtGridPos(x, y);
+			if(wall && wall->isDestroyed())
+				continue;
+
+			int tileIndex = tileId - firstGid;
+			if(tileIndex < 0)
+				continue;
+
+			int srcX = (tileIndex % columns) * tileSpriteW;
+			int srcY = (tileIndex / columns) * tileSpriteH;
+
+			sf::Vector2f p = isoToScreen(x, y, mapTileW, mapTileH);
+			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f, p.y - tileSpriteH + mapTileH);
+
+			// Create sprite and calculate depth
+			sf::Sprite tileSprite(*m_tilesetTexture);
+			tileSprite.setTextureRect(sf::IntRect({srcX, srcY}, {tileSpriteW, tileSpriteH}));
+			tileSprite.setPosition(spritePos);
+
+			// Sort by bottom of sprite (foot of the wall)
+			float depthY = spritePos.y + tileSpriteH;
+
+			RenderObject obj;
+			obj.sortY = depthY;
+			obj.tempSprite = tileSprite;
+			queue.push_back(obj);
 		}
 	}
 }

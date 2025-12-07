@@ -9,13 +9,21 @@ class ItemClient
 
 	void syncSpriteToState(const ItemState &state);
 
-	void draw(sf::RenderWindow &window) const;
-
 	void update(float dt);
 
 	uint32_t getId() const
 	{
 		return m_state.getId();
+	}
+
+	const sf::RectangleShape &getShape() const
+	{
+		return m_shape;
+	}
+
+	const ItemState &getState() const
+	{
+		return m_state;
 	}
 
   private:

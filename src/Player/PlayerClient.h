@@ -4,6 +4,9 @@
 #include <SFML/Graphics.hpp>
 #include <functional>
 #include <array>
+#include <vector>
+
+struct RenderObject;
 
 class PlayerClient
 {
@@ -14,7 +17,7 @@ class PlayerClient
 	PlayerClient(const PlayerClient &) = default;
 
 	void update(float dt);
-	void draw(sf::RenderWindow &window) const;
+	void collectRenderObjects(std::vector<RenderObject> &queue) const;
 
 	// apply authoritative server state (reconciliation)
 	void applyServerState(const PlayerState &serverState);

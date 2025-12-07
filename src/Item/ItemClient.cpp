@@ -35,14 +35,6 @@ void ItemClient::update(float dt)
 	m_shape.setPosition(sf::Vector2f(isoPos.x, isoPos.y + bobOffset));
 }
 
-void ItemClient::draw(sf::RenderWindow &window) const
-{
-	if(m_state.isActive())
-	{
-		window.draw(m_shape);
-	}
-}
-
 sf::Color ItemClient::getColorForType(PowerupType type)
 {
 	switch(type)

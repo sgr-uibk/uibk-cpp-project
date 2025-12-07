@@ -9,13 +9,21 @@ class ProjectileClient
 
 	void syncSpriteToState(const ProjectileState &state);
 
-	void draw(sf::RenderWindow &window) const;
-
 	void update(float dt);
 
 	uint32_t getId() const
 	{
 		return m_state.getId();
+	}
+
+	const sf::CircleShape &getShape() const
+	{
+		return m_shape;
+	}
+
+	const ProjectileState &getState() const
+	{
+		return m_state;
 	}
 
   private:
