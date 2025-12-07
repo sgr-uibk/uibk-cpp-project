@@ -8,9 +8,9 @@
 #include "Item/ItemState.h"
 #include "Networking.h"
 
-class WorldState
+struct WorldState
 {
-  public:
+	WorldState();
 	explicit WorldState(sf::Vector2f mapSize);
 	static WorldState fromTiledMap(const std::string &tiledJsonPath);
 	void update(float dt);
@@ -18,30 +18,29 @@ class WorldState
 
 	std::array<PlayerState, MAX_PLAYERS> &getPlayers();
 	PlayerState &getPlayerById(size_t id);
-	const PlayerState &getPlayerById(size_t id) const;
+	PlayerState const &getPlayerById(size_t id) const;
 	[[nodiscard]] MapState &getMap();
 	[[nodiscard]] const MapState &getMap() const;
 
 	uint32_t addProjectile(sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId, int damage = 25);
 	void removeProjectile(uint32_t id);
 	void removeInactiveProjectiles();
+	uint32_t addItem(sf::Vector2f position, PowerupType type);
+	void removeItem(uint32_t id);
+	void removeInactiveItems();
 	std::vector<ProjectileState> &getProjectiles()
 	{
 		return m_projectiles;
 	}
-	const std::vector<ProjectileState> &getProjectiles() const
+	std::vector<ProjectileState> const &getProjectiles() const
 	{
 		return m_projectiles;
 	}
-
-	uint32_t addItem(sf::Vector2f position, PowerupType type);
-	void removeItem(uint32_t id);
-	void removeInactiveItems();
 	std::vector<ItemState> &getItems()
 	{
 		return m_items;
 	}
-	const std::vector<ItemState> &getItems() const
+	std::vector<ItemState> const &getItems() const
 	{
 		return m_items;
 	}
@@ -59,12 +58,9 @@ class WorldState
 	void serialize(sf::Packet &pkt) const;
 	void deserialize(sf::Packet &pkt);
 
-	WorldState &operator=(const WorldState &);
+	WorldState &operator=(WorldState const &);
 
-  private:
 	MapState m_map;
-	// Players are not removed on disconnect,
-	// as others can't join in the battle phase anyway.
 	std::array<PlayerState, MAX_PLAYERS> m_players;
 	std::vector<ProjectileState> m_projectiles;
 	std::vector<ItemState> m_items;

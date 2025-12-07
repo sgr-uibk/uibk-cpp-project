@@ -63,18 +63,17 @@ void PlayerState::setRotation(sf::Angle rot)
 	m_rot = rot;
 }
 
-void PlayerState::takeDamage(int const amount)
+void PlayerState::takeDamage(int amount)
 {
-	int remainingDamage = amount;
 
 	// check for shield powerup
 	for(auto &powerup : m_powerups)
 	{
 		if(powerup.type == PowerupType::SHIELD && powerup.value > 0)
 		{
-			int shieldAbsorbed = std::min(remainingDamage, powerup.value);
+			int shieldAbsorbed = std::min(amount, powerup.value);
 			powerup.value -= shieldAbsorbed;
-			remainingDamage -= shieldAbsorbed;
+			amount -= shieldAbsorbed;
 
 			// deactivate shield if depleted
 			if(powerup.value <= 0)
@@ -84,9 +83,9 @@ void PlayerState::takeDamage(int const amount)
 		}
 	}
 
-	if(remainingDamage > 0)
+	if(amount > 0)
 	{
-		m_health = std::max(0, m_health - remainingDamage);
+		m_health = std::max(0, m_health - amount);
 	}
 }
 
@@ -131,7 +130,7 @@ void PlayerState::applyPowerup(PowerupType type)
 			// apply instant effects
 			if(type == PowerupType::HEALTH_PACK)
 			{
-				heal(PowerupConstants::HEALTH_PACK_HEAL);
+				heal(GameConfig::Powerup::HEALTH_PACK_HEAL);
 			}
 			return;
 		}
@@ -141,7 +140,7 @@ void PlayerState::applyPowerup(PowerupType type)
 	m_powerups[0].apply(type);
 	if(type == PowerupType::HEALTH_PACK)
 	{
-		heal(PowerupConstants::HEALTH_PACK_HEAL);
+		heal(GameConfig::Powerup::HEALTH_PACK_HEAL);
 	}
 }
 
@@ -168,21 +167,21 @@ const PowerupEffect *PlayerState::getPowerup(PowerupType type) const
 float PlayerState::getSpeedMultiplier() const
 {
 	if(hasPowerup(PowerupType::SPEED_BOOST))
-		return PowerupConstants::SPEED_BOOST_MULTIPLIER;
+		return GameConfig::Powerup::SPEED_BOOST_MULTIPLIER;
 	return 1.f;
 }
 
 int PlayerState::getDamageMultiplier() const
 {
 	if(hasPowerup(PowerupType::DAMAGE_BOOST))
-		return PowerupConstants::DAMAGE_BOOST_MULTIPLIER;
+		return GameConfig::Powerup::DAMAGE_BOOST_MULTIPLIER;
 	return 1;
 }
 
 float PlayerState::getShootCooldown() const
 {
 	if(hasPowerup(PowerupType::RAPID_FIRE))
-		return PowerupConstants::RAPID_FIRE_COOLDOWN;
+		return GameConfig::Powerup::RAPID_FIRE_COOLDOWN;
 	return GameConfig::Player::SHOOT_COOLDOWN;
 }
 
@@ -239,24 +238,17 @@ bool PlayerState::addToInventory(PowerupType type)
 	return false;
 }
 
-void PlayerState::useSelectedItem()
+void PlayerState::useItem(size_t const slot)
 {
-	if(m_selectedSlot < 0 || m_selectedSlot >= static_cast<int>(m_inventory.size()))
+	if(slot >= m_inventory.size())
 		return;
 
-	PowerupType itemType = m_inventory[m_selectedSlot];
+	PowerupType itemType = m_inventory[slot];
 	if(itemType == PowerupType::NONE)
 		return;
 
 	applyPowerup(itemType);
-
-	m_inventory[m_selectedSlot] = PowerupType::NONE;
-}
-
-void PlayerState::setSelectedSlot(int slot)
-{
-	if(slot >= 0 && slot < static_cast<int>(m_inventory.size()))
-		m_selectedSlot = slot;
+	m_inventory[slot] = PowerupType::NONE;
 }
 
 PowerupType PlayerState::getInventoryItem(int slot) const
@@ -268,12 +260,7 @@ PowerupType PlayerState::getInventoryItem(int slot) const
 
 void PlayerState::serialize(sf::Packet &pkt) const
 {
-	pkt << m_id;
-	pkt << m_pos;
-	pkt << m_rot;
-	pkt << m_cannonRot;
-	pkt << m_health;
-	pkt << m_maxHealth;
+	pkt << m_id << m_pos << m_rot << m_cannonRot << m_health << m_maxHealth;
 	pkt << m_shootCooldown.getRemaining();
 	pkt << static_cast<int32_t>(m_kills);
 	pkt << static_cast<int32_t>(m_deaths);
@@ -287,17 +274,11 @@ void PlayerState::serialize(sf::Packet &pkt) const
 	{
 		pkt << static_cast<uint8_t>(item);
 	}
-	pkt << static_cast<int32_t>(m_selectedSlot);
 }
 
 void PlayerState::deserialize(sf::Packet &pkt)
 {
-	pkt >> m_id;
-	pkt >> m_pos;
-	pkt >> m_rot;
-	pkt >> m_cannonRot;
-	pkt >> m_health;
-	pkt >> m_maxHealth;
+	pkt >> m_id >> m_pos >> m_rot >> m_cannonRot >> m_health >> m_maxHealth;
 
 	float cooldownRemaining;
 	pkt >> cooldownRemaining;
@@ -319,10 +300,4 @@ void PlayerState::deserialize(sf::Packet &pkt)
 		pkt >> itemType;
 		item = static_cast<PowerupType>(itemType);
 	}
-	int32_t selectedSlot;
-	pkt >> selectedSlot;
-	m_selectedSlot = selectedSlot;
-
-	// assert(m_health >= 0);
-	// assert(m_maxHealth >= 0);
 }

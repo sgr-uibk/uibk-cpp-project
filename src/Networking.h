@@ -9,10 +9,18 @@ constexpr uint16_t PORT_TCP = 25106;
 // https://learn.microsoft.com/en-us/gaming/gdk/docs/features/console/networking/game-mesh/preferred-local-udp-multiplayer-port-networking
 constexpr uint16_t PORT_UDP = 3074;
 constexpr uint32_t PROTOCOL_VERSION = 1;
-constexpr float UNRELIABLE_TICK_RATE = 1.f / 20;
+constexpr int32_t RENDER_TICK_HZ = 60;
+constexpr int32_t UNRELIABLE_TICK_HZ = 20;
+constexpr float UNRELIABLE_TICK_TIME = 1.f / UNRELIABLE_TICK_HZ;
 constexpr sf::Vector2u WINDOW_DIM{1920, 1280};
 constexpr sf::Vector2f WINDOW_DIMf{WINDOW_DIM};
 typedef uint32_t EntityId;
+typedef int32_t Tick;
+template <typename T> struct Ticked
+{
+	Tick tick;
+	T obj;
+};
 
 constexpr uint8_t MAX_PLAYERS = 4;
 constexpr std::array ALL_PLAYER_COLORS{sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta};
@@ -39,12 +47,9 @@ enum class ReliablePktType : uint8_t
 	JOIN_REQ = 1,
 	JOIN_ACK,
 	LOBBY_READY,
-	LOBBY_UNREADY,
 	LOBBY_UPDATE,       // srv -> clients: broadcast lobby state updates
-	START_GAME_REQUEST, // host requests to start game               --- can be removed
 	GAME_START,
 	GAME_END,
-	SERVER_SHUTDOWN,
 	PLAYER_LEFT, // TODO
 	_size
 };
@@ -53,7 +58,6 @@ enum class UnreliablePktType : uint8_t
 {
 	MOVE = 1,
 	SHOOT,
-	SELECT_SLOT,
 	USE_ITEM,
 	SNAPSHOT,
 	LAST
@@ -64,6 +68,13 @@ template <typename E> sf::Packet createPkt(E type)
 	static_assert(std::is_enum_v<E>);
 	sf::Packet pkt;
 	pkt << static_cast<uint8_t>(type);
+	return pkt;
+}
+
+template <typename E> sf::Packet createTickedPkt(E type, Tick tick)
+{
+	sf::Packet pkt = createPkt<E>(type);
+	pkt << tick;
 	return pkt;
 }
 
@@ -79,6 +90,14 @@ template <typename E> void expectPkt(sf::Packet &pkt, E expectedType)
 		                            std::to_string(static_cast<uint8_t>(expectedType)) + ")";
 		throw std::runtime_error(message);
 	}
+}
+
+template <typename E> Tick expectTickedPkt(sf::Packet &pkt, E expectedType)
+{
+	expectPkt(pkt, expectedType);
+	Tick tick;
+	pkt >> tick;
+	return tick;
 }
 
 // Data is guaranteed to be fully sent/received even for non-blocking TCP sockets.
@@ -133,7 +152,7 @@ inline sf::Socket::Status checkedReceive(sf::UdpSocket &sock, sf::Packet &pkt,
 	return st;
 }
 
-inline sf::Packet &operator<<(sf::Packet &pkt, const sf::Vector2f &vec)
+inline sf::Packet &operator<<(sf::Packet &pkt, sf::Vector2f const &vec)
 {
 	pkt << vec.x;
 	pkt << vec.y;
@@ -147,7 +166,7 @@ inline sf::Packet &operator>>(sf::Packet &pkt, sf::Vector2f &vec)
 	return pkt;
 }
 
-inline sf::Packet &operator<<(sf::Packet &pkt, const sf::Angle &ang)
+inline sf::Packet &operator<<(sf::Packet &pkt, sf::Angle const &ang)
 {
 	pkt << ang.asRadians();
 	return pkt;
@@ -179,5 +198,19 @@ inline sf::Packet &operator>>(sf::Packet &pkt, sf::RectangleShape &rec)
 	rec.setSize(sz);
 	rec.setPosition(pos);
 	rec.setFillColor(sf::Color(colorInt));
+	return pkt;
+}
+
+template <size_t Sz> sf::Packet operator<<(sf::Packet &pkt, std::array<Tick, Sz> const &arr)
+{
+	for(size_t i = 0; i < Sz; ++i)
+		pkt << arr[i];
+	return pkt;
+}
+
+template <size_t Sz> sf::Packet operator>>(sf::Packet &pkt, std::array<Tick, Sz> &arr)
+{
+	for(size_t i = 0; i < Sz; ++i)
+		pkt >> arr[i];
 	return pkt;
 }

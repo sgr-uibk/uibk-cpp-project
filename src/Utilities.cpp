@@ -1,4 +1,5 @@
 #include "Utilities.h"
+#include "ResourceManager.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
@@ -24,4 +25,14 @@ std::shared_ptr<spdlog::logger> createConsoleAndFileLogger(std::string const &na
 	logger->set_pattern(DEFAULT_PATTERN);
 
 	return logger;
+}
+
+sf::Music &initMusic(std::string const &resourcePath, bool const bStartPlaying)
+{
+	sf::Music &music = MusicManager::inst().load(resourcePath);
+	music.setLooping(true);
+	if(bStartPlaying)
+		music.play();
+
+	return music;
 }

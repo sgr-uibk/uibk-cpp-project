@@ -22,11 +22,8 @@ class LobbyClient
 	void bindGameSocket();
 	void connect();
 	void sendReady();
-	void sendUnready();
-	void sendStartGame();
 	bool pollLobbyUpdate();
-	std::array<PlayerState, MAX_PLAYERS> waitForGameStart();
-	std::optional<std::array<PlayerState, MAX_PLAYERS>> checkForGameStart(); // Non-blocking check
+	std::optional<std::array<PlayerState, MAX_PLAYERS>> waitForGameStart(sf::Time timeout);
 
 	[[nodiscard]] bool getReadiness() const
 	{
@@ -51,7 +48,6 @@ class LobbyClient
 
   private:
 	bool m_bReady;
-	std::shared_ptr<spdlog::logger> m_logger;
 	std::string m_loggerName; // Store original logger name for proper cleanup
 	std::vector<LobbyPlayerInfo> m_lobbyPlayers;
 

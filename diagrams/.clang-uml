@@ -1,0 +1,66 @@
+compilation_database_dir: ../build
+output_directory: .
+
+diagrams:
+  TankGame_PacketsStates:
+    type: class
+    glob:
+      - ../src/*/*State.cpp
+      - ../src/Networking.h
+    exclude:
+      namespaces:
+        - std
+        - sf
+      relationships:
+        - dependency
+      elements:
+        - AssetPathResolver
+        - ResourceManager
+        - ReliablePktType
+        - UnreliablePktType
+        - Endpoint
+
+  TankGame_StatesClients:
+    type: class
+    glob:
+      - ../src/*/*Client.cpp
+    exclude:
+      namespaces:
+        - std
+        - sf
+      relationships:
+        - dependency
+      elements:
+        - AssetPathResolver
+        - ResourceManager
+        - ReliablePktType
+        - UnreliablePktType
+        - Endpoint
+
+  TankGamePackets:
+    type: class
+    glob:
+      - ../src/ResourceManager.h
+      - ../src/Utilities.cpp
+      - ../src/Map/Map.cpp
+    exclude:
+      namespaces:
+        - std
+        - sf
+      relationships:
+        - dependency
+      elements:
+        - AssetPathResolver
+        - ResourceManager
+        - Endpoint
+
+  TankGameClassesAll:
+    type: class
+    glob:
+      - ../src/*/*.cpp
+    exclude:
+      namespaces:
+        - std
+        - sf
+      relationships:
+        - dependency

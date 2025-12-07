@@ -5,8 +5,8 @@
 
 HealthBar::HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth)
 	: m_maxHealth(maxHealth), m_health(maxHealth), m_midThreshold(3 * maxHealth / 4), m_lowThreshold(maxHealth / 4),
-	  m_highColor(80, 200, 60), m_midColor(240, 200, 64), m_lowColor(220, 60, 60), m_size(size),
-	  m_font(ResourceManager<sf::Font>::inst().load("Font/LiberationSans-Regular.ttf")), m_text(m_font)
+	  m_highColor(80, 200, 60), m_midColor(240, 200, 64), m_lowColor(220, 60, 60), m_size(size), m_text(m_font),
+	  m_font(ResourceManager<sf::Font>::inst().load("Font/LiberationSans-Regular.ttf"))
 {
 	// Appearance inherited from Shape
 	m_bg.setSize(m_size);
@@ -23,18 +23,18 @@ HealthBar::HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth)
 	setPositionScreen(position);
 }
 
-void HealthBar::setMaxHealth(const int max)
+void HealthBar::setMaxHealth(int const max)
 {
 	m_maxHealth = max;
 	m_health = std::min(m_health, m_maxHealth);
 }
 
-void HealthBar::setHealth(const int health)
+void HealthBar::setHealth(int const health)
 {
 	m_health = health;
 }
 
-void HealthBar::setPositionScreen(const sf::Vector2f &pos)
+void HealthBar::setPositionScreen(sf::Vector2f const &pos)
 {
 	setPosition(pos);
 	m_bg.setPosition(pos);
@@ -43,21 +43,21 @@ void HealthBar::setPositionScreen(const sf::Vector2f &pos)
 	m_text.setPosition({pos.x + 6.f, pos.y + (m_size.y - m_text.getCharacterSize()) / 2.f - 2.f});
 }
 
-void HealthBar::setFont(const sf::Font &font)
+void HealthBar::setFont(sf::Font const &font)
 {
 	m_font = font;
 	m_text.setFont(font);
 	setPositionScreen(getPosition());
 }
 
-void HealthBar::setTextVisible(const bool visible)
+void HealthBar::setTextVisible(bool const visible)
 {
 	sf::Color c = m_text.getFillColor();
 	c.a = visible ? 255 : 0; // use alpha channel to hide if invisible
 	m_text.setFillColor(c);
 }
 
-void HealthBar::setFillColors(const sf::Color &high, const sf::Color &mid, const sf::Color &low)
+void HealthBar::setFillColors(sf::Color const &high, sf::Color const &mid, sf::Color const &low)
 {
 	m_highColor = high;
 	m_midColor = mid;
@@ -74,12 +74,12 @@ int HealthBar::getMaxHealth() const
 	return m_maxHealth;
 }
 
-void HealthBar::update(float const dt)
+void HealthBar::update([[maybe_unused]] float dt)
 {
 	updateVisuals();
 }
 
-void HealthBar::healthCallback(const int health, const int max)
+void HealthBar::healthCallback(int const health, int const max)
 {
 	setMaxHealth(max);
 	setHealth(health);
@@ -107,7 +107,7 @@ void HealthBar::updateVisuals()
 	else
 		m_fill.setFillColor(m_lowColor);
 
-	const int shownHealth = static_cast<int>(std::round(m_health));
-	const int shownMaxHealth = static_cast<int>(std::round(m_maxHealth));
+	int const shownHealth = static_cast<int>(std::round(m_health));
+	int const shownMaxHealth = static_cast<int>(std::round(m_maxHealth));
 	m_text.setString(std::to_string(shownHealth) + " / " + std::to_string(shownMaxHealth));
 }

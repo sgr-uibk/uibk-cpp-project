@@ -3,6 +3,8 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <stdexcept>
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio/Music.hpp>
+#include "Networking.h"
 
 constexpr char DEFAULT_PATTERN[] = "[%L %T %P <%n> %s:%#\t] %^%v%$";
 
@@ -70,3 +72,5 @@ struct RenderObject
 		return sortY < other.sortY;
 	}
 };
+
+sf::Music &initMusic(std::string const &resourcePath, bool bStartPlaying = true);

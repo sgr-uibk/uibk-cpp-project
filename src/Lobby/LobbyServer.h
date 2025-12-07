@@ -20,23 +20,12 @@ struct LobbyPlayer
 class LobbyServer
 {
   public:
-	LobbyServer(uint16_t tcpPort, const std::shared_ptr<spdlog::logger> &logger);
+	explicit LobbyServer(uint16_t tcpPort);
 	~LobbyServer();
 	void lobbyLoop(); // blocks until all players ready
-	WorldState startGame(WorldState &worldState);
-	void requestShutdown();
-	bool isShutdownRequested() const
-	{
-		return m_shutdownRequested;
-	}
-	void setGameInProgress(bool inProgress)
-	{
-		m_gameInProgress = inProgress;
-	}
-	bool isGameInProgress() const
-	{
-		return m_gameInProgress;
-	}
+	void startGame(WorldState &worldState);
+	void deduplicatePlayerName(std::string &name) const;
+	void endGame(EntityId winner);
 	void resetLobbyState();
 	void updatePlayerStats(const std::array<PlayerState, MAX_PLAYERS> &playerStates);
 
@@ -46,14 +35,11 @@ class LobbyServer
 	void acceptNewClient();
 	void handleClient(LobbyPlayer &);
 	void broadcastLobbyUpdate();
-	void broadcastServerShutdown();
 
 	sf::TcpListener m_listener;
 	sf::SocketSelector m_multiSock;
 	uint32_t m_nextId = 1;
-	std::shared_ptr<spdlog::logger> m_logger;
-	uint8_t m_cReady;
+	uint8_t m_cReady = 0;
 	bool m_gameStartRequested = false;
-	bool m_shutdownRequested = false;
 	bool m_gameInProgress = false;
 };

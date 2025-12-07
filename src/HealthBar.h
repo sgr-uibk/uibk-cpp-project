@@ -11,10 +11,10 @@ class HealthBar : public sf::Drawable, public sf::Transformable
 	HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth = 100);
 	void setMaxHealth(int max);
 	void setHealth(int health);
-	void setPositionScreen(const sf::Vector2f &pos);
-	void setFont(const sf::Font &font);
+	void setPositionScreen(sf::Vector2f const &pos);
+	void setFont(sf::Font const &font);
 	void setTextVisible(bool visible);
-	void setFillColors(const sf::Color &high, const sf::Color &mid, const sf::Color &low);
+	void setFillColors(sf::Color const &high, sf::Color const &mid, sf::Color const &low);
 	int getHealth() const;
 	int getMaxHealth() const;
 

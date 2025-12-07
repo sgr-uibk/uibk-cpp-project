@@ -3,9 +3,8 @@
 #include "GameConfig.h"
 #include <spdlog/spdlog.h>
 
-GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_ptr<spdlog::logger> const &logger)
-	: m_gamePort(gamePort), m_world(WorldState::fromTiledMap("map/arena.json")), m_numAlive(MAX_PLAYERS),
-	  m_logger(logger), m_lobby(lobbyServer)
+GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort)
+	: m_gamePort(gamePort), m_world(WorldState::fromTiledMap("map/arena.json")), m_lobby(lobbyServer)
 {
 	for(auto const &p : lobbyServer.m_slots)
 	{
@@ -14,7 +13,7 @@ GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_
 	sf::Socket::Status status = m_gameSock.bind(m_gamePort);
 	if(status != sf::Socket::Status::Done)
 	{
-		SPDLOG_LOGGER_ERROR(logger, "Failed to bind UDP port {}: {}", m_gamePort, int(status));
+		SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to bind UDP port {}: {}", m_gamePort, int(status));
 		throw std::runtime_error("Failed to bind UDP port");
 	}
 	m_gameSock.setBlocking(false);
@@ -30,7 +29,8 @@ GameServer::~GameServer()
 
 PlayerState *GameServer::matchLoop()
 {
-	while(m_numAlive > 1 && !m_lobby.isShutdownRequested())
+	PlayerState *pWinner = nullptr;
+	while(true)
 	{
 		// Clear wall deltas from previous tick
 		m_world.clearWallDeltas();
@@ -39,10 +39,11 @@ PlayerState *GameServer::matchLoop()
 		checkPlayerConnections();
 
 		// maintain fixed tick rate updates
-		float dt = m_tickClock.restart().asSeconds();
-		if(dt < UNRELIABLE_TICK_RATE)
-			sf::sleep(sf::seconds(UNRELIABLE_TICK_RATE - dt));
-		m_world.update(UNRELIABLE_TICK_RATE);
+		float dt = m_tickClock.getElapsedTime().asSeconds();
+		sf::sleep(sf::seconds(UNRELIABLE_TICK_TIME - dt));
+		m_tickClock.restart();
+		++m_authTick;
+		m_world.update(UNRELIABLE_TICK_TIME);
 
 		spawnItems();
 
@@ -53,83 +54,68 @@ PlayerState *GameServer::matchLoop()
 		m_world.removeInactiveProjectiles();
 		m_world.removeInactiveItems();
 
-		floodWorldState();
-
-		int numAlive = 0;
-		PlayerState *pWinner = nullptr;
+		size_t cAlive = 0;
 		for(auto &p : m_world.getPlayers())
 		{
-			if(p.isAlive())
-			{
-				numAlive++;
+			bool const bAlive = p.isAlive();
+			cAlive += bAlive;
+			if(bAlive)
 				pWinner = &p;
-				SPDLOG_LOGGER_DEBUG(m_logger, "Player {} is alive: hp={}, pos=({},{})", p.m_id, p.getHealth(),
-				                    p.getPosition().x, p.getPosition().y);
-			}
 		}
-		if(numAlive == 1)
+
+		switch(cAlive)
 		{
-			SPDLOG_LOGGER_INFO(m_logger, "Game ended, winner {}.", pWinner->m_id);
+		case 1:
+			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Game ended, winner {}.", pWinner->m_id);
 			return pWinner;
-		}
-		if(numAlive == 0)
-		{
-			// Technically possible that all players die in the same tick
-			SPDLOG_LOGGER_WARN(m_logger, "Game ended in a draw.");
-			break;
+		case 0: // Technically possible that all players die in the same tick
+			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Game ended in a draw.");
+			return nullptr;
+		default:
+			floodWorldState();
 		}
 	}
-
-	if(m_lobby.isShutdownRequested())
-	{
-		SPDLOG_LOGGER_INFO(m_logger, "Game ended due to server shutdown request");
-	}
-
-	return nullptr;
 }
 
 void GameServer::processPackets()
 {
-	// process ALL available packets
-	while(true)
+	sf::Packet rxPkt;
+	std::optional<sf::IpAddress> srcAddrOpt;
+	uint16_t srcPort;
+	while(checkedReceive(m_gameSock, rxPkt, srcAddrOpt, srcPort) == sf::Socket::Status::Done)
 	{
-		sf::Packet rxPkt;
-		std::optional<sf::IpAddress> srcAddrOpt;
-		uint16_t srcPort;
-
-		if(checkedReceive(m_gameSock, rxPkt, srcAddrOpt, srcPort) != sf::Socket::Status::Done)
-			break;
-
 		uint8_t type;
-		rxPkt >> type;
+		Tick tick;
+		rxPkt >> type >> tick;
 		switch(UnreliablePktType(type))
 		{
 		case UnreliablePktType::MOVE: {
 			uint32_t clientId;
 			sf::Vector2f posDelta;
 			sf::Angle cannonAngle;
-			rxPkt >> clientId;
-			rxPkt >> posDelta;
-			rxPkt >> cannonAngle;
+			rxPkt >> clientId >> posDelta >> cannonAngle;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
+				if(m_lastClientTicks[clientId - 1] >= tick)
+				{
+					SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Outdated pkt from {}, (know {}, got {})", clientId,
+					                   m_lastClientTicks[clientId - 1], tick);
+					break;
+				}
+				m_lastClientTicks[clientId - 1] = tick;
 				PlayerState &ps = m_world.getPlayerById(clientId);
-
 				ps.moveOn(m_world.getMap(), posDelta);
 				ps.setCannonRotation(cannonAngle);
-				SPDLOG_LOGGER_INFO(m_logger, "Recv MOVE id {} pos=({},{}), rotDeg={}, cannonDeg={}", clientId,
-				                   ps.m_pos.x, ps.m_pos.y, ps.m_rot.asDegrees(), ps.m_cannonRot.asDegrees());
 			}
 			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping MOVE packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Dropping packet from invalid player id {}", clientId);
 			break;
 		}
 		case UnreliablePktType::SHOOT: {
 			uint32_t clientId;
 			sf::Angle cannonAngle;
-			rxPkt >> clientId;
-			rxPkt >> cannonAngle;
+			rxPkt >> clientId >> cannonAngle;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
@@ -153,47 +139,35 @@ void GameServer::processPackets()
 					// Apply damage multiplier from powerups
 					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
 					m_world.addProjectile(position, velocity, clientId, damage);
-					SPDLOG_LOGGER_INFO(m_logger, "Player {} shoots at angle {} (damage={})", clientId,
-					                   cannonAngle.asDegrees(), damage);
+					SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} shoots at t={}, angle={} (damage={})", clientId,
+					                   tick, cannonAngle.asDegrees(), damage);
 				}
 			}
 			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping SHOOT packet from invalid player id {}", clientId);
-			break;
-		}
-		case UnreliablePktType::SELECT_SLOT: {
-			uint32_t clientId;
-			int32_t slot;
-			rxPkt >> clientId;
-			rxPkt >> slot;
-			auto const &states = m_world.getPlayers();
-			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
-			{
-				PlayerState &ps = m_world.getPlayerById(clientId);
-				ps.setSelectedSlot(slot);
-				SPDLOG_LOGGER_DEBUG(m_logger, "Player {} selected slot {}", clientId, slot);
-			}
-			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping SELECT_SLOT packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping SHOOT packet from invalid player id {}", clientId);
 			break;
 		}
 		case UnreliablePktType::USE_ITEM: {
 			uint32_t clientId;
-			rxPkt >> clientId;
+			size_t slot;
+			rxPkt >> clientId >> slot;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
 				PlayerState &ps = m_world.getPlayerById(clientId);
-				ps.useSelectedItem();
-				SPDLOG_LOGGER_INFO(m_logger, "Player {} used item from slot {}", clientId, ps.getSelectedSlot());
+				ps.useItem(slot);
+				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} used item at t={}, slot #{}", clientId, tick,
+				                   slot);
 			}
 			else
-				SPDLOG_LOGGER_WARN(m_logger, "Dropping USE_ITEM packet from invalid player id {}", clientId);
+				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping USE_ITEM packet from invalid player id {}",
+				                   clientId);
 			break;
 		}
 		default:
 			std::string srcAddr = srcAddrOpt.has_value() ? srcAddrOpt.value().toString() : std::string("?");
-			SPDLOG_LOGGER_WARN(m_logger, "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr, srcPort);
+			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr,
+			                   srcPort);
 		}
 	}
 }
@@ -214,13 +188,13 @@ void GameServer::spawnItems()
 			sf::Vector2f position(x, y);
 			PowerupType type = static_cast<PowerupType>(1 + (rand() % 5));
 			m_world.addItem(position, type);
-			SPDLOG_LOGGER_INFO(m_logger, "Spawned random powerup type {} at ({}, {})", static_cast<int>(type), x, y);
+			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Spawned random powerup type {} at ({}, {})", static_cast<int>(type), x, y);
 		}
 		else
 		{
 			const ItemSpawnZone &zone = itemSpawnZones[m_nextItemSpawnIndex];
 			m_world.addItem(zone.position, zone.itemType);
-			SPDLOG_LOGGER_INFO(m_logger, "Spawned powerup type {} at ({}, {}) from map spawn zone",
+			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Spawned powerup type {} at ({}, {}) from map spawn zone",
 			                   static_cast<int>(zone.itemType), zone.position.x, zone.position.y);
 
 			m_nextItemSpawnIndex = (m_nextItemSpawnIndex + 1) % itemSpawnZones.size();
@@ -230,17 +204,9 @@ void GameServer::spawnItems()
 
 void GameServer::floodWorldState()
 {
-	int numAlive = 0;
-	for(auto &p : m_world.getPlayers())
-		numAlive += p.isAlive();
-	if(numAlive <= 1)
-	{
-		SPDLOG_LOGGER_INFO(m_logger, "Game ended, alive players: {}. Returning to lobby.", numAlive);
-		return;
-	}
-
 	// flood snapshots to all known clients
-	sf::Packet snapPkt = createPkt(UnreliablePktType::SNAPSHOT);
+	sf::Packet snapPkt = createTickedPkt(UnreliablePktType::SNAPSHOT, m_authTick);
+	snapPkt << m_lastClientTicks;
 	m_world.serialize(snapPkt);
 	for(LobbyPlayer &p : m_lobby.m_slots)
 	{
@@ -248,7 +214,8 @@ void GameServer::floodWorldState()
 			continue;
 		if(checkedSend(m_gameSock, snapPkt, p.udpAddr, p.gamePort) != sf::Socket::Status::Done)
 		{
-			SPDLOG_LOGGER_ERROR(m_logger, "Failed to send snapshot to {}:{}", p.udpAddr.toString(), p.gamePort);
+			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send snapshot to {}:{}", p.udpAddr.toString(),
+			                    p.gamePort);
 		}
 	}
 }
@@ -268,14 +235,14 @@ void GameServer::checkPlayerConnections()
 
 		if(status == sf::Socket::Status::Disconnected)
 		{
-			SPDLOG_LOGGER_WARN(m_logger, "Player {} (id {}) disconnected during game, marking as dead", lobbySlot.name,
+			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Player {} (id {}) disconnected during game, marking as dead", lobbySlot.name,
 			                   lobbySlot.id);
 
 			PlayerState &playerState = m_world.getPlayerById(lobbySlot.id);
 			if(playerState.isAlive())
 			{
 				playerState.takeDamage(playerState.getHealth());
-				SPDLOG_LOGGER_INFO(m_logger, "Player {} eliminated due to disconnect", lobbySlot.id);
+				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} eliminated due to disconnect", lobbySlot.id);
 			}
 		}
 	}

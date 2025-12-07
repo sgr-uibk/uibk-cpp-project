@@ -5,19 +5,25 @@
 #include "Utilities.h"
 #include "Lobby/LobbyClient.h"
 
-GameClient::GameClient(WorldClient &world, LobbyClient &lobby, const std::shared_ptr<spdlog::logger> &logger)
-	: m_world(world), m_lobby(lobby), m_logger(logger),
-	  // TODO, the server needs to send its udp port to the clients, or take control over that away from the users
-	  m_gameServer({lobby.m_lobbySock.getRemoteAddress().value(), PORT_UDP})
+GameClient::GameClient(WorldClient &world, LobbyClient &lobby)
+	: m_world(world), m_lobby(lobby), m_gameServer({lobby.m_lobbySock.getRemoteAddress().value(), PORT_UDP})
+// TODO, the server needs to send its udp port to the clients, or take control over that away from the users
 {
 }
 
 GameClient::~GameClient() = default;
 
-void GameClient::handleUserInputs(sf::RenderWindow &window) const
+void GameClient::update(sf::RenderWindow &window) const
 {
 	m_world.pollEvents();
-	std::optional<sf::Packet> outPktOpt = m_world.update();
+	m_world.m_interp.interpolateEnemies();
+
+	bool const w = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W);
+	bool const s = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S);
+	bool const a = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
+	bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
+	sf::Vector2f const posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
+	std::optional<sf::Packet> outPktOpt = m_world.update(posDelta);
 	m_world.draw(window);
 	window.display();
 
@@ -26,11 +32,11 @@ void GameClient::handleUserInputs(sf::RenderWindow &window) const
 		// WorldClient.update() produces tick-rate-limited packets, so now is the right time to send.
 		if(checkedSend(m_lobby.m_gameSock, outPktOpt.value(), m_gameServer.ip, m_gameServer.port) !=
 		   sf::Socket::Status::Done)
-			SPDLOG_LOGGER_ERROR(m_logger, "UDP send failed");
+			SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "UDP send failed");
 	}
 }
 
-void GameClient::syncFromServer() const
+void GameClient::processUnreliablePackets()
 {
 	sf::Packet snapPkt;
 	std::optional<sf::IpAddress> srcAddrOpt;
@@ -38,16 +44,15 @@ void GameClient::syncFromServer() const
 	if(sf::Socket::Status st = checkedReceive(m_lobby.m_gameSock, snapPkt, srcAddrOpt, srcPort);
 	   st == sf::Socket::Status::Done)
 	{
-		expectPkt(snapPkt, UnreliablePktType::SNAPSHOT);
-		WorldState snapshot{WINDOW_DIMf};
-		snapshot.deserialize(snapPkt);
-		m_world.applyServerSnapshot(snapshot);
-		auto ops = m_world.getOwnPlayerState();
-		SPDLOG_LOGGER_INFO(m_logger, "Applied snapshot: ({:.0f},{:.0f}), {:.0f}°, hp={}", ops.m_pos.x, ops.m_pos.y,
-		                   ops.m_rot.asDegrees(), ops.m_health);
+		Tick const authTick = expectTickedPkt(snapPkt, UnreliablePktType::SNAPSHOT);
+		if(WorldState const *snapState = m_world.m_interp.storeSnapshot(authTick, snapPkt))
+		{
+			m_world.m_interp.syncLocalPlayer(*snapState);
+			m_world.applyNonInterpState(*snapState);
+		}
 	}
 	else if(st != sf::Socket::Status::NotReady)
-		SPDLOG_LOGGER_ERROR(m_logger, "Failed receiving snapshot pkt: {}", (int)st);
+		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed receiving snapshot pkt: {}", (int)st);
 }
 
 // returns whether the game ends
@@ -90,39 +95,14 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 			m_world.showScoreboard(winnerId, playerStats);
 
 			if(m_lobby.m_clientId == winnerId)
-				SPDLOG_LOGGER_INFO(m_logger, "I won the game!", winnerId);
+				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "I won the game!", winnerId);
 			else
-				SPDLOG_LOGGER_INFO(m_logger, "Battle is over, winner id {}, scoreboard displayed.", winnerId);
+				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Battle is over, winner id {}, scoreboard displayed.", winnerId);
 
-			return false;
-		}
-		case uint8_t(ReliablePktType::SERVER_SHUTDOWN): {
-			SPDLOG_LOGGER_WARN(m_logger, "Server shutdown during game");
-			throw ServerShutdownException();
-		}
-		case uint8_t(ReliablePktType::LOBBY_UPDATE): {
-			// Server is broadcasting lobby updates (after game ends when resetLobbyState is called)
-			// We need to parse and update the lobby client's state so it's fresh when we return
-			uint32_t numPlayers;
-			reliablePkt >> numPlayers;
-
-			// Parse all player data
-			std::vector<LobbyPlayerInfo> players;
-			for(uint32_t i = 0; i < numPlayers; ++i)
-			{
-				LobbyPlayerInfo playerInfo;
-				reliablePkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
-				players.push_back(playerInfo);
-			}
-
-			// Update the lobby client's player list
-			m_lobby.updateLobbyPlayers(players);
-
-			SPDLOG_LOGGER_DEBUG(m_logger, "Received LOBBY_UPDATE during game, updated {} players", numPlayers);
-			return false;
+			return true;
 		}
 		default:
-			SPDLOG_LOGGER_WARN(m_logger, "Unhandled reliable packet type: {}, size={}", type,
+			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Unhandled reliable packet type: {}, size={}", type,
 			                   reliablePkt.getDataSize());
 		}
 	}

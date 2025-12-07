@@ -2,10 +2,13 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include "WorldState.h"
+#include "Game/InterpClient.h"
 #include "Player/PlayerClient.h"
 #include "Map/MapClient.h"
 #include "Projectile/ProjectileClient.h"
 #include "Item/ItemClient.h"
+#include "PauseMenuClient.h"
+#include "ItemBarClient.h"
 
 class Scoreboard;
 
@@ -20,51 +23,34 @@ class WorldClient
 		int deaths;
 	};
 
-	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players,
-	            sf::Music *battleMusic = nullptr);
+	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players);
 	~WorldClient();
 
-	std::optional<sf::Packet> update();
+	std::optional<sf::Packet> update(sf::Vector2f posDelta);
 	void draw(sf::RenderWindow &window) const;
-
 	[[nodiscard]] PlayerState getOwnPlayerState() const
 	{
 		return m_players[m_ownPlayerId - 1].getState();
 	}
 
-	void applyServerSnapshot(const WorldState &snapshot);
+	void applyNonInterpState(WorldState const &snapshot);
 	WorldState &getState();
 	void pollEvents();
 	void handleResize(sf::Vector2u newSize);
 
-	bool isPaused() const
-	{
-		return m_isPaused;
-	}
-	bool shouldDisconnect() const
-	{
-		return m_shouldDisconnect;
-	}
-	bool shouldReturnToLobby() const
-	{
-		return m_shouldReturnToLobby;
-	}
-
 	void showScoreboard(EntityId winnerId, const std::vector<PlayerStats> &playerStats = {});
 
 	bool m_bAcceptInput;
-
 	sf::Clock m_frameClock;
 	sf::Clock m_tickClock;
+	PauseMenuClient m_pauseMenu;
+	Tick m_clientTick = 0;
 
   private:
-	void drawPauseMenu(sf::RenderWindow &window) const;
-	void handlePauseMenuClick(sf::Vector2f mousePos);
-	void drawHotbar(sf::RenderWindow &window) const;
-
-	sf::RenderWindow &m_window;
-
+	void propagateUpdate(float dt);
 	WorldState m_state;
+	ItemBarClient m_itemBar;
+	sf::RenderWindow &m_window;
 	MapClient m_mapClient;
 	std::array<PlayerClient, MAX_PLAYERS> m_players;
 	std::vector<ProjectileClient> m_projectiles;
@@ -74,24 +60,13 @@ class WorldClient
 	sf::View m_hudView;
 	float m_zoomLevel = 1.0f;
 
-	enum class PauseMenuState
-	{
-		MAIN,
-		SETTINGS
-	};
-	bool m_isPaused = false;
-	bool m_shouldDisconnect = false;
-	bool m_shouldReturnToLobby = false;
-	PauseMenuState m_pauseMenuState = PauseMenuState::MAIN;
-	sf::Font m_pauseFont;
-	std::vector<sf::RectangleShape> m_pauseButtons;
-	std::vector<sf::Text> m_pauseButtonTexts;
-
 	std::unique_ptr<Scoreboard> m_scoreboard;
 	bool m_slotChangeRequested = false;
 	int m_requestedSlot = 0;
 	bool m_useItemRequested = false;
 
-	sf::Music *m_battleMusic = nullptr;
 	std::optional<sf::Sound> m_shootSound;
+
+  public:
+	InterpClient m_interp;
 };

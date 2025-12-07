@@ -5,6 +5,10 @@
 
 #include <spdlog/spdlog.h>
 
+WorldState::WorldState() : m_map(WINDOW_DIMf), m_players()
+{
+}
+
 WorldState::WorldState(sf::Vector2f mapSize) : m_map(mapSize), m_players()
 {
 }

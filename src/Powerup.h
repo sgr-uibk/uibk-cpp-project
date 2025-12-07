@@ -1,4 +1,5 @@
 #pragma once
+#include "GameConfig.h"
 #include <cstdint>
 #include <SFML/Network.hpp>
 
@@ -16,17 +17,11 @@ struct PowerupEffect
 {
 	PowerupType type = PowerupType::NONE;
 	float duration = 0.f;
-	float maxDuration = 5.f;
 	int value = 0; // shield health remaining
 
 	void update(float dt)
 	{
-		if(duration > 0.f)
-		{
-			duration -= dt;
-			if(duration < 0.f)
-				duration = 0.f;
-		}
+		duration = std::max(0.f, duration - dt);
 	}
 
 	bool isActive() const
@@ -47,28 +42,16 @@ struct PowerupEffect
 
 		switch(type)
 		{
+		case PowerupType::SHIELD:
 		case PowerupType::HEALTH_PACK:
 			duration = 0.f;
-			value = 50; // heal amount
+			value = GameConfig::Powerup::SHIELD_HP; // amount
 			break;
 
 		case PowerupType::SPEED_BOOST:
-			duration = maxDuration;
-			value = 0;
-			break;
-
 		case PowerupType::DAMAGE_BOOST:
-			duration = maxDuration;
-			value = 0;
-			break;
-
-		case PowerupType::SHIELD:
-			duration = 0.f;
-			value = 50; // shield health
-			break;
-
 		case PowerupType::RAPID_FIRE:
-			duration = maxDuration;
+			duration = GameConfig::Powerup::EFFECT_DURATION;
 			value = 0;
 			break;
 
@@ -81,8 +64,7 @@ struct PowerupEffect
 	void serialize(sf::Packet &packet) const
 	{
 		packet << static_cast<uint8_t>(type);
-		packet << duration;
-		packet << static_cast<int32_t>(value);
+		packet << duration << static_cast<int32_t>(value);
 	}
 
 	void deserialize(sf::Packet &packet)
@@ -96,13 +78,3 @@ struct PowerupEffect
 		value = valueVal;
 	}
 };
-
-namespace PowerupConstants
-{
-constexpr float SPEED_BOOST_MULTIPLIER = 1.5f;
-constexpr int DAMAGE_BOOST_MULTIPLIER = 2;
-constexpr float RAPID_FIRE_COOLDOWN = 0.1f;
-constexpr float POWERUP_DURATION = 5.f;
-constexpr int HEALTH_PACK_HEAL = 50;
-constexpr int SHIELD_HP = 50;
-} // namespace PowerupConstants

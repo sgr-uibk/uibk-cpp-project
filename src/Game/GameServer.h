@@ -9,16 +9,15 @@
 class GameServer
 {
   public:
-	explicit GameServer(LobbyServer &lobbyServer, uint16_t gamePort, const std::shared_ptr<spdlog::logger> &logger);
+	explicit GameServer(LobbyServer &lobbyServer, uint16_t gamePort);
 	~GameServer();
-	// Run the match loop (blocking).
-	// Returns the player ids that participated.
 	PlayerState *matchLoop();
 
 	uint16_t m_gamePort;
 	WorldState m_world;
 	sf::Clock m_tickClock;
-	size_t m_numAlive;
+	Tick m_authTick = 0;
+	std::array<int32_t, MAX_PLAYERS> m_lastClientTicks = {0};
 
   private:
 	void processPackets();
@@ -26,7 +25,6 @@ class GameServer
 	void spawnItems();
 	void checkPlayerConnections();
 
-	std::shared_ptr<spdlog::logger> m_logger;
 	sf::UdpSocket m_gameSock;
 	LobbyServer &m_lobby;
 	sf::Clock m_itemSpawnClock;

@@ -4,6 +4,7 @@
 // Gameplay constants
 // ============================================================================
 
+// TODO: Many constants are not used anywhere, use, else remove dead code
 namespace GameConfig
 {
 namespace Player
@@ -59,25 +60,25 @@ namespace UI
 	namespace Text
 	{
 		// Pause menu
-		constexpr const char *PAUSE_TITLE = "PAUSED";
-		constexpr const char *PAUSE_WARNING = "WARNING: You can be killed while paused!";
-		constexpr const char *BUTTON_RESUME = "Resume";
-		constexpr const char *BUTTON_DISCONNECT = "Disconnect";
-		constexpr const char *BUTTON_SETTINGS = "Settings";
-		constexpr const char *BUTTON_BACK = "Back";
+		constexpr char const *PAUSE_TITLE = "PAUSED";
+		constexpr char const *PAUSE_WARNING = "WARNING: You can be killed while paused!";
+		constexpr char const *BUTTON_RESUME = "Resume";
+		constexpr char const *BUTTON_DISCONNECT = "Disconnect";
+		constexpr char const *BUTTON_SETTINGS = "Settings";
+		constexpr char const *BUTTON_BACK = "Back";
 
 		// Settings menu
-		constexpr const char *SETTINGS_TITLE = "SETTINGS";
-		constexpr const char *MUSIC_ON = "Music: ON";
-		constexpr const char *MUSIC_OFF = "Music: OFF";
-		constexpr const char *KEYBINDS_HEADER = "KEYBINDS";
+		constexpr char const *SETTINGS_TITLE = "SETTINGS";
+		constexpr char const *MUSIC_ON = "Music: ON";
+		constexpr char const *MUSIC_OFF = "Music: OFF";
+		constexpr char const *KEYBINDS_HEADER = "KEYBINDS";
 
 		// Keybind labels
-		constexpr const char *KEYBIND_MOVE = "Move: W A S D";
-		constexpr const char *KEYBIND_SHOOT = "Shoot: Space / Left Click";
-		constexpr const char *KEYBIND_USE_ITEM = "Use Item: Q";
-		constexpr const char *KEYBIND_SELECT_HOTBAR = "Select Hotbar: 1-9 / Mouse Wheel";
-		constexpr const char *KEYBIND_PAUSE = "Pause: Escape";
+		constexpr char const *KEYBIND_MOVE = "Move: W A S D";
+		constexpr char const *KEYBIND_SHOOT = "Shoot: Space / Left Click";
+		constexpr char const *KEYBIND_USE_ITEM = "Use Item: Q";
+		constexpr char const *KEYBIND_SELECT_HOTBAR = "Select Hotbar: 1-9 / Mouse Wheel";
+		constexpr char const *KEYBIND_PAUSE = "Pause: Escape";
 	} // namespace Text
 } // namespace UI
 

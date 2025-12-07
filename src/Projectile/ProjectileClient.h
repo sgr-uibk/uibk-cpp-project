@@ -5,9 +5,9 @@
 class ProjectileClient
 {
   public:
-	ProjectileClient(const ProjectileState &state);
+	ProjectileClient(ProjectileState const &state);
 
-	void syncSpriteToState(const ProjectileState &state);
+	void syncSpriteToState(ProjectileState const &state);
 
 	void update(float dt);
 
