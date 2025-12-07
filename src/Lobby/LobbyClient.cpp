@@ -190,7 +190,8 @@ std::optional<std::pair<int, std::array<PlayerState, MAX_PLAYERS>>> LobbyClient:
 		case uint8_t(ReliablePktType::GAME_START): {
 			int mapIndex;
 			startPkt >> mapIndex;
-			auto players = deserializePlayerStateArray<MAX_PLAYERS>(startPkt, std::make_index_sequence<MAX_PLAYERS>{});
+			auto players =
+				deserializeToArray<PlayerState, MAX_PLAYERS>(startPkt, std::make_index_sequence<MAX_PLAYERS>{});
 			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Received GAME_START with map index {}", mapIndex);
 			return std::make_pair(mapIndex, players);
 		}

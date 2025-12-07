@@ -9,7 +9,7 @@
 
 WorldState::WorldState(sf::Packet &pkt)
 	: m_map(WINDOW_DIMf),
-	  m_players(deserializePlayerStateArray<MAX_PLAYERS>(pkt, std::make_index_sequence<MAX_PLAYERS>{}))
+	  m_players(deserializeToArray<PlayerState, MAX_PLAYERS>(pkt, std::make_index_sequence<MAX_PLAYERS>{}))
 {
 	deserialize(pkt);
 }
@@ -280,7 +280,7 @@ void WorldState::checkPlayerPlayerCollisions()
 
 void WorldState::serialize(sf::Packet &pkt) const
 {
-	serializePlayerStateArray(pkt, m_players, std::make_index_sequence<MAX_PLAYERS>{});
+	serializeFromArray(pkt, m_players, std::make_index_sequence<MAX_PLAYERS>{});
 
 	uint32_t numProjectiles = static_cast<uint32_t>(m_projectiles.size());
 	pkt << numProjectiles;
@@ -302,7 +302,9 @@ void WorldState::serialize(sf::Packet &pkt) const
 	for(auto const &grid : m_destroyedWallsThisTick)
 		pkt << grid;
 }
-void WorldState::assignExcludingInterp(WorldState const &other)
+
+// Assigns the WorldState excluding the interpolated part of the PlayerState
+void WorldState::assignSnappedState(WorldState const &other)
 {
 	this->m_items = other.m_items;
 	this->m_nextItemId = other.m_nextItemId;

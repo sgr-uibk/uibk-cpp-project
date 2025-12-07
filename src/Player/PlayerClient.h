@@ -10,6 +10,8 @@ struct RenderObject;
 
 class PlayerClient
 {
+	friend class InterpClient;
+
   public:
 	using HealthCallback = std::function<void(int current, int max)>;
 
@@ -38,6 +40,7 @@ class PlayerClient
   private:
 	void updateSprite();
 	void updateNameText();
+	void syncSpriteToState();
 	static constexpr sf::Vector2f tankDimensions = {64, 64};
 	PlayerState &m_state;
 
@@ -56,6 +59,11 @@ class PlayerClient
 	float m_shootAnimTimer;
 	float m_lastShootCooldown;
 	static constexpr float SHOOT_ANIM_DURATION = 0.1f;
-
-	void syncSpriteToState();
 };
+
+template <size_t N> constexpr std::array<PlayerState, N> extractStates(std::array<PlayerClient, N> const &arr) noexcept
+{
+	return [&]<std::size_t... I>(std::index_sequence<I...>) noexcept {
+		return std::array<PlayerState, N>{arr[I].getState()...};
+	}(std::make_index_sequence<N>{});
+}

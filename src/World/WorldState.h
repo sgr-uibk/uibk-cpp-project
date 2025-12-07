@@ -59,7 +59,7 @@ struct WorldState
 	WorldState &operator=(WorldState const &) = delete;
 	WorldState &operator=(WorldState &) = delete;
 	WorldState &operator=(WorldState) = delete;
-	void assignExcludingInterp(WorldState const &);
+	void assignSnappedState(WorldState const &other);
 
 	MapState m_map;
 	std::array<PlayerState, MAX_PLAYERS> m_players;

@@ -1,10 +1,5 @@
 #pragma once
-#include "RingBuffer.h"
-
-#include <memory>
 #include <SFML/Network.hpp>
-#include <spdlog/logger.h>
-
 #include "Lobby/LobbyClient.h"
 #include "World/WorldClient.h"
 

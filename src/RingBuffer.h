@@ -1,4 +1,5 @@
 #pragma once
+#include "Utilities.h"
 #include <array>
 #include <mutex>
 #include <optional>
@@ -10,9 +11,8 @@ template <class T, size_t Sz> struct RingQueue
 	{
 	}
 
-	constexpr RingQueue(T ti) : m_buf{}
+	explicit constexpr RingQueue(T ti) : m_buf{fill<T, Sz>(ti, std::make_index_sequence<Sz>{})}
 	{
-		std::fill(m_buf.begin(), m_buf.end(), ti);
 	}
 
 	/// \brief Inserts a new element, overwriting the oldest entry.
@@ -34,16 +34,10 @@ template <class T, size_t Sz> struct RingQueue
 		return m_buf[++m_hot % Sz];
 	}
 
-	/// \Returns the most recently inserted element.
-	T &get() const noexcept
-	{
-		return m_buf[m_hot % Sz];
-	}
-
 	/// \Returns the element that was inserted \param k positions before the most recent one
-	T &get(std::size_t k) const noexcept
+	T &get(std::size_t const k = 0) const noexcept
 	{
-		return m_buf[(m_hot - k) % Sz];
+		return m_buf[(m_hot - k + Sz) % Sz];
 	}
 
 	/// \brief Marks the buffer as empty

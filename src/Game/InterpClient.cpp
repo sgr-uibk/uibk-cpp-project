@@ -3,26 +3,32 @@
 #include "World/WorldClient.h"
 
 InterpClient::InterpClient(MapState const &map, EntityId const id, std::array<PlayerClient, MAX_PLAYERS> &players)
-	: m_map(map), m_id(id), m_players(players)
+	: m_map(map), m_id(id), m_players(players), m_stateBuffer(Ticked(0, extractStates(players)))
 {
 }
 
-void InterpClient::predictMovement(sf::Vector2f posDelta)
+void InterpClient::predictMovement(sf::Vector2f const posDelta)
 {
 	m_inputAcc += posDelta;
 	m_player.applyLocalMove(m_map, posDelta);
 }
 
 /// \brief After a correction from the server, local inputs need to be replayed
-void InterpClient::replayInputs()
+void InterpClient::replayInputs(PlayerState &player)
 {
 	for(size_t i = m_inflightInputs.capacity(); i > 0; --i)
 	{
 		auto &delta = m_inflightInputs.get(i - 1);
 		if(delta.tick > m_ackedTick)
-			m_player.applyLocalMove(m_map, delta.obj); // replay in flight
+			player.moveOn(m_map, delta.obj); // replay in flight
 	}
-	m_player.applyLocalMove(m_map, m_inputAcc); // replay pre-in flight inputs
+	player.moveOn(m_map, m_inputAcc); // replay pre-in flight inputs
+}
+
+void InterpClient::replayInputs(PlayerClient &player)
+{
+	replayInputs(player.m_state);
+	player.syncSpriteToState();
 }
 
 /// \brief Call once a server-tick to release accumulated inputs for sending
@@ -30,6 +36,10 @@ sf::Vector2f InterpClient::getCumulativeInputs(Tick clientTick)
 {
 	auto const acc = m_inputAcc;
 	m_inputAcc = {0, 0}; // now in flight
+	Tick const oldest = m_stateBuffer.get(-1).tick;
+	if(m_ackedTick < oldest)
+		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Inflight input buffer overrun: {} overrides {} (last acked {})",
+		                   clientTick, oldest, m_ackedTick);
 	m_inflightInputs.emplace(clientTick, acc);
 	return acc;
 }
@@ -47,32 +57,35 @@ bool InterpClient::storeSnapshot(Tick authTick, sf::Packet snapPkt, WorldState c
 	std::array<Tick, MAX_PLAYERS> ackedTicks{};
 	snapPkt >> ackedTicks;
 	m_ackedTick = ackedTicks[m_id - 1];
-	std::array<InterpPlayerState, MAX_PLAYERS> arr = toInterpArrayConstexpr<MAX_PLAYERS>(ws);
-	m_stateBuffer.emplace(authTick, arr);
+	m_stateBuffer.emplace(authTick, ws.m_players);
 	return true;
 }
 
-void InterpClient::correctLocalPlayer(WorldState const &authWs)
+void InterpClient::correctLocalPlayer()
 {
-	auto const authState = authWs.m_players[m_id - 1].m_iState;
-	auto const localState = m_player.getState().m_iState;
+	PlayerState authState = m_stateBuffer.get().obj[m_id - 1];
+	PlayerState localState = m_player.getState();
 
-	auto err = authState.m_pos - localState.m_pos;
+	// Would we end up with the same state when applying inputs to the authoritative state ?
+	replayInputs(authState);
+	auto err = authState.m_iState.m_pos - localState.m_iState.m_pos;
 	if(err.lengthSquared() <= 1e-3)
 	{ // Prediction hit! We're done here.
 		return;
 	}
 
 	// Server disagrees, have to accept authoritative state, replay local inputs
-	m_player.overwriteInterpState(authState);
-	replayInputs();
+	SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Prediction miss", err.x, err.y);
+	m_player.overwriteInterpState(authState.m_iState);
+	replayInputs(localState);
 
 #ifdef SFML_DEBUG
 	// Print how much the teleport is, that the player is going to see
 	auto const replayedState = m_player.getState().m_iState;
-	err = replayedState.m_pos - localState.m_pos;
+	SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Prediction error ({:.2f},{:.2f})", err.x, err.y);
+	err = replayedState.m_pos - localState.m_iState.m_pos;
 	if(err.lengthSquared() > 1e-3)
-		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Reconciliation error ({},{})", err.x, err.y);
+		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Reconciliation error ({:.2f},{:.2f})", err.x, err.y);
 #endif
 }
 
@@ -82,16 +95,13 @@ void InterpClient::interpolateEnemies()
 	// Render‑time interpolation
 	long const renderTick = m_stateBuffer.get().tick - 1;
 	if(renderTick < 0)
-	{
-		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Interpolation not yet ready");
 		return;
-	}
 
 	struct InterpState
 	{
 		size_t step = size_t(-1);
-		Ticked<std::array<InterpPlayerState, MAX_PLAYERS>> const *ss0 = nullptr;
-		Ticked<std::array<InterpPlayerState, MAX_PLAYERS>> const *ss1 = nullptr;
+		Ticked<std::array<PlayerState, MAX_PLAYERS>> const *ss0 = nullptr;
+		Ticked<std::array<PlayerState, MAX_PLAYERS>> const *ss1 = nullptr;
 	};
 	static InterpState s;
 
@@ -115,6 +125,6 @@ void InterpClient::interpolateEnemies()
 		if(i + 1 == m_id)
 			continue; // own player is predicted, not interpolated
 
-		m_players[i].interp(p0, p1, alpha);
+		m_players[i].interp(p0.m_iState, p1.m_iState, alpha);
 	}
 }

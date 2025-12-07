@@ -5,11 +5,11 @@
 
 struct LobbyPlayer
 {
-	uint32_t id = 0;
+	EntityId id = 0;
 	std::string name = "Invalid";
 	bool bValid = false;
 	bool bReady = false;
-	sf::IpAddress udpAddr;
+	sf::IpAddress udpAddr = sf::IpAddress{0};
 	uint16_t gamePort = 0;
 	sf::TcpSocket tcpSocket;
 };
@@ -24,7 +24,7 @@ class LobbyServer
 	void deduplicatePlayerName(std::string &name) const;
 	void endGame(EntityId winner);
 
-	std::vector<LobbyPlayer> m_slots; // Vector, clients join sequentially
+	std::array<LobbyPlayer, MAX_PLAYERS> m_slots;
 
   private:
 	void acceptNewClient();
@@ -33,7 +33,6 @@ class LobbyServer
 
 	sf::TcpListener m_listener;
 	sf::SocketSelector m_multiSock;
-	uint32_t m_tentativeId = 1;
 	uint8_t m_cReady = 0;
 	bool m_gameStartRequested = false;
 };

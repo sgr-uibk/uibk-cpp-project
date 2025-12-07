@@ -15,7 +15,6 @@ LobbyServer::LobbyServer(uint16_t tcpPort)
 	}
 	m_listener.setBlocking(false);
 	m_multiSock.add(m_listener);
-	m_slots.reserve(MAX_PLAYERS);
 	SPDLOG_LOGGER_INFO(spdlog::get("Server"), "LobbyServer listening on TCP {}", tcpPort);
 }
 
@@ -73,7 +72,11 @@ void LobbyServer::acceptNewClient()
 		return;
 	assert(newClientSock.getRemoteAddress().has_value()); // Know exists from status done.
 
-	if(m_tentativeId > MAX_PLAYERS)
+	EntityId tentativeId = 0;
+	while(tentativeId < MAX_PLAYERS && m_slots[tentativeId].bValid)
+		++tentativeId;
+
+	if(tentativeId++ == MAX_PLAYERS)
 	{
 		SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Maximum lobby size reached, rejecting player.");
 		// TODO Tell them they were rejected.
@@ -82,7 +85,7 @@ void LobbyServer::acceptNewClient()
 	}
 
 	sf::IpAddress const remoteAddr = newClientSock.getRemoteAddress().value();
-	LobbyPlayer p{.id = m_tentativeId, .udpAddr = remoteAddr, .tcpSocket = std::move(newClientSock)};
+	LobbyPlayer p{.id = tentativeId, .udpAddr = remoteAddr, .tcpSocket = std::move(newClientSock)};
 
 	sf::Packet joinReqPkt;
 	if(checkedReceive(p.tcpSocket, joinReqPkt) != sf::Socket::Status::Done)
@@ -119,12 +122,11 @@ void LobbyServer::acceptNewClient()
 
 	// All good from server side. Make the client valid.
 	p.bValid = true;
-	m_tentativeId++;
 	// Add the client to the pool, now that registration is over, continue non-blocking.
 	p.tcpSocket.setBlocking(false);
 	m_multiSock.add(p.tcpSocket);
 	SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} (id {}) joined lobby", p.name, p.id);
-	m_slots.push_back(std::move(p));
+	m_slots[p.id - 1] = std::move(p);
 	broadcastLobbyUpdate();
 }
 
@@ -214,7 +216,7 @@ WorldState LobbyServer::startGame()
 
 	sf::Packet startPkt = createPkt(ReliablePktType::GAME_START);
 	startPkt << mapIndex; // Send map index to clients
-	serializePlayerStateArray<MAX_PLAYERS>(startPkt, playerInit, std::make_index_sequence<MAX_PLAYERS>{});
+	serializeFromArray(startPkt, playerInit, std::make_index_sequence<MAX_PLAYERS>{});
 
 	for(auto &lp : m_slots)
 	{ // Distribute spawn points with GAME_START pkt
