@@ -1,6 +1,4 @@
 #include <cmath>
-#include <numeric>
-#include <ranges>
 #include <spdlog/spdlog.h>
 #include "WorldClient.h"
 #include "Utilities.h"
@@ -178,7 +176,7 @@ void WorldClient::draw(sf::RenderWindow &window) const
 // Applies server state that does not get interpolated, such as player inventory, items, etc.
 void WorldClient::applyNonInterpState(WorldState const &snapshot)
 {
-	m_state.assignExcludingInterp(snapshot);
+	m_state.assignSnappedState(snapshot);
 
 	auto const &projectileStates = m_state.getProjectiles();
 	m_projectiles.clear();

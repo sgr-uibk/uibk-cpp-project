@@ -16,26 +16,27 @@ constexpr float CARTESIAN_TILE_SIZE = TILE_HEIGHT;
 
 namespace Maps
 {
-	constexpr std::array<char const *, 1> MAP_PATHS = {
-		"map/arena.json"
-	};
+constexpr std::array<char const *, 1> MAP_PATHS = {"map/arena.json"};
 
-	constexpr int DEFAULT_MAP_INDEX = 0;
+constexpr int DEFAULT_MAP_INDEX = 0;
 
-	inline std::string getMapPath(int mapIndex)
-	{
-		if(mapIndex < 0 || mapIndex >= static_cast<int>(MAP_PATHS.size()))
-			return std::string(MAP_PATHS[DEFAULT_MAP_INDEX]);
-		return std::string(MAP_PATHS[mapIndex]);
-	}
+inline std::string getMapPath(int mapIndex)
+{
+	if(mapIndex < 0 || mapIndex >= static_cast<int>(MAP_PATHS.size()))
+		return std::string(MAP_PATHS[DEFAULT_MAP_INDEX]);
+	return std::string(MAP_PATHS[mapIndex]);
 }
+} // namespace Maps
 
 namespace GameConfig
 {
 namespace Player
 {
 	constexpr float SHOOT_COOLDOWN = 0.5f; // seconds between shots
-	constexpr float CANNON_LENGTH = 22.f;  // distance from tank center to cannon tip
+	constexpr int INVENTORY_SIZE = 9;
+	constexpr int MAX_SIMULTANEOUS_POWERUPS = 5;
+	constexpr float COLLISION_DAMAGE = 0.15f;
+	constexpr float CANNON_LENGTH = 22.f; // distance from tank center to cannon tip
 } // namespace Player
 
 namespace Projectile

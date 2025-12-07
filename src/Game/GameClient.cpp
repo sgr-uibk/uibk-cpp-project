@@ -53,7 +53,7 @@ void GameClient::processUnreliablePackets()
 
 		if(m_world.m_interp.storeSnapshot(authTick, std::move(snapPkt), worldSnap))
 		{ // The received state is new and can be applied
-			m_world.m_interp.correctLocalPlayer(worldSnap);
+			m_world.m_interp.correctLocalPlayer();
 			m_world.applyNonInterpState(worldSnap);
 		}
 	}

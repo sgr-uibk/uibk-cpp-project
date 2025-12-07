@@ -62,7 +62,7 @@ void PlayerClient::update(float const dt)
 void PlayerClient::applyServerState(PlayerState const &serverState)
 {
 	int prevHealth = m_state.m_health;
-	m_state = serverState;
+	m_state.assignSnappedState(serverState);
 	if(m_onHealthChanged && prevHealth != m_state.m_health)
 	{
 		m_onHealthChanged(m_state.m_health, m_state.m_maxHealth);

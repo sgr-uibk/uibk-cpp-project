@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
+using namespace GameConfig::Player;
+
 void InterpPlayerState::overwriteBy(InterpPlayerState const auth)
 {
 	*this = std::move(auth);
@@ -56,10 +58,10 @@ void PlayerState::update(float dt)
 	}
 }
 
-void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
+sf::Vector2f PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 {
 	if(m_health <= 0)
-		return;
+		return {0, 0};
 
 	constexpr float tankMoveSpeed = 5.f;
 	posDelta *= tankMoveSpeed * getSpeedMultiplier();
@@ -67,8 +69,9 @@ void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 	nextShape.setPosition(m_iState.m_pos + posDelta);
 
 	if(map.isColliding(nextShape))
-	{ // player crashed against something, deal them damage
-		takeDamage(10);
+	{                                                            // player crashed against something, deal them damage
+		takeDamage(COLLISION_DAMAGE * posDelta.lengthSquared()); // impact damage prop. speed
+		posDelta = {0, 0};
 	}
 	else
 	{ // no collision, let them move there
@@ -79,6 +82,7 @@ void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 			m_iState.m_rot = sf::Vector2f(1.f, 1.f).angleTo(posDelta);
 		}
 	}
+	return posDelta;
 }
 
 void PlayerState::setRotation(sf::Angle rot)
@@ -101,7 +105,6 @@ void PlayerState::takeDamage(int amount)
 			// deactivate shield if depleted
 			if(powerup.value <= 0)
 				powerup.deactivate();
-
 			break;
 		}
 	}
