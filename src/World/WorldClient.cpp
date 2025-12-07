@@ -24,8 +24,8 @@ static std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &stat
 
 WorldClient::WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players,
                          sf::Music *battleMusic)
-	: m_bAcceptInput(true), m_window(window), m_state(sf::Vector2f(window.getSize())), m_mapClient(m_state.getMap()),
-	  m_battleMusic(battleMusic),
+	: m_bAcceptInput(true), m_window(window), m_state(WorldState::fromTiledMap("map/arena.json")),
+	  m_mapClient(m_state.getMap()), m_battleMusic(battleMusic),
 	  // Members must be initialized before the constructor body runs,
       // so this initializer needs to convert the PlayerStates to PlayerClients *at compile time*
 	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
@@ -112,13 +112,31 @@ std::optional<sf::Packet> WorldClient::update()
 	sf::Angle aimAngle;
 	if(hasFocus)
 	{
-		sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
-		sf::Vector2f mouseWorldPos = m_window.mapPixelToCoords(mousePixelPos, m_worldView);
+		const PlayerState &ps = m_state.getPlayerById(m_ownPlayerId);
+		sf::Vector2f playerCartCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 
-		sf::Vector2f playerPos = m_state.getPlayerById(m_ownPlayerId).getPosition();
-		sf::Vector2f aimDir = mouseWorldPos - playerPos;
-		float aimRad = std::atan2(aimDir.x, -aimDir.y);
-		aimAngle = sf::radians(aimRad);
+		sf::View cameraView = m_worldView;
+		sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
+		cameraView.setCenter(isoPlayerPos);
+		cameraView.zoom(m_zoomLevel);
+
+		sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
+		sf::Vector2f mouseIsoPos = m_window.mapPixelToCoords(mousePixelPos, cameraView);
+
+		sf::Vector2f mouseCartPos = isoToCartesian(mouseIsoPos);
+
+		sf::Vector2f dir = mouseCartPos - playerCartCenter;
+		float angleRad = std::atan2(dir.y, dir.x);
+		float angleDeg = angleRad * 180.0f / 3.14159265f;
+
+		while(angleDeg < 0.0f)
+			angleDeg += 360.0f;
+		while(angleDeg >= 360.0f)
+			angleDeg -= 360.0f;
+
+		angleDeg += 90.0f;
+
+		aimAngle = sf::degrees(angleDeg);
 	}
 	else
 	{
@@ -191,7 +209,17 @@ std::optional<sf::Packet> WorldClient::update()
 
 void WorldClient::draw(sf::RenderWindow &window) const
 {
-	window.setView(m_worldView);
+	sf::View cameraView = m_worldView;
+	const PlayerState &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
+	sf::Vector2f playerPos = ownPlayer.getPosition();
+
+	sf::Vector2f playerCenter = playerPos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+	sf::Vector2f isoPlayerPos = cartesianToIso(playerCenter);
+
+	cameraView.setCenter(isoPlayerPos);
+	cameraView.zoom(m_zoomLevel);
+
+	window.setView(cameraView);
 	window.clear(sf::Color::White);
 
 	sf::RectangleShape gameBackground{sf::Vector2f(WINDOW_DIMf)};
@@ -236,8 +264,32 @@ void WorldClient::draw(sf::RenderWindow &window) const
 void WorldClient::applyServerSnapshot(const WorldState &snapshot)
 {
 	m_state = snapshot;
-	// the map is static for now (deserialize does not extract a Map) as serialize doesn't shove one in.
-	// m_mapClient.setMapState(m_state.map());
+
+	const auto &deltas = snapshot.getDestroyedWallDeltas();
+
+	for(const auto &[gridX, gridY] : deltas)
+	{
+		m_state.getMap().destroyWallAtGridPos(gridX, gridY);
+
+		float expectedX = static_cast<float>(gridX) * CARTESIAN_TILE_SIZE;
+		float expectedY = static_cast<float>(gridY) * CARTESIAN_TILE_SIZE;
+
+		auto &walls = m_state.getMap().getWalls();
+		for(auto &wall : walls)
+		{
+			if(wall.isDestroyed())
+				continue;
+
+			sf::Vector2f pos = wall.getShape().getPosition();
+
+			if(std::abs(pos.x - expectedX) < 1.0f && std::abs(pos.y - expectedY) < 1.0f)
+			{
+				wall.destroy();
+				spdlog::info("Client: Applied Wall Delta at Grid({}, {})", gridX, gridY);
+				break;
+			}
+		}
+	}
 
 	auto const states = m_state.getPlayers();
 	assert(states.size() == m_players.size());
@@ -299,6 +351,18 @@ void WorldClient::pollEvents()
 				if(keyPressed->scancode == sf::Keyboard::Scancode::Q)
 				{
 					m_useItemRequested = true;
+				}
+				else if(keyPressed->scancode == sf::Keyboard::Scancode::Equal ||
+				        keyPressed->scancode == sf::Keyboard::Scancode::NumpadPlus)
+				{
+					// Zoom in: +
+					m_zoomLevel = std::max(0.5f, m_zoomLevel - 0.1f);
+				}
+				else if(keyPressed->scancode == sf::Keyboard::Scancode::Hyphen ||
+				        keyPressed->scancode == sf::Keyboard::Scancode::NumpadMinus)
+				{
+					// Zoom out: -
+					m_zoomLevel = std::min(2.0f, m_zoomLevel + 0.1f);
 				}
 				else if(keyPressed->scancode >= sf::Keyboard::Scancode::Num1 &&
 				        keyPressed->scancode <= sf::Keyboard::Scancode::Num9)

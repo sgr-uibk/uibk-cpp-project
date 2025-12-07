@@ -23,3 +23,29 @@ enum class GameEndResult
 std::shared_ptr<spdlog::logger> createConsoleLogger(std::string const &name);
 std::shared_ptr<spdlog::logger> createConsoleAndFileLogger(std::string const &name,
                                                            spdlog::level::level_enum logLevel = spdlog::level::debug);
+
+constexpr float TILE_WIDTH = 64.0f;
+constexpr float TILE_HEIGHT = 32.0f;
+constexpr float CARTESIAN_TILE_SIZE = TILE_HEIGHT;
+
+inline sf::Vector2f cartesianToIso(sf::Vector2f cartesian)
+{
+	float tileX = cartesian.x / CARTESIAN_TILE_SIZE;
+	float tileY = cartesian.y / CARTESIAN_TILE_SIZE;
+
+	float isoX = (tileX - tileY) * (TILE_WIDTH / 2.0f);
+	float isoY = (tileX + tileY) * (TILE_HEIGHT / 2.0f);
+
+	return {isoX, isoY};
+}
+
+inline sf::Vector2f isoToCartesian(sf::Vector2f iso)
+{
+	float tileX = (iso.x / (TILE_WIDTH / 2.0f) + iso.y / (TILE_HEIGHT / 2.0f)) / 2.0f;
+	float tileY = (iso.y / (TILE_HEIGHT / 2.0f) - iso.x / (TILE_WIDTH / 2.0f)) / 2.0f;
+
+	float cartX = tileX * CARTESIAN_TILE_SIZE;
+	float cartY = tileY * CARTESIAN_TILE_SIZE;
+
+	return {cartX, cartY};
+}

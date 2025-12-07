@@ -4,7 +4,8 @@
 #include <spdlog/spdlog.h>
 
 GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_ptr<spdlog::logger> const &logger)
-	: m_gamePort(gamePort), m_world(WINDOW_DIMf), m_numAlive(MAX_PLAYERS), m_logger(logger), m_lobby(lobbyServer)
+	: m_gamePort(gamePort), m_world(WorldState::fromTiledMap("map/arena.json")), m_numAlive(MAX_PLAYERS),
+	  m_logger(logger), m_lobby(lobbyServer)
 {
 	for(auto const &p : lobbyServer.m_slots)
 	{
@@ -18,6 +19,8 @@ GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort, std::shared_
 	}
 	m_gameSock.setBlocking(false);
 	m_itemSpawnClock.start();
+
+	m_nextItemSpawnIndex = 0;
 }
 
 GameServer::~GameServer()
@@ -29,6 +32,9 @@ PlayerState *GameServer::matchLoop()
 {
 	while(m_numAlive > 1 && !m_lobby.isShutdownRequested())
 	{
+		// Clear wall deltas from previous tick
+		m_world.clearWallDeltas();
+
 		processPackets();
 		checkPlayerConnections();
 
@@ -199,14 +205,26 @@ void GameServer::spawnItems()
 	{
 		m_itemSpawnClock.restart();
 
-		float x = 100.f + static_cast<float>(rand() % 600);
-		float y = 100.f + static_cast<float>(rand() % 400);
-		sf::Vector2f position(x, y);
+		const auto &itemSpawnZones = m_world.getMap().getItemSpawnZones();
 
-		PowerupType type = static_cast<PowerupType>(1 + (rand() % 5));
+		if(itemSpawnZones.empty())
+		{
+			float x = 100.f + static_cast<float>(rand() % 600);
+			float y = 100.f + static_cast<float>(rand() % 400);
+			sf::Vector2f position(x, y);
+			PowerupType type = static_cast<PowerupType>(1 + (rand() % 5));
+			m_world.addItem(position, type);
+			SPDLOG_LOGGER_INFO(m_logger, "Spawned random powerup type {} at ({}, {})", static_cast<int>(type), x, y);
+		}
+		else
+		{
+			const ItemSpawnZone &zone = itemSpawnZones[m_nextItemSpawnIndex];
+			m_world.addItem(zone.position, zone.itemType);
+			SPDLOG_LOGGER_INFO(m_logger, "Spawned powerup type {} at ({}, {}) from map spawn zone",
+			                   static_cast<int>(zone.itemType), zone.position.x, zone.position.y);
 
-		m_world.addItem(position, type);
-		SPDLOG_LOGGER_INFO(m_logger, "Spawned powerup type {} at ({}, {})", static_cast<int>(type), x, y);
+			m_nextItemSpawnIndex = (m_nextItemSpawnIndex + 1) % itemSpawnZones.size();
+		}
 	}
 }
 

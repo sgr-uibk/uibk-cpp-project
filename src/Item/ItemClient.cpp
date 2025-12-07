@@ -1,4 +1,5 @@
 #include "ItemClient.h"
+#include "Utilities.h"
 #include <cmath>
 
 ItemClient::ItemClient(const ItemState &state)
@@ -14,7 +15,8 @@ ItemClient::ItemClient(const ItemState &state)
 void ItemClient::syncSpriteToState(const ItemState &state)
 {
 	m_state = state;
-	m_shape.setPosition(m_state.getPosition());
+	sf::Vector2f isoPos = cartesianToIso(m_state.getPosition());
+	m_shape.setPosition(isoPos);
 	m_shape.setFillColor(getColorForType(state.getType()));
 }
 
@@ -29,7 +31,8 @@ void ItemClient::update(float dt)
 
 	float bobOffset = std::sin(m_bobPhase) * m_bobHeight;
 	sf::Vector2f basePos = m_state.getPosition();
-	m_shape.setPosition(sf::Vector2f(basePos.x, basePos.y + bobOffset));
+	sf::Vector2f isoPos = cartesianToIso(basePos);
+	m_shape.setPosition(sf::Vector2f(isoPos.x, isoPos.y + bobOffset));
 }
 
 void ItemClient::draw(sf::RenderWindow &window) const

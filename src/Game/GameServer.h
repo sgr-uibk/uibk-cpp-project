@@ -30,4 +30,5 @@ class GameServer
 	sf::UdpSocket m_gameSock;
 	LobbyServer &m_lobby;
 	sf::Clock m_itemSpawnClock;
+	size_t m_nextItemSpawnIndex;
 };

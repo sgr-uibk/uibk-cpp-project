@@ -11,6 +11,7 @@ class WallState
 	void takeDamage(int amount);
 	void repair(int amount);
 	void destroy();
+	void setHealth(int health);
 
 	[[nodiscard]] bool isDestroyed() const;
 	[[nodiscard]] int getHealth() const;

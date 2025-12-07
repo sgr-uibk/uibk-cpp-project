@@ -1,11 +1,29 @@
 #include <algorithm>
 #include <cmath>
 #include "WorldState.h"
+#include "Map/MapParser.h"
 
 #include <spdlog/spdlog.h>
 
 WorldState::WorldState(sf::Vector2f mapSize) : m_map(mapSize), m_players()
 {
+}
+
+WorldState WorldState::fromTiledMap(const std::string &tiledJsonPath)
+{
+	WorldState world(sf::Vector2f(0, 0));
+
+	auto blueprint = MapParser::parse(tiledJsonPath);
+
+	if(!blueprint)
+	{
+		spdlog::error("Failed to load map from {}", tiledJsonPath);
+		return world;
+	}
+
+	world.m_map.loadFromBlueprint(*blueprint);
+
+	return world;
 }
 
 void WorldState::update(float dt)
@@ -46,6 +64,11 @@ const PlayerState &WorldState::getPlayerById(size_t id) const
 }
 
 MapState &WorldState::getMap()
+{
+	return m_map;
+}
+
+const MapState &WorldState::getMap() const
 {
 	return m_map;
 }
@@ -137,6 +160,17 @@ void WorldState::checkProjectileWallCollisions()
 			if(projBounds.findIntersection(wall.getGlobalBounds()))
 			{
 				wall.takeDamage(proj.getDamage());
+
+				if(wall.isDestroyed())
+				{
+					auto pos = wall.getShape().getPosition();
+					int gridX = static_cast<int>(pos.x / CARTESIAN_TILE_SIZE);
+					int gridY = static_cast<int>(pos.y / CARTESIAN_TILE_SIZE);
+					m_map.destroyWallAtGridPos(gridX, gridY);
+
+					markWallDestroyed(gridX, gridY);
+				}
+
 				proj.deactivate();
 				break;
 			}
@@ -273,13 +307,13 @@ void WorldState::serialize(sf::Packet &pkt) const
 		item.serialize(pkt);
 	}
 
-	// serialize wall states for dynamic wall damage
-	const auto &walls = m_map.getWalls();
-	uint32_t numWalls = static_cast<uint32_t>(walls.size());
-	pkt << numWalls;
-	for(const auto &wall : walls)
+	// delta only: send only walls destroyed this tick
+	uint32_t numDestroyedWalls = static_cast<uint32_t>(m_destroyedWallsThisTick.size());
+	pkt << numDestroyedWalls;
+	for(const auto &[gridX, gridY] : m_destroyedWallsThisTick)
 	{
-		wall.serialize(pkt);
+		pkt << gridX;
+		pkt << gridY;
 	}
 }
 
@@ -312,28 +346,22 @@ void WorldState::deserialize(sf::Packet &pkt)
 		m_items.push_back(item);
 	}
 
-	uint32_t numWalls = 0;
-	pkt >> numWalls;
-	auto &walls = m_map.getWalls();
-	if(numWalls == walls.size())
+	uint32_t numDestroyedWalls = 0;
+	pkt >> numDestroyedWalls;
+
+	m_destroyedWallsThisTick.clear();
+
+	for(uint32_t i = 0; i < numDestroyedWalls; ++i)
 	{
-		for(uint32_t i = 0; i < numWalls; ++i)
-		{
-			walls[i].deserialize(pkt);
-		}
-	}
-	else
-	{
-		for(uint32_t i = 0; i < numWalls; ++i)
-		{
-			WallState dummy;
-			dummy.deserialize(pkt);
-		}
+		int32_t gridX, gridY;
+		pkt >> gridX >> gridY;
+
+		m_destroyedWallsThisTick.push_back({gridX, gridY});
 	}
 }
 
 // The map is static, it's not serialized in snapshots, therefore don't assign it.
-// TODO: For "Dynamic Map elements": Make m_map mutable, included map in snapshots, then remove this operator
+// Wall deltas are sent separately and applied via applyWallDeltas()
 WorldState &WorldState::operator=(const WorldState &other)
 {
 	if(this != &other)
@@ -345,4 +373,20 @@ WorldState &WorldState::operator=(const WorldState &other)
 		this->m_nextItemId = other.m_nextItemId;
 	}
 	return *this;
+}
+
+void WorldState::clearWallDeltas()
+{
+	m_destroyedWallsThisTick.clear();
+}
+
+void WorldState::markWallDestroyed(int gridX, int gridY)
+{
+	m_destroyedWallsThisTick.push_back({gridX, gridY});
+	spdlog::debug("Marked wall at grid ({}, {}) for delta update", gridX, gridY);
+}
+
+const std::vector<std::pair<int, int>> &WorldState::getDestroyedWallDeltas() const
+{
+	return m_destroyedWallsThisTick;
 }

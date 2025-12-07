@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <string>
 #include <SFML/Network.hpp>
 #include "Map/MapState.h"
 #include "Player/PlayerState.h"
@@ -11,6 +12,7 @@ class WorldState
 {
   public:
 	explicit WorldState(sf::Vector2f mapSize);
+	static WorldState fromTiledMap(const std::string &tiledJsonPath);
 	void update(float dt);
 	void setPlayer(PlayerState const &p);
 
@@ -18,6 +20,7 @@ class WorldState
 	PlayerState &getPlayerById(size_t id);
 	const PlayerState &getPlayerById(size_t id) const;
 	[[nodiscard]] MapState &getMap();
+	[[nodiscard]] const MapState &getMap() const;
 
 	uint32_t addProjectile(sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId, int damage = 25);
 	void removeProjectile(uint32_t id);
@@ -48,7 +51,11 @@ class WorldState
 	void checkPlayerItemCollisions();
 	void checkPlayerPlayerCollisions();
 
-	// serialization (full snapshot)
+	void clearWallDeltas();
+	void markWallDestroyed(int gridX, int gridY);
+	const std::vector<std::pair<int, int>> &getDestroyedWallDeltas() const;
+
+	// serialization (full snapshot for players/items/projectiles, deltas for walls)
 	void serialize(sf::Packet &pkt) const;
 	void deserialize(sf::Packet &pkt);
 
@@ -63,4 +70,7 @@ class WorldState
 	std::vector<ItemState> m_items;
 	uint32_t m_nextProjectileId{1};
 	uint32_t m_nextItemId{1};
+
+	// Track walls destroyed this tick (grid coordinates)
+	std::vector<std::pair<int, int>> m_destroyedWallsThisTick;
 };

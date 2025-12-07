@@ -26,6 +26,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.3
+    GIT_SHALLOW    ON
+    FIND_PACKAGE_ARGS NAMES nlohmann_json
+)
+FetchContent_MakeAvailable(json)
+
 include_directories(${CMAKE_SOURCE_DIR}/src)
 set(TEST_ROOT ${CMAKE_SOURCE_DIR}/test)
 
@@ -42,10 +51,13 @@ add_executable(TankGame
     src/Utilities.cpp
     src/HealthBar.cpp
     src/UI/Scoreboard.cpp
+    src/Map/MapData.h
+    src/Map/MapParser.h
+    src/Map/MapParser.cpp
 )
 
-add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp src/UI/Scoreboard.cpp)
-add_executable(Server ${TEST_ROOT}/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp)
+add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp src/UI/Scoreboard.cpp src/Map/MapParser.cpp)
+add_executable(Server ${TEST_ROOT}/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp src/Map/MapParser.cpp)
 
 add_library(common_deps INTERFACE)
 target_link_libraries(common_deps
@@ -54,6 +66,7 @@ target_link_libraries(common_deps
     SFML::Network
     SFML::Audio
     spdlog::spdlog
+    nlohmann_json::nlohmann_json
 )
 target_link_libraries(TankGame PRIVATE common_deps)
 target_link_libraries(Client PRIVATE common_deps)

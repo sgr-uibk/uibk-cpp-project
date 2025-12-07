@@ -3,6 +3,7 @@
 #include <Map/MapState.h>
 #include <SFML/Graphics.hpp>
 #include <functional>
+#include <array>
 
 class PlayerClient
 {
@@ -35,16 +36,12 @@ class PlayerClient
 
 	// visuals
 	sf::Color m_color;
-	sf::Texture &m_healthyTex;
-	sf::Texture &m_damagedTex;
-	sf::Texture &m_deadTex;
-	sf::Sprite m_sprite;
-	sf::Texture &m_cannonHealthyTex;
-	sf::Texture &m_cannonDamagedTex;
-	sf::Texture &m_cannonDeadTex;
-	sf::Texture &m_cannonHealthyShootingTex;
-	sf::Texture &m_cannonDamagedShootingTex;
-	sf::Sprite m_cannonSprite;
+
+	std::array<sf::Texture *, 8> m_hullTextures;
+	std::array<sf::Texture *, 8> m_turretTextures;
+	sf::Sprite m_hullSprite;
+	sf::Sprite m_turretSprite;
+
 	sf::Font &m_font; // must be declared before m_nameText
 	sf::Text m_nameText;
 	HealthCallback m_onHealthChanged;

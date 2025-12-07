@@ -1,28 +1,49 @@
 #include "PlayerClient.h"
+#include "Utilities.h"
 #include "ResourceManager.h"
-#include <spdlog/spdlog.h>
+#include <algorithm>
+
+static int angleToDirection(float degrees)
+{
+	while(degrees < 0)
+		degrees += 360.f;
+	while(degrees >= 360.f)
+		degrees -= 360.f;
+
+	float adjusted = degrees + 22.5f;
+	if(adjusted >= 360.f)
+		adjusted -= 360.f;
+
+	int section = static_cast<int>(adjusted / 45.f);
+
+	// Hardcoded sprite mapping for now
+
+	const int spriteMap[8] = {5, 4, 3, 2, 1, 8, 7, 6};
+	return spriteMap[section];
+}
 
 PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
-	: m_state(state), m_color(color), m_healthyTex(TextureManager::inst().load("tank_hul_healthy.png")),
-	  m_damagedTex(TextureManager::inst().load("tank_hul_damaged.png")),
-	  m_deadTex(TextureManager::inst().load("tank_hul_dead.png")), m_sprite(m_healthyTex),
-	  m_cannonHealthyTex(TextureManager::inst().load("cannon_healthy.png")),
-	  m_cannonDamagedTex(TextureManager::inst().load("cannon_damaged.png")),
-	  m_cannonDeadTex(TextureManager::inst().load("cannon_dead.png")),
-	  m_cannonHealthyShootingTex(TextureManager::inst().load("cannon_healthy_shooting.png")),
-	  m_cannonDamagedShootingTex(TextureManager::inst().load("cannon_damaged_shooting.png")),
-	  m_cannonSprite(m_cannonHealthyTex), m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")),
-	  m_nameText(m_font, m_state.m_name, 14), m_shootAnimTimer(0.f), m_lastShootCooldown(0.f)
+	: m_state(state), m_color(color),
+	  m_hullSprite(TextureManager::inst().load("tanks/tiger/Separated/Hull/german_tiger_hull1.png")),
+	  m_turretSprite(TextureManager::inst().load("tanks/tiger/Separated/Turret/german_tiger_turret1.png")),
+	  m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_nameText(m_font, m_state.m_name, 14),
+	  m_shootAnimTimer(0.f), m_lastShootCooldown(0.f)
 {
-	updateSprite();
-	m_sprite.setPosition(m_state.m_pos);
+	for(int i = 1; i <= 8; ++i)
+	{
+		std::string hullPath = "tanks/tiger/Separated/Hull/german_tiger_hull" + std::to_string(i) + ".png";
+		std::string turretPath = "tanks/tiger/Separated/Turret/german_tiger_turret" + std::to_string(i) + ".png";
+		m_hullTextures[i - 1] = &TextureManager::inst().load(hullPath);
+		m_turretTextures[i - 1] = &TextureManager::inst().load(turretPath);
+	}
 
-	m_cannonSprite.setColor(m_color);
-	// set cannon pivot point to exact center of rotation (x=258, y=448 in sprite coordinates)
-	m_cannonSprite.setOrigin(sf::Vector2f(258.f, 430.f));
-	sf::Vector2f const cannonTexSize = sf::Vector2f(m_cannonSprite.getTexture().getSize()) / 2.f;
-	sf::Vector2f const cannonScale = PlayerState::logicalDimensions.componentWiseDiv(cannonTexSize) * 1.3f;
-	m_cannonSprite.setScale(cannonScale);
+	sf::Vector2f hullSize = sf::Vector2f(m_hullTextures[0]->getSize());
+	m_hullSprite.setOrigin(hullSize / 2.f);
+	m_hullSprite.setPosition(m_state.m_pos);
+
+	sf::Vector2f turretSize = sf::Vector2f(m_turretTextures[0]->getSize());
+	m_turretSprite.setOrigin(turretSize / 2.f);
+	m_turretSprite.setPosition(m_state.m_pos);
 
 	m_nameText.setFillColor(sf::Color::White);
 	m_nameText.setOutlineColor(sf::Color::Black);
@@ -53,8 +74,8 @@ void PlayerClient::update(float dt)
 
 void PlayerClient::draw(sf::RenderWindow &window) const
 {
-	window.draw(m_sprite);
-	window.draw(m_cannonSprite);
+	window.draw(m_hullSprite);
+	window.draw(m_turretSprite);
 	window.draw(m_nameText);
 }
 
@@ -84,49 +105,52 @@ void PlayerClient::registerHealthCallback(HealthCallback cb)
 void PlayerClient::updateSprite()
 {
 	syncSpriteToState();
-	m_sprite.setColor(m_color); // texture files are just gray, here we apply the color
-	auto const texSize = sf::Vector2f(m_sprite.getTexture().getSize()) / 2.f;
-	m_sprite.setOrigin(texSize); // center the origin
-	sf::Vector2f const scale = PlayerState::logicalDimensions.componentWiseDiv(texSize);
-	m_sprite.setScale(scale);
 }
 
 void PlayerClient::syncSpriteToState()
 {
-	sf::Vector2f center = m_state.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+	int hullDir = angleToDirection(m_state.m_rot.asDegrees()) - 1;                // Convert to 0-7 index
+	int turretDir = angleToDirection(m_state.m_cannonRot.asDegrees() - 45.f) - 1; // Convert to 0-7 index
 
-	m_sprite.setPosition(center);
-	m_sprite.setRotation(m_state.m_rot);
+	hullDir = std::clamp(hullDir, 0, 7);
+	turretDir = std::clamp(turretDir, 0, 7);
 
-	m_cannonSprite.setPosition(center);
-	m_cannonSprite.setRotation(m_state.m_cannonRot);
+	m_hullSprite.setTexture(*m_hullTextures[hullDir]);
+	sf::Vector2f hullSize = sf::Vector2f(m_hullTextures[hullDir]->getSize());
+	m_hullSprite.setOrigin(hullSize / 2.f);
 
-	bool showShootingBlast = (m_shootAnimTimer > 0.f);
+	m_turretSprite.setTexture(*m_turretTextures[turretDir]);
+	sf::Vector2f turretSize = sf::Vector2f(m_turretTextures[turretDir]->getSize());
+	m_turretSprite.setOrigin(turretSize / 2.f);
+
+	sf::Vector2f cartCenter = m_state.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+
+	sf::Vector2f isoCenter = cartesianToIso(cartCenter);
+	m_hullSprite.setPosition(isoCenter);
+	m_turretSprite.setPosition(isoCenter);
+
+	// Apply color tint
+	m_hullSprite.setColor(m_color);
+	m_turretSprite.setColor(m_color);
 
 	if(m_state.m_health <= 0)
 	{
-		m_sprite.setTexture(m_deadTex);
-		m_cannonSprite.setTexture(m_cannonDeadTex);
-	}
-	else if(m_state.m_health < m_state.m_maxHealth / 2)
-	{
-		m_sprite.setTexture(m_damagedTex);
-		m_cannonSprite.setTexture(showShootingBlast ? m_cannonDamagedShootingTex : m_cannonDamagedTex);
-	}
-	else
-	{
-		m_sprite.setTexture(m_healthyTex);
-		m_cannonSprite.setTexture(showShootingBlast ? m_cannonHealthyShootingTex : m_cannonHealthyTex);
+		sf::Color deadColor = m_color;
+		deadColor.a = 128;
+		m_hullSprite.setColor(deadColor);
+		m_turretSprite.setColor(deadColor);
 	}
 }
 
 void PlayerClient::updateNameText()
 {
 	sf::FloatRect textBounds = m_nameText.getLocalBounds();
-	sf::Vector2f tankCenter = m_state.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+	sf::Vector2f cartTankCenter = m_state.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 
-	sf::Vector2f textPos(tankCenter.x - textBounds.size.x / 2.f - textBounds.position.x,
-	                     tankCenter.y - tankDimensions.y / 2.f - 18.f // 18 pixels above tank
+	sf::Vector2f isoTankCenter = cartesianToIso(cartTankCenter);
+
+	sf::Vector2f textPos(isoTankCenter.x - textBounds.size.x / 2.f - textBounds.position.x,
+	                     isoTankCenter.y - tankDimensions.y / 2.f - 18.f // 18 pixels above tank
 	);
 	m_nameText.setPosition(textPos);
 }

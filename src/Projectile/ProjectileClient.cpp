@@ -1,4 +1,5 @@
 #include "ProjectileClient.h"
+#include "Utilities.h"
 #include <cmath>
 
 ProjectileClient::ProjectileClient(const ProjectileState &state) : m_state(state), m_shape(4.f)
@@ -11,7 +12,8 @@ ProjectileClient::ProjectileClient(const ProjectileState &state) : m_state(state
 void ProjectileClient::syncSpriteToState(const ProjectileState &state)
 {
 	m_state = state;
-	m_shape.setPosition(m_state.getPosition());
+	sf::Vector2f isoPos = cartesianToIso(m_state.getPosition());
+	m_shape.setPosition(isoPos);
 }
 
 void ProjectileClient::update(float dt)

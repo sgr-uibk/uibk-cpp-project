@@ -72,6 +72,7 @@ class WorldClient
 	EntityId m_ownPlayerId;
 	sf::View m_worldView;
 	sf::View m_hudView;
+	float m_zoomLevel = 1.0f;
 
 	enum class PauseMenuState
 	{

@@ -46,6 +46,20 @@ void WallState::destroy()
 	updateVisuals();
 }
 
+void WallState::setHealth(int health)
+{
+	if(m_isDestroyed)
+		return;
+
+	m_health = std::clamp(health, 0, m_maxHealth);
+	if(m_health <= 0)
+	{
+		m_health = 0;
+		m_isDestroyed = true;
+	}
+	updateVisuals();
+}
+
 bool WallState::isDestroyed() const
 {
 	return m_isDestroyed;

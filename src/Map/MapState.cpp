@@ -1,28 +1,10 @@
 #include "MapState.h"
-#include "Networking.h"
+#include "Utilities.h"
 #include <spdlog/spdlog.h>
+#include <cmath>
 
 MapState::MapState(sf::Vector2f size) : m_size(size)
 {
-	unsigned const width = size.x;
-	unsigned const height = size.y;
-	float wallThickness = 20.f;
-
-	// Outer and inner walls
-	addWall(0, 0, width, wallThickness);
-	addWall(0, height - wallThickness, width, wallThickness);
-	addWall(0, 0, wallThickness, height);
-	addWall(width - wallThickness, 0, wallThickness, height);
-
-	addWall(200, 100, wallThickness, 400); // vertical
-	addWall(400, 200, 200, wallThickness); // horizontal
-	addWall(600, 50, wallThickness, 300);  // vertical
-
-	// predefined spawn points
-	addSpawnPoint({100.f, 100.f}); // Top-left
-	addSpawnPoint({700.f, 100.f}); // Top-right
-	addSpawnPoint({100.f, 500.f}); // Bottom-left
-	addSpawnPoint({700.f, 500.f}); // Bottom-right
 }
 
 void MapState::addWall(float x, float y, float w, float h, int health)
@@ -33,6 +15,23 @@ void MapState::addWall(float x, float y, float w, float h, int health)
 void MapState::addSpawnPoint(sf::Vector2f spawn)
 {
 	m_spawns.push_back(spawn);
+}
+
+void MapState::addItemSpawnZone(sf::Vector2f position, PowerupType itemType)
+{
+	m_itemSpawnZones.push_back({position, itemType});
+}
+
+bool MapState::isColliding(const sf::RectangleShape &r) const
+{
+	for(const auto &wall : m_walls)
+	{
+		if(!wall.isDestroyed() && wall.getGlobalBounds().findIntersection(r.getGlobalBounds()).has_value())
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 const std::vector<WallState> &MapState::getWalls() const
@@ -50,19 +49,200 @@ const std::vector<sf::Vector2f> &MapState::getSpawns() const
 	return m_spawns;
 }
 
-bool MapState::isColliding(const sf::RectangleShape &r) const
+const std::vector<ItemSpawnZone> &MapState::getItemSpawnZones() const
 {
-	sf::FloatRect rbox = r.getGlobalBounds();
-	for(auto const &w : m_walls)
+	return m_itemSpawnZones;
+}
+
+sf::Vector2f MapState::getSize() const
+{
+	return m_size;
+}
+
+void MapState::loadFromBlueprint(const MapBlueprint &bp)
+{
+	m_size = bp.getTotalSize();
+
+	m_tileset = bp.tileset;
+	m_layers = bp.layers;
+
+	m_walls.clear();
+	m_spawns.clear();
+	m_itemSpawnZones.clear();
+
+	for(const auto &layer : bp.layers)
 	{
-		if(w.isDestroyed())
+		if(layer.name != "Walls")
 			continue;
 
-		sf::FloatRect wbox = w.getGlobalBounds();
-		if(rbox.findIntersection(wbox).has_value())
+		for(int y = 0; y < layer.height; ++y)
 		{
-			return true;
+			for(int x = 0; x < layer.width; ++x)
+			{
+				int idx = y * layer.width + x;
+				int tileId = layer.data[idx];
+
+				if(tileId != 0)
+				{
+					float worldX = static_cast<float>(x) * CARTESIAN_TILE_SIZE;
+					float worldY = static_cast<float>(y) * CARTESIAN_TILE_SIZE;
+
+					m_walls.emplace_back(worldX, worldY, CARTESIAN_TILE_SIZE, CARTESIAN_TILE_SIZE, 100);
+				}
+			}
 		}
 	}
-	return false;
+
+	for(const auto &obj : bp.objects)
+	{
+		if(obj.type == "player_spawn")
+		{
+			addSpawnPoint(obj.position);
+
+			spdlog::info("Added player spawn at ({}, {})", obj.position.x, obj.position.y);
+		}
+		else if(obj.type == "item_spawn")
+		{
+			std::string itemTypeStr = obj.getProperty("item_type", "HEALTH_PACK");
+			PowerupType type = stringToPowerupType(itemTypeStr);
+
+			addItemSpawnZone(obj.position, type);
+
+			spdlog::info("Added item spawn {} at ({}, {})", itemTypeStr, obj.position.x, obj.position.y);
+		}
+	}
+
+	spdlog::info("Map Built: {} walls, {} spawns", m_walls.size(), m_spawns.size());
+}
+
+PowerupType MapState::stringToPowerupType(const std::string &str)
+{
+	if(str == "HEALTH_PACK")
+		return PowerupType::HEALTH_PACK;
+	if(str == "SPEED_BOOST")
+		return PowerupType::SPEED_BOOST;
+	if(str == "DAMAGE_BOOST")
+		return PowerupType::DAMAGE_BOOST;
+	if(str == "SHIELD")
+		return PowerupType::SHIELD;
+	if(str == "RAPID_FIRE")
+		return PowerupType::RAPID_FIRE;
+	return PowerupType::HEALTH_PACK;
+}
+
+std::optional<RawLayer> MapState::getGroundLayer() const
+{
+	for(const auto &layer : m_layers)
+	{
+		if(layer.name == "Ground")
+		{
+			return layer;
+		}
+	}
+	return std::nullopt;
+}
+
+std::optional<RawLayer> MapState::getWallsLayer() const
+{
+	for(const auto &layer : m_layers)
+	{
+		if(layer.name == "Walls")
+		{
+			return layer;
+		}
+	}
+	return std::nullopt;
+}
+
+const std::vector<WallState> &MapState::getWallStates() const
+{
+	return m_walls;
+}
+
+const std::optional<RawTileset> &MapState::getTileset() const
+{
+	return m_tileset;
+}
+
+const std::vector<RawLayer> &MapState::getLayers() const
+{
+	return m_layers;
+}
+
+void MapState::setTileset(const std::optional<RawTileset> &tileset)
+{
+	m_tileset = tileset;
+}
+
+void MapState::setGroundLayer(const std::optional<RawLayer> &layer)
+{
+	if(!layer.has_value())
+		return;
+
+	for(auto &l : m_layers)
+	{
+		if(l.name == "Ground")
+		{
+			l = *layer;
+			return;
+		}
+	}
+	m_layers.push_back(*layer);
+}
+
+void MapState::setWallsLayer(const std::optional<RawLayer> &layer)
+{
+	if(!layer.has_value())
+		return;
+
+	for(auto &l : m_layers)
+	{
+		if(l.name == "Walls")
+		{
+			l = *layer;
+			return;
+		}
+	}
+	m_layers.push_back(*layer);
+}
+
+const WallState *MapState::getWallAtGridPos(int x, int y) const
+{
+	float cellCenterX = (static_cast<float>(x) * CARTESIAN_TILE_SIZE) + (CARTESIAN_TILE_SIZE / 2.0f);
+	float cellCenterY = (static_cast<float>(y) * CARTESIAN_TILE_SIZE) + (CARTESIAN_TILE_SIZE / 2.0f);
+
+	for(const auto &wall : m_walls)
+	{
+		sf::FloatRect bounds = wall.getGlobalBounds();
+
+		float wallCenterX = bounds.position.x + (bounds.size.x / 2.0f);
+		float wallCenterY = bounds.position.y + (bounds.size.y / 2.0f);
+
+		float diffX = std::abs(cellCenterX - wallCenterX);
+		float diffY = std::abs(cellCenterY - wallCenterY);
+
+		if(diffX < 1.0f && diffY < 1.0f)
+		{
+			return &wall;
+		}
+	}
+
+	return nullptr;
+}
+
+void MapState::destroyWallAtGridPos(int x, int y)
+{
+	for(auto &layer : m_layers)
+	{
+		if(layer.name == "Walls")
+		{
+			int idx = y * layer.width + x;
+			if(idx >= 0 && idx < static_cast<int>(layer.data.size()))
+			{
+				layer.data[idx] = 0; // Set to empty tile
+				spdlog::debug("Tile swap: Cleared wall tile at grid ({}, {})", x, y);
+			}
+			break;
+		}
+	}
 }

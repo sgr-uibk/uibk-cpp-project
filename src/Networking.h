@@ -10,7 +10,7 @@ constexpr uint16_t PORT_TCP = 25106;
 constexpr uint16_t PORT_UDP = 3074;
 constexpr uint32_t PROTOCOL_VERSION = 1;
 constexpr float UNRELIABLE_TICK_RATE = 1.f / 20;
-constexpr sf::Vector2u WINDOW_DIM{800, 600};
+constexpr sf::Vector2u WINDOW_DIM{1920, 1280};
 constexpr sf::Vector2f WINDOW_DIMf{WINDOW_DIM};
 typedef uint32_t EntityId;
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object width="32" height="32">
+  <properties>
+   <property name="destructible" type="bool" value="true"/>
+   <property name="health" value="100"/>
+   <property name="type" value="wall"/>
+  </properties>
+ </object>
+</template>
