@@ -18,33 +18,33 @@ class MapState
   public:
 	explicit MapState(sf::Vector2f size = {0.f, 0.f});
 
-	void loadFromBlueprint(const MapBlueprint &bp);
+	void loadFromBlueprint(MapBlueprint const &bp);
 
 	void addWall(float x, float y, float w, float h, int health = 100);
 	void addSpawnPoint(sf::Vector2f spawn);
 	void addItemSpawnZone(sf::Vector2f position, PowerupType itemType);
 	void destroyWallAtGridPos(int x, int y); // Tile Swap: Clear wall tile when destroyed
-	[[nodiscard]] bool isColliding(const sf::RectangleShape &r) const;
-	[[nodiscard]] const std::vector<WallState> &getWalls() const;
+	[[nodiscard]] bool isColliding(sf::RectangleShape const &r) const;
+	[[nodiscard]] std::vector<WallState> const &getWalls() const;
 	[[nodiscard]] std::vector<WallState> &getWalls();
-	[[nodiscard]] const std::vector<sf::Vector2f> &getSpawns() const;
-	[[nodiscard]] const std::vector<ItemSpawnZone> &getItemSpawnZones() const;
+	[[nodiscard]] std::vector<sf::Vector2f> const &getSpawns() const;
+	[[nodiscard]] std::vector<ItemSpawnZone> const &getItemSpawnZones() const;
 	[[nodiscard]] sf::Vector2f getSize() const;
 
 	// Rendering Accessors (Consumed by MapClient)
-	[[nodiscard]] const std::optional<RawTileset> &getTileset() const;
-	[[nodiscard]] const std::vector<RawLayer> &getLayers() const;
+	[[nodiscard]] std::optional<RawTileset> const &getTileset() const;
+	[[nodiscard]] std::vector<RawLayer> const &getLayers() const;
 	[[nodiscard]] std::optional<RawLayer> getGroundLayer() const;
 	[[nodiscard]] std::optional<RawLayer> getWallsLayer() const;
-	[[nodiscard]] const std::vector<WallState> &getWallStates() const;
-	[[nodiscard]] const WallState *getWallAtGridPos(int x, int y) const;
+	[[nodiscard]] std::vector<WallState> const &getWallStates() const;
+	[[nodiscard]] WallState const *getWallAtGridPos(int x, int y) const;
 
 	// Setters for preserving rendering data on client (when applying server snapshots)
-	void setTileset(const std::optional<RawTileset> &tileset);
-	void setGroundLayer(const std::optional<RawLayer> &layer);
-	void setWallsLayer(const std::optional<RawLayer> &layer);
+	void setTileset(std::optional<RawTileset> const &tileset);
+	void setGroundLayer(std::optional<RawLayer> const &layer);
+	void setWallsLayer(std::optional<RawLayer> const &layer);
 
-	static PowerupType stringToPowerupType(const std::string &str);
+	static PowerupType stringToPowerupType(std::string const &str);
 
   private:
 	sf::Vector2f m_size;

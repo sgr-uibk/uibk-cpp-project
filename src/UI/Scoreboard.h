@@ -24,7 +24,7 @@ class Scoreboard
 
 	Scoreboard(sf::Font &font);
 
-	void show(EntityId winnerId, const std::vector<PlayerStats> &playerStats);
+	void show(EntityId winnerId, std::vector<PlayerStats> const &playerStats);
 	void draw(sf::RenderWindow &window) const;
 	ButtonAction handleClick(sf::Vector2f mousePos);
 

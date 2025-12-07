@@ -14,30 +14,37 @@ struct LobbyPlayerInfo
 	bool bReady;
 };
 
+enum class LobbyEvent
+{
+	NONE,
+	LOBBY_UPDATED,
+	GAME_STARTED,
+	SERVER_DISCONNECTED
+};
+
 class LobbyClient
 {
   public:
-	explicit LobbyClient(const std::string &name, Endpoint lobbyServer = {sf::IpAddress::LocalHost, PORT_TCP});
+	explicit LobbyClient(std::string const &name, Endpoint lobbyServer = {sf::IpAddress::LocalHost, PORT_TCP});
 	~LobbyClient();
 	void bindGameSocket();
 	void connect();
 	void sendReady();
-	bool pollLobbyUpdate();
-	std::optional<std::array<PlayerState, MAX_PLAYERS>> waitForGameStart(sf::Time timeout);
+	LobbyEvent pollLobbyUpdate();
 
 	[[nodiscard]] bool getReadiness() const
 	{
 		return m_bReady;
 	}
 
-	[[nodiscard]] const std::vector<LobbyPlayerInfo> &getLobbyPlayers() const
+	[[nodiscard]] std::vector<LobbyPlayerInfo> const &getLobbyPlayers() const
 	{
 		return m_lobbyPlayers;
 	}
 
-	void updateLobbyPlayers(const std::vector<LobbyPlayerInfo> &players)
+	[[nodiscard]] std::array<PlayerState, MAX_PLAYERS> getGameStartData() const
 	{
-		m_lobbyPlayers = players;
+		return m_startData;
 	}
 
 	EntityId m_clientId;
@@ -50,6 +57,7 @@ class LobbyClient
 	bool m_bReady;
 	std::string m_loggerName; // Store original logger name for proper cleanup
 	std::vector<LobbyPlayerInfo> m_lobbyPlayers;
+	std::array<PlayerState, MAX_PLAYERS> m_startData;
 
-	std::array<PlayerState, MAX_PLAYERS> parseGameStartPacket(sf::Packet &pkt);
+	void parseGameStartPacket(sf::Packet &pkt);
 };

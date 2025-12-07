@@ -22,9 +22,9 @@ void MapState::addItemSpawnZone(sf::Vector2f position, PowerupType itemType)
 	m_itemSpawnZones.push_back({position, itemType});
 }
 
-bool MapState::isColliding(const sf::RectangleShape &r) const
+bool MapState::isColliding(sf::RectangleShape const &r) const
 {
-	for(const auto &wall : m_walls)
+	for(auto const &wall : m_walls)
 	{
 		if(!wall.isDestroyed() && wall.getGlobalBounds().findIntersection(r.getGlobalBounds()).has_value())
 		{
@@ -34,7 +34,7 @@ bool MapState::isColliding(const sf::RectangleShape &r) const
 	return false;
 }
 
-const std::vector<WallState> &MapState::getWalls() const
+std::vector<WallState> const &MapState::getWalls() const
 {
 	return m_walls;
 }
@@ -44,12 +44,12 @@ std::vector<WallState> &MapState::getWalls()
 	return m_walls;
 }
 
-const std::vector<sf::Vector2f> &MapState::getSpawns() const
+std::vector<sf::Vector2f> const &MapState::getSpawns() const
 {
 	return m_spawns;
 }
 
-const std::vector<ItemSpawnZone> &MapState::getItemSpawnZones() const
+std::vector<ItemSpawnZone> const &MapState::getItemSpawnZones() const
 {
 	return m_itemSpawnZones;
 }
@@ -59,7 +59,7 @@ sf::Vector2f MapState::getSize() const
 	return m_size;
 }
 
-void MapState::loadFromBlueprint(const MapBlueprint &bp)
+void MapState::loadFromBlueprint(MapBlueprint const &bp)
 {
 	m_size = bp.getTotalSize();
 
@@ -70,7 +70,7 @@ void MapState::loadFromBlueprint(const MapBlueprint &bp)
 	m_spawns.clear();
 	m_itemSpawnZones.clear();
 
-	for(const auto &layer : bp.layers)
+	for(auto const &layer : bp.layers)
 	{
 		if(layer.name != "Walls")
 			continue;
@@ -93,7 +93,7 @@ void MapState::loadFromBlueprint(const MapBlueprint &bp)
 		}
 	}
 
-	for(const auto &obj : bp.objects)
+	for(auto const &obj : bp.objects)
 	{
 		if(obj.type == "player_spawn")
 		{
@@ -115,7 +115,7 @@ void MapState::loadFromBlueprint(const MapBlueprint &bp)
 	spdlog::info("Map Built: {} walls, {} spawns", m_walls.size(), m_spawns.size());
 }
 
-PowerupType MapState::stringToPowerupType(const std::string &str)
+PowerupType MapState::stringToPowerupType(std::string const &str)
 {
 	if(str == "HEALTH_PACK")
 		return PowerupType::HEALTH_PACK;
@@ -132,7 +132,7 @@ PowerupType MapState::stringToPowerupType(const std::string &str)
 
 std::optional<RawLayer> MapState::getGroundLayer() const
 {
-	for(const auto &layer : m_layers)
+	for(auto const &layer : m_layers)
 	{
 		if(layer.name == "Ground")
 		{
@@ -144,7 +144,7 @@ std::optional<RawLayer> MapState::getGroundLayer() const
 
 std::optional<RawLayer> MapState::getWallsLayer() const
 {
-	for(const auto &layer : m_layers)
+	for(auto const &layer : m_layers)
 	{
 		if(layer.name == "Walls")
 		{
@@ -154,27 +154,27 @@ std::optional<RawLayer> MapState::getWallsLayer() const
 	return std::nullopt;
 }
 
-const std::vector<WallState> &MapState::getWallStates() const
+std::vector<WallState> const &MapState::getWallStates() const
 {
 	return m_walls;
 }
 
-const std::optional<RawTileset> &MapState::getTileset() const
+std::optional<RawTileset> const &MapState::getTileset() const
 {
 	return m_tileset;
 }
 
-const std::vector<RawLayer> &MapState::getLayers() const
+std::vector<RawLayer> const &MapState::getLayers() const
 {
 	return m_layers;
 }
 
-void MapState::setTileset(const std::optional<RawTileset> &tileset)
+void MapState::setTileset(std::optional<RawTileset> const &tileset)
 {
 	m_tileset = tileset;
 }
 
-void MapState::setGroundLayer(const std::optional<RawLayer> &layer)
+void MapState::setGroundLayer(std::optional<RawLayer> const &layer)
 {
 	if(!layer.has_value())
 		return;
@@ -190,7 +190,7 @@ void MapState::setGroundLayer(const std::optional<RawLayer> &layer)
 	m_layers.push_back(*layer);
 }
 
-void MapState::setWallsLayer(const std::optional<RawLayer> &layer)
+void MapState::setWallsLayer(std::optional<RawLayer> const &layer)
 {
 	if(!layer.has_value())
 		return;
@@ -206,12 +206,12 @@ void MapState::setWallsLayer(const std::optional<RawLayer> &layer)
 	m_layers.push_back(*layer);
 }
 
-const WallState *MapState::getWallAtGridPos(int x, int y) const
+WallState const *MapState::getWallAtGridPos(int x, int y) const
 {
 	float cellCenterX = (static_cast<float>(x) * CARTESIAN_TILE_SIZE) + (CARTESIAN_TILE_SIZE / 2.0f);
 	float cellCenterY = (static_cast<float>(y) * CARTESIAN_TILE_SIZE) + (CARTESIAN_TILE_SIZE / 2.0f);
 
-	for(const auto &wall : m_walls)
+	for(auto const &wall : m_walls)
 	{
 		sf::FloatRect bounds = wall.getGlobalBounds();
 

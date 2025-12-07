@@ -16,12 +16,12 @@ class ProjectileClient
 		return m_state.getId();
 	}
 
-	const sf::CircleShape &getShape() const
+	sf::CircleShape const &getShape() const
 	{
 		return m_shape;
 	}
 
-	const ProjectileState &getState() const
+	ProjectileState const &getState() const
 	{
 		return m_state;
 	}

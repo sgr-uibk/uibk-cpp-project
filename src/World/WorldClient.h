@@ -1,28 +1,25 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include <SFML/Audio.hpp>
-#include "WorldState.h"
-#include "Game/InterpClient.h"
-#include "Player/PlayerClient.h"
-#include "Map/MapClient.h"
-#include "Projectile/ProjectileClient.h"
-#include "Item/ItemClient.h"
-#include "PauseMenuClient.h"
-#include "ItemBarClient.h"
+#include <SFML/Network.hpp>
+#include <memory>
+#include <optional>
+#include <vector>
+#include <array>
 
-class Scoreboard;
+#include "Networking.h"
+#include "WorldState.h"
+#include "Map/MapClient.h"
+#include "Player/PlayerClient.h"
+#include "Game/InterpClient.h"
+#include "Item/ItemClient.h"
+#include "Projectile/ProjectileClient.h"
+#include "World/PauseMenuClient.h"
+#include "UI/Scoreboard.h"
+#include "ItemBarClient.h"
 
 class WorldClient
 {
   public:
-	struct PlayerStats
-	{
-		EntityId id;
-		std::string name;
-		int kills;
-		int deaths;
-	};
-
 	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players);
 	~WorldClient();
 
@@ -32,41 +29,51 @@ class WorldClient
 	{
 		return m_players[m_ownPlayerId - 1].getState();
 	}
+	void pollEvents();
 
 	void applyNonInterpState(WorldState const &snapshot);
 	WorldState &getState();
-	void pollEvents();
+
+	void showScoreboard(EntityId winnerId, std::vector<struct Scoreboard::PlayerStats> const &playerStats);
+
+	bool isReturnToLobbyRequested() const
+	{
+		return m_returnToLobby;
+	}
+
 	void handleResize(sf::Vector2u newSize);
 
-	void showScoreboard(EntityId winnerId, const std::vector<PlayerStats> &playerStats = {});
-
-	bool m_bAcceptInput;
-	sf::Clock m_frameClock;
-	sf::Clock m_tickClock;
-	PauseMenuClient m_pauseMenu;
 	Tick m_clientTick = 0;
 
   private:
 	void propagateUpdate(float dt);
+	// Member order matches initialization order in constructor
+	bool m_bAcceptInput;
+
+  public:
+	PauseMenuClient m_pauseMenu;
+
+  private:
 	WorldState m_state;
 	ItemBarClient m_itemBar;
 	sf::RenderWindow &m_window;
 	MapClient m_mapClient;
 	std::array<PlayerClient, MAX_PLAYERS> m_players;
+	EntityId m_ownPlayerId;
+
+  public:
+	InterpClient m_interp;
+
+  private:
 	std::vector<ProjectileClient> m_projectiles;
 	std::vector<ItemClient> m_items;
-	EntityId m_ownPlayerId;
+
+	sf::Clock m_frameClock;
+	sf::Clock m_tickClock;
 	sf::View m_worldView;
 	sf::View m_hudView;
 	float m_zoomLevel = 1.0f;
 
 	std::unique_ptr<Scoreboard> m_scoreboard;
-	bool m_slotChangeRequested = false;
-	int m_requestedSlot = 0;
-	bool m_useItemRequested = false;
-
-	std::optional<sf::Sound> m_shootSound;
-
-  public:
-	InterpClient m_interp;
+	bool m_returnToLobby = false;
 };

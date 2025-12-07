@@ -55,9 +55,9 @@ inline sf::Vector2f isoToCartesian(sf::Vector2f iso)
 // Render queue structure for Y-sorting
 struct RenderObject
 {
-	float sortY = 0.0f; // Y coordinate for depth sorting
-	const sf::Drawable *drawable = nullptr; // Pointer to persistent drawable
-	std::optional<sf::Sprite> tempSprite; // For temporary sprites (e.g., wall tiles)
+	float sortY = 0.0f;                     // Y coordinate for depth sorting
+	sf::Drawable const *drawable = nullptr; // Pointer to persistent drawable
+	std::optional<sf::Sprite> tempSprite;   // For temporary sprites (e.g., wall tiles)
 
 	void draw(sf::RenderWindow &window) const
 	{
@@ -67,7 +67,7 @@ struct RenderObject
 			window.draw(*drawable);
 	}
 
-	bool operator<(const RenderObject &other) const
+	bool operator<(RenderObject const &other) const
 	{
 		return sortY < other.sortY;
 	}

@@ -2,7 +2,7 @@
 #include "Utilities.h"
 #include <cmath>
 
-ItemClient::ItemClient(const ItemState &state)
+ItemClient::ItemClient(ItemState const &state)
 	: m_state(state), m_shape(sf::Vector2f(20.f, 20.f)), m_bobPhase(0.f), m_bobSpeed(2.f), m_bobHeight(5.f)
 {
 	m_shape.setFillColor(getColorForType(state.getType()));
@@ -12,7 +12,7 @@ ItemClient::ItemClient(const ItemState &state)
 	syncSpriteToState(state);
 }
 
-void ItemClient::syncSpriteToState(const ItemState &state)
+void ItemClient::syncSpriteToState(ItemState const &state)
 {
 	m_state = state;
 	sf::Vector2f isoPos = cartesianToIso(m_state.getPosition());

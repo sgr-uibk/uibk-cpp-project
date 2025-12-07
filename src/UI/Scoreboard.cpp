@@ -7,7 +7,7 @@ Scoreboard::Scoreboard(sf::Font &font) : m_font(font), m_isShowing(false), m_win
 {
 }
 
-void Scoreboard::show(EntityId winnerId, const std::vector<PlayerStats> &playerStats)
+void Scoreboard::show(EntityId winnerId, std::vector<PlayerStats> const &playerStats)
 {
 	m_isShowing = true;
 	m_winnerId = winnerId;
@@ -79,7 +79,7 @@ void Scoreboard::draw(sf::RenderWindow &window) const
 
 	if(!m_playerStats.empty())
 	{
-		for(const auto &stats : m_playerStats)
+		for(auto const &stats : m_playerStats)
 		{
 			if(stats.id == m_winnerId)
 			{
@@ -109,7 +109,7 @@ void Scoreboard::draw(sf::RenderWindow &window) const
 	{
 		std::vector<PlayerStats> sortedStats = m_playerStats;
 		std::sort(sortedStats.begin(), sortedStats.end(),
-		          [](const PlayerStats &a, const PlayerStats &b) { return a.kills > b.kills; });
+		          [](PlayerStats const &a, PlayerStats const &b) { return a.kills > b.kills; });
 
 		sf::Text statsHeader(m_font);
 		statsHeader.setString("PLAYER STATISTICS");
@@ -149,7 +149,7 @@ void Scoreboard::draw(sf::RenderWindow &window) const
 		for(size_t i = 0; i < sortedStats.size(); ++i)
 		{
 			float rowY = tableStartY + 35.f + i * rowHeight;
-			const auto &stats = sortedStats[i];
+			auto const &stats = sortedStats[i];
 
 			sf::Color textColor = (stats.id == m_winnerId) ? sf::Color(255, 215, 0) : sf::Color::White;
 

@@ -65,17 +65,44 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 	if(bServerTickExpired)
 		m_tickClock.restart();
 	propagateUpdate(frameDelta);
-	if(m_pauseMenu.isPaused() || !m_bAcceptInput)
+	if(m_pauseMenu.isPaused() || !m_bAcceptInput || !m_window.hasFocus())
 	{ // skip game logic
 		return std::nullopt;
 	}
 
-	sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
-	sf::Vector2f mouseWorldPos = m_window.mapPixelToCoords(mousePixelPos, m_worldView);
-	sf::Vector2f playerPos = m_state.getPlayerById(m_ownPlayerId).getPosition();
-	sf::Vector2f aimDir = mouseWorldPos - playerPos;
-	float aimRad = std::atan2(aimDir.x, -aimDir.y);
-	sf::Angle aimAngle = sf::radians(aimRad);
+	sf::Angle aimAngle;
+	{
+		PlayerState const &ps = m_state.getPlayerById(m_ownPlayerId);
+		sf::Vector2f playerCartCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+
+		sf::View cameraView = m_worldView;
+		sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
+		cameraView.setCenter(isoPlayerPos);
+		cameraView.zoom(m_zoomLevel);
+
+		sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
+		sf::Vector2f mouseIsoPos = m_window.mapPixelToCoords(mousePixelPos, cameraView);
+
+		sf::Vector2f mouseCartPos = isoToCartesian(mouseIsoPos);
+
+		sf::Vector2f dir = mouseCartPos - playerCartCenter;
+		float angleRad = std::atan2(dir.y, dir.x);
+		float angleDeg = angleRad * 180.0f / 3.14159265f;
+
+		while(angleDeg < 0.0f)
+			angleDeg += 360.0f;
+		while(angleDeg >= 360.0f)
+			angleDeg -= 360.0f;
+
+		angleDeg += 90.0f;
+
+		aimAngle = sf::degrees(angleDeg);
+	}
+
+	if(m_ownPlayerId > 0 && m_ownPlayerId <= MAX_PLAYERS)
+	{
+		m_players[m_ownPlayerId - 1].setTurretRotation(aimAngle);
+	}
 
 	if(m_itemBar.handleItemUse())
 	{
@@ -115,7 +142,7 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 void WorldClient::draw(sf::RenderWindow &window) const
 {
 	// Update camera to follow player with isometric projection
-	const PlayerState &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
+	PlayerState const &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
 	sf::Vector2f playerCartCenter = ownPlayer.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 	sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
 
@@ -210,6 +237,13 @@ void WorldClient::applyNonInterpState(WorldState const &snapshot)
 		if(itemState.isActive())
 			m_items.emplace_back(itemState);
 	}
+
+	auto const &destroyedWalls = snapshot.getDestroyedWallDeltas();
+	for(auto const &[gridX, gridY] : destroyedWalls)
+	{
+		m_state.getMap().destroyWallAtGridPos(gridX, gridY);
+		SPDLOG_LOGGER_DEBUG(spdlog::get("Client"), "Applied wall delta: destroyed wall at grid ({}, {})", gridX, gridY);
+	}
 }
 
 WorldState &WorldClient::getState()
@@ -236,13 +270,13 @@ void WorldClient::pollEvents()
 			{
 				m_itemBar.handleKeyboardEvent(keyPress->scancode);
 
-				// Handle zoom with +/- keys
-				if(keyPress->scancode == sf::Keyboard::Scancode::Equal || keyPress->scancode == sf::Keyboard::Scancode::NumpadPlus)
+				if(keyPress->scancode == sf::Keyboard::Scancode::Equal ||
+				   keyPress->scancode == sf::Keyboard::Scancode::NumpadPlus)
 					m_zoomLevel = std::max(0.5f, m_zoomLevel - 0.1f);
-				else if(keyPress->scancode == sf::Keyboard::Scancode::Hyphen || keyPress->scancode == sf::Keyboard::Scancode::NumpadMinus)
+				else if(keyPress->scancode == sf::Keyboard::Scancode::Hyphen ||
+				        keyPress->scancode == sf::Keyboard::Scancode::NumpadMinus)
 					m_zoomLevel = std::min(2.0f, m_zoomLevel + 0.1f);
 			}
-
 		}
 		else if(auto const *mouseEvent = event->getIf<sf::Event::MouseButtonPressed>())
 		{
@@ -253,12 +287,20 @@ void WorldClient::pollEvents()
 			}
 
 			// Handle scoreboard clicks
-			if(m_scoreboard && mouseEvent->button == sf::Mouse::Button::Left)
+			if(m_scoreboard && m_scoreboard->isShowing() && mouseEvent->button == sf::Mouse::Button::Left)
 			{
 				sf::Vector2f mousePos = m_window.mapPixelToCoords(mouseEvent->position, m_hudView);
 				auto action = m_scoreboard->handleClick(mousePos);
+
 				if(action == Scoreboard::ButtonAction::RETURN_TO_LOBBY)
+				{
+					m_returnToLobby = true;
 					SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Return to lobby requested from scoreboard");
+				}
+				else if(action == Scoreboard::ButtonAction::MAIN_MENU)
+				{
+					m_window.close();
+				}
 			}
 		}
 		else if(auto const *scrollEvent = event->getIf<sf::Event::MouseWheelScrolled>())
@@ -275,23 +317,11 @@ void WorldClient::handleResize(sf::Vector2u newSize)
 	m_hudView.setSize(sf::Vector2f(newSize));
 }
 
-void WorldClient::showScoreboard(EntityId winnerId, const std::vector<PlayerStats> &playerStats)
+void WorldClient::showScoreboard(EntityId winnerId, std::vector<Scoreboard::PlayerStats> const &playerStats)
 {
 	if(!m_scoreboard)
 		return;
 
-	// Convert to scoreboard format
-	std::vector<Scoreboard::PlayerStats> scoreboardStats;
-	for(const auto &stats : playerStats)
-	{
-		Scoreboard::PlayerStats sbStats;
-		sbStats.id = stats.id;
-		sbStats.name = stats.name;
-		sbStats.kills = stats.kills;
-		sbStats.deaths = stats.deaths;
-		scoreboardStats.push_back(sbStats);
-	}
-
-	m_scoreboard->show(winnerId, scoreboardStats);
+	m_scoreboard->show(winnerId, playerStats);
 	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Scoreboard displayed with winner ID {}", winnerId);
 }

@@ -6,5 +6,5 @@
 class MapParser
 {
   public:
-	static std::optional<MapBlueprint> parse(const std::string &filePath);
+	static std::optional<MapBlueprint> parse(std::string const &filePath);
 };

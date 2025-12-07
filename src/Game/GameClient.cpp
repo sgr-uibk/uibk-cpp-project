@@ -4,6 +4,7 @@
 
 #include "Utilities.h"
 #include "Lobby/LobbyClient.h"
+#include "../UI/Scoreboard.h"
 
 GameClient::GameClient(WorldClient &world, LobbyClient &lobby)
 	: m_world(world), m_lobby(lobby), m_gameServer({lobby.m_lobbySock.getRemoteAddress().value(), PORT_UDP})
@@ -17,12 +18,16 @@ void GameClient::update(sf::RenderWindow &window) const
 {
 	m_world.pollEvents();
 	m_world.m_interp.interpolateEnemies();
+	sf::Vector2f posDelta{0.f, 0.f};
 
-	bool const w = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W);
-	bool const s = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S);
-	bool const a = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
-	bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
-	sf::Vector2f const posDelta{static_cast<float>(d - a), static_cast<float>(s - w)};
+	if(window.hasFocus())
+	{
+		bool const w = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W);
+		bool const s = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S);
+		bool const a = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A);
+		bool const d = sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D);
+		posDelta = {static_cast<float>(d - a), static_cast<float>(s - w)};
+	}
 	std::optional<sf::Packet> outPktOpt = m_world.update(posDelta);
 	m_world.draw(window);
 	window.display();
@@ -74,12 +79,12 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 			uint32_t numPlayers;
 			reliablePkt >> numPlayers;
 
-			std::vector<WorldClient::PlayerStats> playerStats;
+			std::vector<Scoreboard::PlayerStats> playerStats;
 			playerStats.reserve(numPlayers);
 
 			for(uint32_t i = 0; i < numPlayers; ++i)
 			{
-				WorldClient::PlayerStats stats;
+				Scoreboard::PlayerStats stats;
 				reliablePkt >> stats.id;
 				reliablePkt >> stats.name;
 
@@ -97,7 +102,8 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 			if(m_lobby.m_clientId == winnerId)
 				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "I won the game!", winnerId);
 			else
-				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Battle is over, winner id {}, scoreboard displayed.", winnerId);
+				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Battle is over, winner id {}, scoreboard displayed.",
+				                   winnerId);
 
 			return true;
 		}

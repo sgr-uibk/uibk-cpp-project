@@ -139,8 +139,8 @@ void GameServer::processPackets()
 					// Apply damage multiplier from powerups
 					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
 					m_world.addProjectile(position, velocity, clientId, damage);
-					SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} shoots at t={}, angle={} (damage={})", clientId,
-					                   tick, cannonAngle.asDegrees(), damage);
+					SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} shoots at t={}, angle={} (damage={})",
+					                   clientId, tick, cannonAngle.asDegrees(), damage);
 				}
 			}
 			else
@@ -179,7 +179,7 @@ void GameServer::spawnItems()
 	{
 		m_itemSpawnClock.restart();
 
-		const auto &itemSpawnZones = m_world.getMap().getItemSpawnZones();
+		auto const &itemSpawnZones = m_world.getMap().getItemSpawnZones();
 
 		if(itemSpawnZones.empty())
 		{
@@ -188,11 +188,12 @@ void GameServer::spawnItems()
 			sf::Vector2f position(x, y);
 			PowerupType type = static_cast<PowerupType>(1 + (rand() % 5));
 			m_world.addItem(position, type);
-			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Spawned random powerup type {} at ({}, {})", static_cast<int>(type), x, y);
+			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Spawned random powerup type {} at ({}, {})",
+			                   static_cast<int>(type), x, y);
 		}
 		else
 		{
-			const ItemSpawnZone &zone = itemSpawnZones[m_nextItemSpawnIndex];
+			ItemSpawnZone const &zone = itemSpawnZones[m_nextItemSpawnIndex];
 			m_world.addItem(zone.position, zone.itemType);
 			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Spawned powerup type {} at ({}, {}) from map spawn zone",
 			                   static_cast<int>(zone.itemType), zone.position.x, zone.position.y);
@@ -235,8 +236,8 @@ void GameServer::checkPlayerConnections()
 
 		if(status == sf::Socket::Status::Disconnected)
 		{
-			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Player {} (id {}) disconnected during game, marking as dead", lobbySlot.name,
-			                   lobbySlot.id);
+			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Player {} (id {}) disconnected during game, marking as dead",
+			                   lobbySlot.name, lobbySlot.id);
 
 			PlayerState &playerState = m_world.getPlayerById(lobbySlot.id);
 			if(playerState.isAlive())

@@ -7,7 +7,7 @@
 
 MapClient::MapClient(MapState &state) : m_state(state)
 {
-	if(const auto &tileset = m_state.getTileset())
+	if(auto const &tileset = m_state.getTileset())
 	{
 		try
 		{
@@ -25,7 +25,7 @@ MapClient::MapClient(MapState &state) : m_state(state)
 				spdlog::error("Failed to load tileset texture: {}", fullPath.string());
 			}
 		}
-		catch(const std::exception &e)
+		catch(std::exception const &e)
 		{
 			spdlog::error("Failed to resolve tileset path: {} - {}", tileset->imagePath, e.what());
 		}
@@ -48,19 +48,19 @@ void MapClient::drawGroundTiles(sf::RenderWindow &window) const
 	if(!m_tilesetTexture.has_value())
 		return;
 
-	const auto &groundLayer = m_state.getGroundLayer();
-	const auto &tileset = m_state.getTileset();
+	auto const &groundLayer = m_state.getGroundLayer();
+	auto const &tileset = m_state.getTileset();
 	if(!groundLayer.has_value() || !tileset.has_value())
 		return;
 
-	const int mapWidth = groundLayer->width;
-	const int mapHeight = groundLayer->height;
-	const int tileSpriteW = tileset->tileWidth;
-	const int tileSpriteH = tileset->tileHeight;
-	const int mapTileW = tileset->mapTileWidth;
-	const int mapTileH = tileset->mapTileHeight;
-	const int columns = tileset->columns;
-	const int firstGid = tileset->firstGid;
+	int const mapWidth = groundLayer->width;
+	int const mapHeight = groundLayer->height;
+	int const tileSpriteW = tileset->tileWidth;
+	int const tileSpriteH = tileset->tileHeight;
+	int const mapTileW = tileset->mapTileWidth;
+	int const mapTileH = tileset->mapTileHeight;
+	int const columns = tileset->columns;
+	int const firstGid = tileset->firstGid;
 
 	for(int y = 0; y < mapHeight; ++y)
 	{
@@ -98,20 +98,20 @@ void MapClient::drawWallTiles(sf::RenderWindow &window) const
 	if(!m_tilesetTexture.has_value())
 		return;
 
-	const auto &wallsLayer = m_state.getWallsLayer();
-	const auto &tileset = m_state.getTileset();
+	auto const &wallsLayer = m_state.getWallsLayer();
+	auto const &tileset = m_state.getTileset();
 
 	if(!wallsLayer.has_value() || !tileset.has_value())
 		return;
 
-	const int mapWidth = wallsLayer->width;
-	const int mapHeight = wallsLayer->height;
-	const int tileSpriteW = tileset->tileWidth;
-	const int tileSpriteH = tileset->tileHeight;
-	const int mapTileW = tileset->mapTileWidth;
-	const int mapTileH = tileset->mapTileHeight;
-	const int columns = tileset->columns;
-	const int firstGid = tileset->firstGid;
+	int const mapWidth = wallsLayer->width;
+	int const mapHeight = wallsLayer->height;
+	int const tileSpriteW = tileset->tileWidth;
+	int const tileSpriteH = tileset->tileHeight;
+	int const mapTileW = tileset->mapTileWidth;
+	int const mapTileH = tileset->mapTileHeight;
+	int const columns = tileset->columns;
+	int const firstGid = tileset->firstGid;
 
 	for(int y = 0; y < mapHeight; ++y)
 	{
@@ -126,7 +126,7 @@ void MapClient::drawWallTiles(sf::RenderWindow &window) const
 				continue;
 			}
 
-			const WallState *wall = m_state.getWallAtGridPos(x, y);
+			WallState const *wall = m_state.getWallAtGridPos(x, y);
 			if(wall && wall->isDestroyed())
 			{
 				continue;
@@ -155,20 +155,20 @@ void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
 	if(!m_tilesetTexture.has_value())
 		return;
 
-	const auto &wallsLayer = m_state.getWallsLayer();
-	const auto &tileset = m_state.getTileset();
+	auto const &wallsLayer = m_state.getWallsLayer();
+	auto const &tileset = m_state.getTileset();
 
 	if(!wallsLayer.has_value() || !tileset.has_value())
 		return;
 
-	const int mapWidth = wallsLayer->width;
-	const int mapHeight = wallsLayer->height;
-	const int tileSpriteW = tileset->tileWidth;
-	const int tileSpriteH = tileset->tileHeight;
-	const int mapTileW = tileset->mapTileWidth;
-	const int mapTileH = tileset->mapTileHeight;
-	const int columns = tileset->columns;
-	const int firstGid = tileset->firstGid;
+	int const mapWidth = wallsLayer->width;
+	int const mapHeight = wallsLayer->height;
+	int const tileSpriteW = tileset->tileWidth;
+	int const tileSpriteH = tileset->tileHeight;
+	int const mapTileW = tileset->mapTileWidth;
+	int const mapTileH = tileset->mapTileHeight;
+	int const columns = tileset->columns;
+	int const firstGid = tileset->firstGid;
 
 	for(int y = 0; y < mapHeight; ++y)
 	{
@@ -180,7 +180,7 @@ void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
 			if(tileId == 0)
 				continue;
 
-			const WallState *wall = m_state.getWallAtGridPos(x, y);
+			WallState const *wall = m_state.getWallAtGridPos(x, y);
 			if(wall && wall->isDestroyed())
 				continue;
 

@@ -11,8 +11,9 @@
 struct WorldState
 {
 	WorldState();
+	WorldState(WorldState const &) = default;
 	explicit WorldState(sf::Vector2f mapSize);
-	static WorldState fromTiledMap(const std::string &tiledJsonPath);
+	static WorldState fromTiledMap(std::string const &tiledJsonPath);
 	void update(float dt);
 	void setPlayer(PlayerState const &p);
 
@@ -20,7 +21,7 @@ struct WorldState
 	PlayerState &getPlayerById(size_t id);
 	PlayerState const &getPlayerById(size_t id) const;
 	[[nodiscard]] MapState &getMap();
-	[[nodiscard]] const MapState &getMap() const;
+	[[nodiscard]] MapState const &getMap() const;
 
 	uint32_t addProjectile(sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId, int damage = 25);
 	void removeProjectile(uint32_t id);
@@ -52,7 +53,7 @@ struct WorldState
 
 	void clearWallDeltas();
 	void markWallDestroyed(int gridX, int gridY);
-	const std::vector<std::pair<int, int>> &getDestroyedWallDeltas() const;
+	std::vector<std::pair<int, int>> const &getDestroyedWallDeltas() const;
 
 	// serialization (full snapshot for players/items/projectiles, deltas for walls)
 	void serialize(sf::Packet &pkt) const;

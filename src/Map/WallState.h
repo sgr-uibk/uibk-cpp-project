@@ -18,7 +18,7 @@ class WallState
 	[[nodiscard]] int getMaxHealth() const;
 	[[nodiscard]] float getHealthPercent() const;
 	[[nodiscard]] sf::FloatRect getGlobalBounds() const;
-	[[nodiscard]] const sf::RectangleShape &getShape() const;
+	[[nodiscard]] sf::RectangleShape const &getShape() const;
 	[[nodiscard]] sf::RectangleShape &getShape();
 
 	void updateVisuals();

@@ -87,7 +87,7 @@ sf::FloatRect WallState::getGlobalBounds() const
 	return m_shape.getGlobalBounds();
 }
 
-const sf::RectangleShape &WallState::getShape() const
+sf::RectangleShape const &WallState::getShape() const
 {
 	return m_shape;
 }

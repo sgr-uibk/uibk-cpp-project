@@ -146,7 +146,7 @@ void PlayerState::applyPowerup(PowerupType type)
 
 bool PlayerState::hasPowerup(PowerupType type) const
 {
-	for(const auto &powerup : m_powerups)
+	for(auto const &powerup : m_powerups)
 	{
 		if(powerup.type == type && powerup.isActive())
 			return true;
@@ -154,9 +154,9 @@ bool PlayerState::hasPowerup(PowerupType type) const
 	return false;
 }
 
-const PowerupEffect *PlayerState::getPowerup(PowerupType type) const
+PowerupEffect const *PlayerState::getPowerup(PowerupType type) const
 {
-	for(const auto &powerup : m_powerups)
+	for(auto const &powerup : m_powerups)
 	{
 		if(powerup.type == type && powerup.isActive())
 			return &powerup;
@@ -265,12 +265,12 @@ void PlayerState::serialize(sf::Packet &pkt) const
 	pkt << static_cast<int32_t>(m_kills);
 	pkt << static_cast<int32_t>(m_deaths);
 
-	for(const auto &powerup : m_powerups)
+	for(auto const &powerup : m_powerups)
 	{
 		powerup.serialize(pkt);
 	}
 
-	for(const auto &item : m_inventory)
+	for(auto const &item : m_inventory)
 	{
 		pkt << static_cast<uint8_t>(item);
 	}

@@ -8,7 +8,7 @@
 
 using json = nlohmann::json;
 
-std::optional<MapBlueprint> MapParser::parse(const std::string &filePath)
+std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 {
 	auto fullPath = g_assetPathResolver.resolveRelative(filePath);
 	std::ifstream file(fullPath);
@@ -23,7 +23,7 @@ std::optional<MapBlueprint> MapParser::parse(const std::string &filePath)
 	{
 		file >> j;
 	}
-	catch(const json::parse_error &e)
+	catch(json::parse_error const &e)
 	{
 		spdlog::error("MapParser: JSON error in {} - {}", filePath, e.what());
 		return std::nullopt;
@@ -38,7 +38,7 @@ std::optional<MapBlueprint> MapParser::parse(const std::string &filePath)
 
 	if(j.contains("tilesets") && !j["tilesets"].empty())
 	{
-		const auto &tsJson = j["tilesets"][0];
+		auto const &tsJson = j["tilesets"][0];
 		RawTileset ts;
 		ts.firstGid = tsJson.value("firstgid", 1);
 		ts.imagePath = tsJson.value("image", "");
@@ -55,7 +55,7 @@ std::optional<MapBlueprint> MapParser::parse(const std::string &filePath)
 
 	if(j.contains("layers"))
 	{
-		for(const auto &layerJson : j["layers"])
+		for(auto const &layerJson : j["layers"])
 		{
 			std::string type = layerJson.value("type", "");
 
@@ -77,7 +77,7 @@ std::optional<MapBlueprint> MapParser::parse(const std::string &filePath)
 			{
 				if(layerJson.contains("objects"))
 				{
-					for(const auto &objJson : layerJson["objects"])
+					for(auto const &objJson : layerJson["objects"])
 					{
 						RawObject obj;
 						obj.id = objJson.value("id", -1);
@@ -89,7 +89,7 @@ std::optional<MapBlueprint> MapParser::parse(const std::string &filePath)
 
 						if(objJson.contains("properties"))
 						{
-							for(const auto &prop : objJson["properties"])
+							for(auto const &prop : objJson["properties"])
 							{
 								// Tiled properties are array of objects {name, type, value}
 								if(prop.contains("name") && prop.contains("value"))

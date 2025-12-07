@@ -44,7 +44,7 @@ struct RawObject
 	// Custom properties defined in Tiled (e.g., "health", "item_type")
 	std::map<std::string, std::string> properties;
 
-	std::string getProperty(const std::string &key, const std::string &defaultVal = "") const
+	std::string getProperty(std::string const &key, std::string const &defaultVal = "") const
 	{
 		auto it = properties.find(key);
 		return (it != properties.end()) ? it->second : defaultVal;

@@ -18,11 +18,11 @@ static int angleToDirection(float degrees)
 
 	// Hardcoded sprite mapping for now
 
-	const int spriteMap[8] = {5, 4, 3, 2, 1, 8, 7, 6};
+	int const spriteMap[8] = {5, 4, 3, 2, 1, 8, 7, 6};
 	return spriteMap[section];
 }
 
-PlayerClient::PlayerClient(PlayerState &state, const sf::Color &color)
+PlayerClient::PlayerClient(PlayerState &state, sf::Color const &color)
 	: m_state(state), m_color(color),
 	  m_hullSprite(TextureManager::inst().load("tanks/tiger/Separated/Hull/german_tiger_hull1.png")),
 	  m_turretSprite(TextureManager::inst().load("tanks/tiger/Separated/Turret/german_tiger_turret1.png")),
@@ -72,7 +72,7 @@ void PlayerClient::update([[maybe_unused]] float dt)
 	updateNameText();
 }
 
-void PlayerClient::applyServerState(const PlayerState &serverState)
+void PlayerClient::applyServerState(PlayerState const &serverState)
 {
 	int prevHealth = m_state.m_health;
 	m_state = serverState;
@@ -86,6 +86,12 @@ void PlayerClient::applyServerState(const PlayerState &serverState)
 void PlayerClient::applyLocalMove(MapState const &map, sf::Vector2f delta)
 {
 	m_state.moveOn(map, delta);
+	syncSpriteToState();
+}
+
+void PlayerClient::setTurretRotation(sf::Angle angle)
+{
+	m_state.m_cannonRot = angle;
 	syncSpriteToState();
 }
 
@@ -109,6 +115,7 @@ void PlayerClient::interp(PlayerState const &s0, PlayerState const &s1, float co
 {
 	this->m_state.m_pos = lerp(s0.m_pos, s1.m_pos, alpha);
 	this->m_state.m_rot = lerp(s0.m_rot, s1.m_rot, alpha);
+	this->m_state.m_cannonRot = lerp(s0.m_cannonRot, s1.m_cannonRot, alpha);
 }
 
 void PlayerClient::updateSprite()

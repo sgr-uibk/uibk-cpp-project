@@ -13,7 +13,7 @@ WorldState::WorldState(sf::Vector2f mapSize) : m_map(mapSize), m_players()
 {
 }
 
-WorldState WorldState::fromTiledMap(const std::string &tiledJsonPath)
+WorldState WorldState::fromTiledMap(std::string const &tiledJsonPath)
 {
 	WorldState world(sf::Vector2f(0, 0));
 
@@ -60,7 +60,7 @@ PlayerState &WorldState::getPlayerById(size_t id)
 	return m_players[id - 1];
 }
 
-const PlayerState &WorldState::getPlayerById(size_t id) const
+PlayerState const &WorldState::getPlayerById(size_t id) const
 {
 	if(id == 0)
 		SPDLOG_ERROR("ID 0 is reserved for the server!");
@@ -72,7 +72,7 @@ MapState &WorldState::getMap()
 	return m_map;
 }
 
-const MapState &WorldState::getMap() const
+MapState const &WorldState::getMap() const
 {
 	return m_map;
 }
@@ -87,7 +87,7 @@ uint32_t WorldState::addProjectile(sf::Vector2f position, sf::Vector2f velocity,
 void WorldState::removeProjectile(uint32_t id)
 {
 	auto it = std::find_if(m_projectiles.begin(), m_projectiles.end(),
-	                       [id](const ProjectileState &p) { return p.getId() == id; });
+	                       [id](ProjectileState const &p) { return p.getId() == id; });
 	if(it != m_projectiles.end())
 	{
 		m_projectiles.erase(it);
@@ -97,7 +97,7 @@ void WorldState::removeProjectile(uint32_t id)
 void WorldState::removeInactiveProjectiles()
 {
 	m_projectiles.erase(std::remove_if(m_projectiles.begin(), m_projectiles.end(),
-	                                   [](const ProjectileState &p) { return !p.isActive(); }),
+	                                   [](ProjectileState const &p) { return !p.isActive(); }),
 	                    m_projectiles.end());
 }
 
@@ -191,7 +191,7 @@ uint32_t WorldState::addItem(sf::Vector2f position, PowerupType type)
 
 void WorldState::removeItem(uint32_t id)
 {
-	auto it = std::find_if(m_items.begin(), m_items.end(), [id](const ItemState &i) { return i.getId() == id; });
+	auto it = std::find_if(m_items.begin(), m_items.end(), [id](ItemState const &i) { return i.getId() == id; });
 	if(it != m_items.end())
 	{
 		m_items.erase(it);
@@ -200,7 +200,7 @@ void WorldState::removeItem(uint32_t id)
 
 void WorldState::removeInactiveItems()
 {
-	m_items.erase(std::remove_if(m_items.begin(), m_items.end(), [](const ItemState &i) { return !i.isActive(); }),
+	m_items.erase(std::remove_if(m_items.begin(), m_items.end(), [](ItemState const &i) { return !i.isActive(); }),
 	              m_items.end());
 }
 
@@ -299,14 +299,14 @@ void WorldState::serialize(sf::Packet &pkt) const
 
 	uint32_t numProjectiles = static_cast<uint32_t>(m_projectiles.size());
 	pkt << numProjectiles;
-	for(const auto &proj : m_projectiles)
+	for(auto const &proj : m_projectiles)
 	{
 		proj.serialize(pkt);
 	}
 
 	uint32_t numItems = static_cast<uint32_t>(m_items.size());
 	pkt << numItems;
-	for(const auto &item : m_items)
+	for(auto const &item : m_items)
 	{
 		item.serialize(pkt);
 	}
@@ -314,7 +314,7 @@ void WorldState::serialize(sf::Packet &pkt) const
 	// delta only: send only walls destroyed this tick
 	uint32_t numDestroyedWalls = static_cast<uint32_t>(m_destroyedWallsThisTick.size());
 	pkt << numDestroyedWalls;
-	for(const auto &[gridX, gridY] : m_destroyedWallsThisTick)
+	for(auto const &[gridX, gridY] : m_destroyedWallsThisTick)
 	{
 		pkt << gridX;
 		pkt << gridY;
@@ -366,7 +366,7 @@ void WorldState::deserialize(sf::Packet &pkt)
 
 // The map is static, it's not serialized in snapshots, therefore don't assign it.
 // Wall deltas are sent separately and applied via applyWallDeltas()
-WorldState &WorldState::operator=(const WorldState &other)
+WorldState &WorldState::operator=(WorldState const &other)
 {
 	if(this != &other)
 	{
@@ -390,7 +390,7 @@ void WorldState::markWallDestroyed(int gridX, int gridY)
 	spdlog::debug("Marked wall at grid ({}, {}) for delta update", gridX, gridY);
 }
 
-const std::vector<std::pair<int, int>> &WorldState::getDestroyedWallDeltas() const
+std::vector<std::pair<int, int>> const &WorldState::getDestroyedWallDeltas() const
 {
 	return m_destroyedWallsThisTick;
 }

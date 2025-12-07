@@ -7,7 +7,7 @@ LobbyClient::LobbyClient(std::string const &name, Endpoint const lobbyServer)
 	if(m_lobbySock.connect(lobbyServer.ip, lobbyServer.port) != sf::Socket::Status::Done)
 	{
 		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to connect to lobby");
-		std::exit(1);
+		throw std::runtime_error("Could not reach server.");
 	}
 	m_lobbySock.setBlocking(true);
 	// Bind to the local game socket now, the server should know everything about the client as early as possible.
@@ -27,7 +27,7 @@ LobbyClient::~LobbyClient()
 void LobbyClient::bindGameSocket()
 {
 	auto status = sf::Socket::Status::NotReady;
-	for(uint16_t i = 0; i < MAX_PLAYERS + 1; ++i)
+	for(uint16_t i = 1; i <= MAX_PLAYERS + 1; ++i)
 	{
 		uint16_t const gamePort = PORT_UDP + i;
 		status = m_gameSock.bind(gamePort);
@@ -40,8 +40,8 @@ void LobbyClient::bindGameSocket()
 	}
 	if(status != sf::Socket::Status::Done)
 	{
-		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to bind to any UDP port [{}, {}]", m_gameSock.getLocalPort(),
-		                    m_gameSock.getLocalPort() + MAX_PLAYERS);
+		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to bind to any UDP port [{}, {}]", PORT_UDP + 1,
+		                    PORT_UDP + 1 + MAX_PLAYERS);
 		throw std::runtime_error("Failed to bind to any available UDP port");
 	}
 	m_gameSock.setBlocking(false);
@@ -60,7 +60,7 @@ void LobbyClient::connect()
 
 	// Wait for JOIN_ACK with timeout to avoid indefinite blocking
 	sf::Clock timeout;
-	const sf::Time maxWaitTime = sf::seconds(5);
+	sf::Time const maxWaitTime = sf::seconds(5);
 
 	while(timeout.getElapsedTime() < maxWaitTime)
 	{
@@ -123,57 +123,66 @@ void LobbyClient::sendReady()
 	m_bReady = true;
 }
 
-bool LobbyClient::pollLobbyUpdate()
+LobbyEvent LobbyClient::pollLobbyUpdate()
 {
-	sf::Packet updatePkt;
+	sf::Packet pkt;
 	bool wasBlocking = m_lobbySock.isBlocking();
 	m_lobbySock.setBlocking(false);
 
-	sf::Socket::Status status = checkedReceive(m_lobbySock, updatePkt);
+	sf::Socket::Status status = checkedReceive(m_lobbySock, pkt);
 
-	// restore blocking state
 	m_lobbySock.setBlocking(wasBlocking);
 
 	if(status != sf::Socket::Status::Done)
 	{
+		if(status == sf::Socket::Status::Disconnected)
+		{
+			SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Server disconnected");
+			return LobbyEvent::SERVER_DISCONNECTED;
+		}
+
 		if(status != sf::Socket::Status::NotReady)
 		{
 			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "pollLobbyUpdate: receive status = {}", static_cast<int>(status));
 		}
-		return false;
+		return LobbyEvent::NONE;
 	}
 
 	uint8_t type;
-	updatePkt >> type;
+	pkt >> type;
 
-	if(type != uint8_t(ReliablePktType::LOBBY_UPDATE))
+	if(type == uint8_t(ReliablePktType::LOBBY_UPDATE))
 	{
-		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Expected LOBBY_UPDATE, got packet type {}", type);
-		return false;
+		uint32_t numPlayers;
+		pkt >> numPlayers;
+
+		m_lobbyPlayers.clear();
+		for(uint32_t i = 0; i < numPlayers; ++i)
+		{
+			LobbyPlayerInfo playerInfo;
+			pkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
+			m_lobbyPlayers.push_back(playerInfo);
+
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "  Player {}: '{}' (ready={})", playerInfo.id, playerInfo.name,
+			                   playerInfo.bReady);
+		}
+
+		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Received lobby update with {} players", numPlayers);
+		return LobbyEvent::LOBBY_UPDATED;
+	}
+	if(type == uint8_t(ReliablePktType::GAME_START))
+	{
+		parseGameStartPacket(pkt);
+		return LobbyEvent::GAME_STARTED;
 	}
 
-	// parse lobby update
-	uint32_t numPlayers;
-	updatePkt >> numPlayers;
-
-	m_lobbyPlayers.clear();
-	for(uint32_t i = 0; i < numPlayers; ++i)
-	{
-		LobbyPlayerInfo playerInfo;
-		updatePkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
-		m_lobbyPlayers.push_back(playerInfo);
-		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "  Player {}: '{}' (ready={})", playerInfo.id, playerInfo.name,
-		                   playerInfo.bReady);
-	}
-
-	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Received lobby update with {} players", numPlayers);
-	return true;
+	SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Received unexpected packet type {}", type);
+	return LobbyEvent::NONE;
 }
 
-std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packet &pkt)
+void LobbyClient::parseGameStartPacket(sf::Packet &pkt)
 {
-	std::array<PlayerState, MAX_PLAYERS> states{};
-	for(auto &state : states)
+	for(auto &state : m_startData)
 		state.m_id = 0;
 
 	size_t numPlayers;
@@ -186,55 +195,8 @@ std::array<PlayerState, MAX_PLAYERS> LobbyClient::parseGameStartPacket(sf::Packe
 		sf::Angle rot;
 		pkt >> pos >> rot;
 
-		states[i] = PlayerState(i + 1, pos, rot);
+		m_startData[i] = PlayerState(i + 1, pos, rot);
 		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Player {} ('{}') spawn point is ({},{}), direction angle = {}deg",
 		                   i + 1, m_lobbyPlayers[i].name, pos.x, pos.y, rot.asDegrees());
-	}
-	return states;
-}
-
-std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::waitForGameStart(sf::Time const timeout)
-{
-	sf::Packet startPkt;
-	sf::SocketSelector ss;
-	ss.add(m_lobbySock);
-
-	while(true)
-	{
-		if(!ss.wait(timeout))
-			return std::nullopt;
-
-		if(checkedReceive(m_lobbySock, startPkt) != sf::Socket::Status::Done)
-		{
-			SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to receive GAME_START");
-			std::exit(1);
-		}
-
-		uint8_t type;
-		startPkt >> type;
-		switch(type)
-		{
-
-		case uint8_t(ReliablePktType::LOBBY_UPDATE): {
-			uint32_t numPlayers;
-			startPkt >> numPlayers;
-			m_lobbyPlayers.clear();
-			for(uint32_t i = 0; i < numPlayers; ++i)
-			{
-				LobbyPlayerInfo playerInfo;
-				startPkt >> playerInfo.id >> playerInfo.name >> playerInfo.bReady;
-				m_lobbyPlayers.push_back(playerInfo);
-			}
-			SPDLOG_LOGGER_DEBUG(spdlog::get("Client"), "Received lobby update with {} players while waiting",
-			                    numPlayers);
-			break;
-		}
-		case uint8_t(ReliablePktType::GAME_START):
-			return parseGameStartPacket(startPkt);
-
-		default:
-			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Unhandled reliable packet type: {}.", type);
-		}
-		sf::sleep(sf::milliseconds(100));
 	}
 }

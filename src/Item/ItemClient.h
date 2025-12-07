@@ -5,9 +5,9 @@
 class ItemClient
 {
   public:
-	ItemClient(const ItemState &state);
+	ItemClient(ItemState const &state);
 
-	void syncSpriteToState(const ItemState &state);
+	void syncSpriteToState(ItemState const &state);
 
 	void update(float dt);
 
@@ -16,12 +16,12 @@ class ItemClient
 		return m_state.getId();
 	}
 
-	const sf::RectangleShape &getShape() const
+	sf::RectangleShape const &getShape() const
 	{
 		return m_shape;
 	}
 
-	const ItemState &getState() const
+	ItemState const &getState() const
 	{
 		return m_state;
 	}

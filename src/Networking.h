@@ -12,7 +12,7 @@ constexpr uint32_t PROTOCOL_VERSION = 1;
 constexpr int32_t RENDER_TICK_HZ = 60;
 constexpr int32_t UNRELIABLE_TICK_HZ = 20;
 constexpr float UNRELIABLE_TICK_TIME = 1.f / UNRELIABLE_TICK_HZ;
-constexpr sf::Vector2u WINDOW_DIM{1920, 1280};
+constexpr sf::Vector2u WINDOW_DIM{800, 600};
 constexpr sf::Vector2f WINDOW_DIMf{WINDOW_DIM};
 typedef uint32_t EntityId;
 typedef int32_t Tick;
@@ -22,7 +22,7 @@ template <typename T> struct Ticked
 	T obj;
 };
 
-constexpr uint8_t MAX_PLAYERS = 4;
+constexpr uint8_t MAX_PLAYERS = 2;
 constexpr std::array ALL_PLAYER_COLORS{sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta};
 
 static_assert(ALL_PLAYER_COLORS.size() >= MAX_PLAYERS,
@@ -47,7 +47,7 @@ enum class ReliablePktType : uint8_t
 	JOIN_REQ = 1,
 	JOIN_ACK,
 	LOBBY_READY,
-	LOBBY_UPDATE,       // srv -> clients: broadcast lobby state updates
+	LOBBY_UPDATE, // srv -> clients: broadcast lobby state updates
 	GAME_START,
 	GAME_END,
 	PLAYER_LEFT, // TODO
