@@ -4,6 +4,10 @@
 // Gameplay constants
 // ============================================================================
 
+constexpr float TILE_WIDTH = 64.0f;
+constexpr float TILE_HEIGHT = 32.0f;
+constexpr float CARTESIAN_TILE_SIZE = TILE_HEIGHT;
+
 namespace GameConfig
 {
 namespace Player

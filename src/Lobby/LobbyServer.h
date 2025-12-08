@@ -6,12 +6,12 @@
 
 struct LobbyPlayer
 {
-	uint32_t id{0};
-	std::string name;
-	bool bValid{false};
-	bool bReady{false};
+	uint32_t id = 0;
+	std::string name = "Invalid";
+	bool bValid = false;
+	bool bReady = false;
 	sf::IpAddress udpAddr = sf::IpAddress::Any;
-	uint16_t gamePort{0};
+	uint16_t gamePort = 0;
 	sf::TcpSocket tcpSocket;
 
 	int totalKills{0};

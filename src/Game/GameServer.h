@@ -1,5 +1,4 @@
 #pragma once
-#include <vector>
 #include <memory>
 #include <SFML/Network.hpp>
 #include <spdlog/logger.h>
@@ -9,7 +8,7 @@
 class GameServer
 {
   public:
-	explicit GameServer(LobbyServer &lobbyServer, uint16_t gamePort);
+	GameServer(LobbyServer &lobbyServer, uint16_t gamePort, WorldState const &wsInit);
 	~GameServer();
 	PlayerState *matchLoop();
 

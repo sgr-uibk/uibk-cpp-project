@@ -17,7 +17,6 @@ static int angleToDirection(float degrees)
 	int section = static_cast<int>(adjusted / 45.f);
 
 	// Hardcoded sprite mapping for now
-
 	int const spriteMap[8] = {5, 4, 3, 2, 1, 8, 7, 6};
 	return spriteMap[section];
 }
@@ -39,11 +38,10 @@ PlayerClient::PlayerClient(PlayerState &state, sf::Color const &color)
 
 	sf::Vector2f hullSize = sf::Vector2f(m_hullTextures[0]->getSize());
 	m_hullSprite.setOrigin(hullSize / 2.f);
-	m_hullSprite.setPosition(m_state.m_pos);
-
+	m_hullSprite.setPosition(m_state.getPosition());
 	sf::Vector2f turretSize = sf::Vector2f(m_turretTextures[0]->getSize());
 	m_turretSprite.setOrigin(turretSize / 2.f);
-	m_turretSprite.setPosition(m_state.m_pos);
+	m_turretSprite.setPosition(m_state.getPosition());
 
 	m_nameText.setFillColor(sf::Color::White);
 	m_nameText.setOutlineColor(sf::Color::Black);
@@ -91,7 +89,7 @@ void PlayerClient::applyLocalMove(MapState const &map, sf::Vector2f delta)
 
 void PlayerClient::setTurretRotation(sf::Angle angle)
 {
-	m_state.m_cannonRot = angle;
+	m_state.setCannonRotation(angle);
 	syncSpriteToState();
 }
 
@@ -111,11 +109,16 @@ sf::Angle lerp(sf::Angle const &a, sf::Angle const &b, float t)
 	return a + t * delta;
 }
 
-void PlayerClient::interp(PlayerState const &s0, PlayerState const &s1, float const alpha)
+void PlayerClient::interp(InterpPlayerState const &s0, InterpPlayerState const &s1, float const alpha)
 {
-	this->m_state.m_pos = lerp(s0.m_pos, s1.m_pos, alpha);
-	this->m_state.m_rot = lerp(s0.m_rot, s1.m_rot, alpha);
-	this->m_state.m_cannonRot = lerp(s0.m_cannonRot, s1.m_cannonRot, alpha);
+	this->m_state.m_iState.m_pos = lerp(s0.m_pos, s1.m_pos, alpha);
+	this->m_state.m_iState.m_rot = lerp(s0.m_rot, s1.m_rot, alpha);
+	m_state.m_iState.m_cannonRot = lerp(s0.m_cannonRot, s1.m_cannonRot, alpha);
+}
+
+void PlayerClient::overwriteInterpState(InterpPlayerState authState)
+{
+	m_state.m_iState.overwriteBy(authState);
 }
 
 void PlayerClient::updateSprite()
@@ -125,8 +128,8 @@ void PlayerClient::updateSprite()
 
 void PlayerClient::syncSpriteToState()
 {
-	int hullDir = angleToDirection(m_state.m_rot.asDegrees()) - 1;                // Convert to 0-7 index
-	int turretDir = angleToDirection(m_state.m_cannonRot.asDegrees() - 45.f) - 1; // Convert to 0-7 index
+	int hullDir = angleToDirection(m_state.getRotation().asDegrees()) - 1;                // Convert to 0-7 index
+	int turretDir = angleToDirection(m_state.getCannonRotation().asDegrees() - 45.f) - 1; // Convert to 0-7 index
 
 	hullDir = std::clamp(hullDir, 0, 7);
 	turretDir = std::clamp(turretDir, 0, 7);
@@ -139,13 +142,12 @@ void PlayerClient::syncSpriteToState()
 	sf::Vector2f turretSize = sf::Vector2f(m_turretTextures[turretDir]->getSize());
 	m_turretSprite.setOrigin(turretSize / 2.f);
 
-	sf::Vector2f cartCenter = m_state.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+	sf::Vector2f cartCenter = m_state.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 
 	sf::Vector2f isoCenter = cartesianToIso(cartCenter);
 	m_hullSprite.setPosition(isoCenter);
 	m_turretSprite.setPosition(isoCenter);
 
-	// Apply color tint
 	m_hullSprite.setColor(m_color);
 	m_turretSprite.setColor(m_color);
 
@@ -161,7 +163,7 @@ void PlayerClient::syncSpriteToState()
 void PlayerClient::updateNameText()
 {
 	sf::FloatRect textBounds = m_nameText.getLocalBounds();
-	sf::Vector2f cartTankCenter = m_state.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+	sf::Vector2f cartTankCenter = m_state.m_iState.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 
 	sf::Vector2f isoTankCenter = cartesianToIso(cartTankCenter);
 

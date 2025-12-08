@@ -3,8 +3,8 @@
 #include "GameConfig.h"
 #include <spdlog/spdlog.h>
 
-GameServer::GameServer(LobbyServer &lobbyServer, uint16_t gamePort)
-	: m_gamePort(gamePort), m_world(WorldState::fromTiledMap("map/arena.json")), m_lobby(lobbyServer)
+GameServer::GameServer(LobbyServer &lobbyServer, uint16_t const gamePort, WorldState const &wsInit)
+	: m_gamePort(gamePort), m_world(wsInit), m_lobby(lobbyServer)
 {
 	for(auto const &p : lobbyServer.m_slots)
 	{
@@ -207,8 +207,8 @@ void GameServer::floodWorldState()
 {
 	// flood snapshots to all known clients
 	sf::Packet snapPkt = createTickedPkt(UnreliablePktType::SNAPSHOT, m_authTick);
-	snapPkt << m_lastClientTicks;
 	m_world.serialize(snapPkt);
+	snapPkt << m_lastClientTicks;
 	for(LobbyPlayer &p : m_lobby.m_slots)
 	{
 		if(!p.bValid)
@@ -223,8 +223,6 @@ void GameServer::floodWorldState()
 
 void GameServer::checkPlayerConnections()
 {
-	// check TCP connection status for all players
-	// mark disconnected players as dead
 	for(LobbyPlayer &lobbySlot : m_lobby.m_slots)
 	{
 		if(!lobbySlot.bValid)

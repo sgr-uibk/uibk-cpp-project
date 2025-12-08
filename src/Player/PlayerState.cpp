@@ -4,16 +4,43 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
-PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, sf::Angle rot, int maxHealth)
-	: m_id(id), m_name(""), m_pos(pos), m_rot(rot), m_cannonRot(rot), m_maxHealth(maxHealth), m_health(maxHealth)
+void InterpPlayerState::overwriteBy(InterpPlayerState const auth)
+{
+	*this = std::move(auth);
+}
+sf::Packet &operator>>(sf::Packet &pkt, InterpPlayerState &obj)
+{
+	pkt >> obj.m_pos >> obj.m_rot >> obj.m_cannonRot;
+	return pkt;
+}
+
+sf::Packet &operator<<(sf::Packet &pkt, InterpPlayerState const &obj)
+{
+	pkt << obj.m_pos << obj.m_rot << obj.m_cannonRot;
+	return pkt;
+}
+
+PlayerState::PlayerState(EntityId id, sf::Vector2f pos, sf::Angle rot, int maxHealth)
+	: m_id(id), m_name(""), m_iState(pos, rot, rot), m_maxHealth(maxHealth)
+{
+}
+PlayerState::PlayerState(EntityId id, InterpPlayerState ips, int maxHealth)
+	: m_id(id), m_iState(ips), m_maxHealth(maxHealth)
 {
 }
 
-PlayerState::PlayerState(uint32_t id, sf::Vector2f pos, int maxHealth) : PlayerState(id, pos, sf::degrees(0), maxHealth)
+void PlayerState::assignSnappedState(PlayerState const &other)
+{
+	auto const iS = this->m_iState;
+	*this = other;
+	this->m_iState = iS;
+}
+
+PlayerState::PlayerState(EntityId id, sf::Vector2f pos, int maxHealth) : PlayerState(id, pos, sf::degrees(0), maxHealth)
 {
 }
 
-PlayerState::PlayerState(sf::Packet pkt)
+PlayerState::PlayerState(EntityId id, sf::Packet &pkt) : m_id(id)
 {
 	deserialize(pkt);
 }
@@ -37,30 +64,28 @@ void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 	constexpr float tankMoveSpeed = 5.f;
 	posDelta *= tankMoveSpeed * getSpeedMultiplier();
 	sf::RectangleShape nextShape(logicalDimensions);
-	nextShape.setPosition(m_pos + posDelta);
+	nextShape.setPosition(m_iState.m_pos + posDelta);
 
 	if(map.isColliding(nextShape))
-	{
-		// player crashed against something, deal them damage
+	{ // player crashed against something, deal them damage
 		takeDamage(10);
 	}
 	else
-	{
-		// no collision, let them move there
-		m_pos += posDelta;
-
+	{ // no collision, let them move there
+		m_iState.m_pos += posDelta;
 		float length = std::sqrt(posDelta.x * posDelta.x + posDelta.y * posDelta.y);
 		if(length > 0.01f)
 		{
+			// Your specific rotation logic
 			float const angRad = std::atan2(posDelta.y, posDelta.x);
-			m_rot = sf::radians(angRad) + sf::degrees(45);
+			m_iState.m_rot = sf::radians(angRad) + sf::degrees(45);
 		}
 	}
 }
 
 void PlayerState::setRotation(sf::Angle rot)
 {
-	m_rot = rot;
+	m_iState.m_rot = rot;
 }
 
 void PlayerState::takeDamage(int amount)
@@ -192,22 +217,22 @@ uint32_t PlayerState::getPlayerId() const
 
 sf::Vector2f PlayerState::getPosition() const
 {
-	return m_pos;
+	return m_iState.m_pos;
 }
 
 sf::Angle PlayerState::getRotation() const
 {
-	return m_rot;
+	return m_iState.m_rot;
 }
 
 sf::Angle PlayerState::getCannonRotation() const
 {
-	return m_cannonRot;
+	return m_iState.m_cannonRot;
 }
 
 void PlayerState::setCannonRotation(sf::Angle angle)
 {
-	m_cannonRot = angle;
+	m_iState.m_cannonRot = angle;
 }
 
 int PlayerState::getHealth() const
@@ -260,7 +285,7 @@ PowerupType PlayerState::getInventoryItem(int slot) const
 
 void PlayerState::serialize(sf::Packet &pkt) const
 {
-	pkt << m_id << m_pos << m_rot << m_cannonRot << m_health << m_maxHealth;
+	pkt << m_iState << m_health << m_maxHealth;
 	pkt << m_shootCooldown.getRemaining();
 	pkt << static_cast<int32_t>(m_kills);
 	pkt << static_cast<int32_t>(m_deaths);
@@ -278,7 +303,7 @@ void PlayerState::serialize(sf::Packet &pkt) const
 
 void PlayerState::deserialize(sf::Packet &pkt)
 {
-	pkt >> m_id >> m_pos >> m_rot >> m_cannonRot >> m_health >> m_maxHealth;
+	pkt >> m_iState >> m_health >> m_maxHealth;
 
 	float cooldownRemaining;
 	pkt >> cooldownRemaining;

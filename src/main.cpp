@@ -56,8 +56,14 @@ void runServerThread(LobbyServer *lobbyServer, std::shared_ptr<spdlog::logger> l
 
 		try
 		{
-			GameServer gameServer(*lobbyServer, PORT_UDP);
-			lobbyServer->startGame(gameServer.m_world);
+			std::array<PlayerState, MAX_PLAYERS> emptyPlayers{};
+			WorldState initialWorld = WorldState::fromTiledMap("map/arena.json", emptyPlayers);
+			if(initialWorld.getMap().getSpawns().empty())
+			{
+				SPDLOG_LOGGER_ERROR(logger, "Server failed to load map! Using empty world.");
+			}
+			lobbyServer->startGame(initialWorld);
+			GameServer gameServer(*lobbyServer, PORT_UDP, initialWorld);
 
 			SPDLOG_LOGGER_INFO(logger, "Game Started! Entering Match Loop.");
 

@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <string>
 #include <SFML/Network.hpp>
 #include "Map/MapState.h"
 #include "Player/PlayerState.h"
@@ -10,10 +9,9 @@
 
 struct WorldState
 {
-	WorldState();
-	WorldState(WorldState const &) = default;
-	explicit WorldState(sf::Vector2f mapSize);
-	static WorldState fromTiledMap(std::string const &tiledJsonPath);
+	explicit WorldState(sf::Packet &pkt);                                               // Client
+	WorldState(sf::Vector2f mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit); // Server
+	static WorldState fromTiledMap(std::string const &tiledJsonPath, std::array<PlayerState, MAX_PLAYERS> playersInit);
 	void update(float dt);
 	void setPlayer(PlayerState const &p);
 
@@ -57,9 +55,11 @@ struct WorldState
 
 	// serialization (full snapshot for players/items/projectiles, deltas for walls)
 	void serialize(sf::Packet &pkt) const;
-	void deserialize(sf::Packet &pkt);
 
-	WorldState &operator=(WorldState const &);
+	WorldState &operator=(WorldState const &) = delete;
+	WorldState &operator=(WorldState &) = delete;
+	WorldState &operator=(WorldState) = delete;
+	void assignExcludingInterp(WorldState const &);
 
 	MapState m_map;
 	std::array<PlayerState, MAX_PLAYERS> m_players;
@@ -67,7 +67,7 @@ struct WorldState
 	std::vector<ItemState> m_items;
 	uint32_t m_nextProjectileId{1};
 	uint32_t m_nextItemId{1};
-
-	// Track walls destroyed this tick (grid coordinates)
 	std::vector<std::pair<int, int>> m_destroyedWallsThisTick;
+private:
+	void deserialize(sf::Packet &pkt);
 };

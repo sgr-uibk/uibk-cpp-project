@@ -236,46 +236,62 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 
 void LobbyServer::startGame(WorldState &worldState)
 {
-	static std::mt19937_64 rng{}; // deterministic spawn points
-	auto spawns = worldState.getMap().getSpawns();
-	std::shuffle(spawns.begin(), spawns.end(), rng);
+    static std::mt19937_64 rng{std::random_device{}()};
 
-	sf::Packet startPkt = createPkt(ReliablePktType::GAME_START);
-	std::vector<PlayerState> activePlayers;
+    auto spawns = worldState.getMap().getSpawns();
 
-	size_t spawnIndex = 0;
-	for(auto const &c : m_slots)
+	if(spawns.empty())
 	{
-		if(!c.bValid)
-			continue;
-
-		// assign spawn point from shuffled list
-		sf::Vector2f const spawn = spawns[spawnIndex % spawns.size()];
-		sf::Angle const rot = sf::degrees(0);
-
-		PlayerState ps(c.id, spawn);
-		ps.m_name = c.name;
-		ps.m_rot = rot;
-		ps.m_kills = c.totalKills;
-		ps.m_deaths = c.totalDeaths;
-		worldState.setPlayer(ps);
-		activePlayers.push_back(ps);
-		spawnIndex++;
+		SPDLOG_LOGGER_WARN(spdlog::get("Server"), "No spawn points found in Map! Using default (100,100).");
+		spawns.push_back({100.f, 100.f});
 	}
 
-	startPkt << activePlayers.size();
-	for(auto const &playerState : activePlayers)
-	{
-		startPkt << playerState.getPosition() << playerState.getRotation();
-	}
-	// Distribute spawn points with GAME_START pkt
-	for(auto &p : m_slots)
-	{
-		if(!p.bValid)
-			continue;
-		if(checkedSend(p.tcpSocket, startPkt) != sf::Socket::Status::Done)
-			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send GAME_START to {} (id {})", p.name, p.id);
-	}
+    std::shuffle(spawns.begin(), spawns.end(), rng);
+
+    sf::Packet startPkt = createPkt(ReliablePktType::GAME_START);
+
+    std::vector<PlayerState> activePlayers;
+    activePlayers.reserve(MAX_PLAYERS);
+
+    size_t spawnIndex = 0;
+
+    for(auto const &lobbyPlayer : m_slots)
+    {
+       if(!lobbyPlayer.bValid)
+          continue;
+
+       sf::Vector2f const spawnPos = spawns[spawnIndex % spawns.size()];
+
+       PlayerState ps(lobbyPlayer.id, spawnPos);
+
+       // inject lobby data
+       ps.m_name = lobbyPlayer.name;
+       ps.m_kills = lobbyPlayer.totalKills;
+       ps.m_deaths = lobbyPlayer.totalDeaths;
+
+       worldState.setPlayer(ps);
+
+       activePlayers.push_back(ps);
+       spawnIndex++;
+    }
+
+    startPkt << activePlayers.size();
+
+    for(auto const &playerState : activePlayers)
+    {
+       startPkt << playerState.getPosition() << playerState.getRotation();
+    }
+
+    for(auto &p : m_slots)
+    {
+       if(!p.bValid)
+          continue;
+
+       if(checkedSend(p.tcpSocket, startPkt) != sf::Socket::Status::Done)
+       {
+          SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send GAME_START to {} (id {})", p.name, p.id);
+       }
+    }
 }
 
 void LobbyServer::endGame(EntityId winner)
@@ -338,8 +354,6 @@ void LobbyServer::broadcastLobbyUpdate()
 			}
 		}
 	}
-
-	SPDLOG_LOGGER_DEBUG(spdlog::get("Server"), "Broadcasted lobby update to {} players", numPlayers);
 }
 
 void LobbyServer::updatePlayerStats(std::array<PlayerState, MAX_PLAYERS> const &playerStates)
@@ -365,7 +379,6 @@ void LobbyServer::updatePlayerStats(std::array<PlayerState, MAX_PLAYERS> const &
 
 void LobbyServer::resetLobbyState()
 {
-	// reset all ready flags after game ends
 	for(auto &p : m_slots)
 	{
 		if(p.bValid)
@@ -377,7 +390,6 @@ void LobbyServer::resetLobbyState()
 	m_gameInProgress = false;
 	SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Lobby state reset: all players unmarked as ready");
 
-	// Broadcast reset
 	sf::sleep(sf::milliseconds(100));
 	broadcastLobbyUpdate();
 }

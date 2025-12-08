@@ -20,22 +20,11 @@ std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states, std
 
 WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId,
                          std::array<PlayerState, MAX_PLAYERS> &players)
-	: m_bAcceptInput(true), m_pauseMenu(window), m_state(WorldState::fromTiledMap("map/arena.json")),
+	: m_bAcceptInput(true), m_pauseMenu(window), m_state(WorldState::fromTiledMap("map/arena.json", players)),
 	  m_itemBar(m_state.getPlayerById(ownPlayerId), window), m_window(window), m_mapClient(m_state.getMap()),
 	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
 	  m_interp(m_state.getMap(), ownPlayerId, m_players)
 {
-	for(auto &ps : players)
-	{
-		if(ps.m_id == 0)
-		{
-			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Not setting state for invalid player 0!");
-			continue;
-		}
-
-		m_state.setPlayer(ps);
-		m_players[ps.m_id - 1].applyServerState(ps);
-	}
 	m_worldView = sf::View(sf::FloatRect({0, 0}, sf::Vector2f(window.getSize())));
 	m_hudView = sf::View(m_worldView);
 	m_frameClock.start();
@@ -59,13 +48,13 @@ void WorldClient::propagateUpdate(float dt)
 
 std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 {
-	int32_t const frameDelta = m_frameClock.restart().asSeconds();
+	float const frameDelta = m_frameClock.restart().asSeconds();
 	m_clientTick++;
 	bool const bServerTickExpired = m_tickClock.getElapsedTime().asSeconds() >= UNRELIABLE_TICK_TIME;
 	if(bServerTickExpired)
 		m_tickClock.restart();
 	propagateUpdate(frameDelta);
-	if(m_pauseMenu.isPaused() || !m_bAcceptInput || !m_window.hasFocus())
+	if(m_pauseMenu.isPaused() || !m_bAcceptInput || !m_window.hasFocus() || (m_scoreboard && m_scoreboard->isShowing()))
 	{ // skip game logic
 		return std::nullopt;
 	}
@@ -142,7 +131,7 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 void WorldClient::draw(sf::RenderWindow &window) const
 {
 	// Update camera to follow player with isometric projection
-	PlayerState const &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
+	PlayerState const &ownPlayer = m_players[m_ownPlayerId - 1].getState();
 	sf::Vector2f playerCartCenter = ownPlayer.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 	sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
 
@@ -218,7 +207,7 @@ void WorldClient::draw(sf::RenderWindow &window) const
 // Applies server state that does not get interpolated, such as player inventory, items, etc.
 void WorldClient::applyNonInterpState(WorldState const &snapshot)
 {
-	m_state = snapshot;
+	m_state.assignExcludingInterp(snapshot);
 
 	auto const &projectileStates = m_state.getProjectiles();
 	m_projectiles.clear();

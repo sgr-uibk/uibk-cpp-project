@@ -55,7 +55,7 @@ class LobbyClient
 
   private:
 	bool m_bReady;
-	std::string m_loggerName; // Store original logger name for proper cleanup
+	std::string m_loggerName;
 	std::vector<LobbyPlayerInfo> m_lobbyPlayers;
 	std::array<PlayerState, MAX_PLAYERS> m_startData;
 

@@ -4,7 +4,7 @@
 #include <map>
 #include <optional>
 #include <SFML/System/Vector2.hpp>
-#include "Utilities.h"
+#include "../GameConfig.h"
 
 // =============================================================================
 // MAP BLUEPRINT (DTOs)

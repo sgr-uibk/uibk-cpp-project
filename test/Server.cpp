@@ -9,7 +9,6 @@
 #include "Utilities.h"
 #include "Lobby/LobbyServer.h"
 #include "Game/GameServer.h"
-#include "World/WorldState.h"
 
 int main(int argc, char **argv)
 {
@@ -22,11 +21,11 @@ int main(int argc, char **argv)
 
 	while(true)
 	{
-		GameServer gameServer(lobbyServer, udpPort);
 		lobbyServer.lobbyLoop();
 
 		SPDLOG_LOGGER_INFO(spdlog::get("Server"), "All {} players ready. Starting game...", MAX_PLAYERS);
-		lobbyServer.startGame(gameServer.m_world);
+		auto wsInit = lobbyServer.startGame();
+		GameServer gameServer(lobbyServer, udpPort, wsInit);
 		SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Game started. Switching to UDP loop.");
 		PlayerState *winningPlayer = gameServer.matchLoop();
 		if(winningPlayer)

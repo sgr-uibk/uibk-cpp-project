@@ -1,10 +1,10 @@
 #include "InterpClient.h"
+#include "Utilities.h"
 #include "World/WorldClient.h"
 
 InterpClient::InterpClient(MapState const &map, EntityId const id, std::array<PlayerClient, MAX_PLAYERS> &players)
 	: m_map(map), m_id(id), m_players(players)
 {
-	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "interp created, id={}, pl.id={}", m_id, m_player.getState().m_id);
 }
 
 void InterpClient::predictMovement(sf::Vector2f posDelta)
@@ -34,46 +34,42 @@ sf::Vector2f InterpClient::getCumulativeInputs(Tick clientTick)
 	return acc;
 }
 
-WorldState *InterpClient::storeSnapshot(Tick authTick, sf::Packet snapPkt)
+bool InterpClient::storeSnapshot(Tick authTick, sf::Packet snapPkt, WorldState const &ws)
 {
-	Tick latestKnown = m_snapshotBuffer.get().tick;
+	Tick latestKnown = m_stateBuffer.get().tick;
 	if(latestKnown >= authTick)
 	{
 		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Ignoring outdated snapshot created at server tick #{} (know {})",
 		                   authTick, latestKnown);
-		return nullptr;
+		return false;
 	}
 
 	std::array<Tick, MAX_PLAYERS> ackedTicks{};
 	snapPkt >> ackedTicks;
 	m_ackedTick = ackedTicks[m_id - 1];
-
-	auto &[snapTick, snapState] = m_snapshotBuffer.claim();
-	snapTick = authTick;
-	snapState.deserialize(snapPkt);
-
-	assert(m_snapshotBuffer.get().tick == authTick);
-	return &snapState;
+	std::array<InterpPlayerState, MAX_PLAYERS> arr = toInterpArrayConstexpr<MAX_PLAYERS>(ws);
+	m_stateBuffer.emplace(authTick, arr);
+	return true;
 }
 
-void InterpClient::syncLocalPlayer(WorldState const &snap)
+void InterpClient::correctLocalPlayer(WorldState const &authWs)
 {
-	PlayerState authState = snap.m_players[m_id - 1];
-	PlayerState localState = m_player.getState();
+	auto const authState = authWs.m_players[m_id - 1].m_iState;
+	auto const localState = m_player.getState().m_iState;
 
 	auto err = authState.m_pos - localState.m_pos;
-	if(err.lengthSquared() == 0)
+	if(err.lengthSquared() <= 1e-3)
 	{ // Prediction hit! We're done here.
 		return;
 	}
 
 	// Server disagrees, have to accept authoritative state, replay local inputs
-	m_player.applyServerState(authState);
+	m_player.overwriteInterpState(authState);
 	replayInputs();
 
 #ifdef SFML_DEBUG
 	// Print how much the teleport is, that the player is going to see
-	auto const replayedState = m_player.getState();
+	auto const replayedState = m_player.getState().m_iState;
 	err = replayedState.m_pos - localState.m_pos;
 	if(err.lengthSquared() > 1e-3)
 		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Reconciliation error ({},{})", err.x, err.y);
@@ -84,7 +80,7 @@ void InterpClient::syncLocalPlayer(WorldState const &snap)
 void InterpClient::interpolateEnemies()
 {
 	// Render‑time interpolation
-	long const renderTick = m_snapshotBuffer.get().tick - 1;
+	long const renderTick = m_stateBuffer.get().tick - 1;
 	if(renderTick < 0)
 	{
 		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Interpolation not yet ready");
@@ -94,14 +90,14 @@ void InterpClient::interpolateEnemies()
 	struct InterpState
 	{
 		size_t step = size_t(-1);
-		Ticked<WorldState> const *ss0 = nullptr;
-		Ticked<WorldState> const *ss1 = nullptr;
+		Ticked<std::array<InterpPlayerState, MAX_PLAYERS>> const *ss0 = nullptr;
+		Ticked<std::array<InterpPlayerState, MAX_PLAYERS>> const *ss1 = nullptr;
 	};
 	static InterpState s;
 
 	if(s.step >= RENDER_TICK_HZ / UNRELIABLE_TICK_HZ)
 	{ // completed interpolation, get the next pair
-		s = {.step = 0, .ss0 = &m_snapshotBuffer.get(1), .ss1 = &m_snapshotBuffer.get(0)};
+		s = {.step = 0, .ss0 = &m_stateBuffer.get(1), .ss1 = &m_stateBuffer.get(0)};
 	}
 
 	if(s.ss0->tick + 1 != s.ss1->tick && s.ss0->tick && s.ss1->tick)
@@ -114,8 +110,8 @@ void InterpClient::interpolateEnemies()
 
 	for(size_t i = 0; i < MAX_PLAYERS; ++i)
 	{
-		auto &p0 = s.ss0->obj.m_players[i];
-		auto &p1 = s.ss1->obj.m_players[i];
+		auto &p0 = s.ss0->obj[i];
+		auto &p1 = s.ss1->obj[i];
 		if(i + 1 == m_id)
 			continue; // own player is predicted, not interpolated
 

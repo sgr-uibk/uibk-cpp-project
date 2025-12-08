@@ -1,6 +1,6 @@
 #pragma once
 #include "PlayerState.h"
-#include <Map/MapState.h>
+#include "Map/MapState.h"
 #include <SFML/Graphics.hpp>
 #include <functional>
 #include <array>
@@ -32,7 +32,8 @@ class PlayerClient
 	}
 
 	void registerHealthCallback(HealthCallback cb);
-	void interp(PlayerState const &s0, PlayerState const &s1, float alpha);
+	void interp(InterpPlayerState const &s0, InterpPlayerState const &s1, float alpha);
+	void overwriteInterpState(InterpPlayerState authState);
 
   private:
 	void updateSprite();

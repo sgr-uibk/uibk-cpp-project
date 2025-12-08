@@ -1,29 +1,34 @@
 #include <algorithm>
+#include <utility>
 #include <cmath>
-#include "WorldState.h"
 #include "Map/MapParser.h"
-
 #include <spdlog/spdlog.h>
+#include "Utilities.h"
+#include "WorldState.h"
 
-WorldState::WorldState() : m_map(WINDOW_DIMf), m_players()
+WorldState::WorldState(sf::Packet &pkt)
+	: m_map(WINDOW_DIMf),
+	  m_players(deserializePlayerStateArray<MAX_PLAYERS>(pkt, std::make_index_sequence<MAX_PLAYERS>{}))
+{
+	deserialize(pkt);
+}
+
+WorldState::WorldState(sf::Vector2f const mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit)
+	: m_map(mapSize), m_players(std::move(playersInit))
 {
 }
 
-WorldState::WorldState(sf::Vector2f mapSize) : m_map(mapSize), m_players()
+WorldState WorldState::fromTiledMap(std::string const &tiledJsonPath, std::array<PlayerState, MAX_PLAYERS> playersInit)
 {
-}
-
-WorldState WorldState::fromTiledMap(std::string const &tiledJsonPath)
-{
-	WorldState world(sf::Vector2f(0, 0));
-
 	auto blueprint = MapParser::parse(tiledJsonPath);
 
 	if(!blueprint)
 	{
 		spdlog::error("Failed to load map from {}", tiledJsonPath);
-		return world;
+		return WorldState(sf::Vector2f(0, 0), std::move(playersInit));
 	}
+
+	WorldState world(sf::Vector2f(0, 0), std::move(playersInit));
 
 	world.m_map.loadFromBlueprint(*blueprint);
 
@@ -269,21 +274,21 @@ void WorldState::checkPlayerPlayerCollisions()
 					(PlayerState::logicalDimensions.x / 2.0f + PlayerState::logicalDimensions.x / 2.0f) - distance;
 
 				float pushAmount = overlap / 2.0f + 0.5f;
-				m_players[i].m_pos += pushDir * pushAmount;
-				m_players[j].m_pos -= pushDir * pushAmount;
+				m_players[i].m_iState.m_pos += pushDir * pushAmount;
+				m_players[j].m_iState.m_pos -= pushDir * pushAmount;
 
 				sf::RectangleShape shape1(PlayerState::logicalDimensions);
 				shape1.setPosition(m_players[i].getPosition());
 				if(m_map.isColliding(shape1))
 				{
-					m_players[i].m_pos -= pushDir * pushAmount;
+					m_players[i].m_iState.m_pos -= pushDir * pushAmount;
 				}
 
 				sf::RectangleShape shape2(PlayerState::logicalDimensions);
 				shape2.setPosition(m_players[j].getPosition());
 				if(m_map.isColliding(shape2))
 				{
-					m_players[j].m_pos += pushDir * pushAmount;
+					m_players[j].m_iState.m_pos += pushDir * pushAmount;
 				}
 			}
 		}
@@ -292,10 +297,7 @@ void WorldState::checkPlayerPlayerCollisions()
 
 void WorldState::serialize(sf::Packet &pkt) const
 {
-	for(uint32_t i = 0; i < MAX_PLAYERS; ++i)
-	{
-		m_players[i].serialize(pkt);
-	}
+	serializePlayerStateArray(pkt, m_players, std::make_index_sequence<MAX_PLAYERS>{});
 
 	uint32_t numProjectiles = static_cast<uint32_t>(m_projectiles.size());
 	pkt << numProjectiles;
@@ -311,7 +313,7 @@ void WorldState::serialize(sf::Packet &pkt) const
 		item.serialize(pkt);
 	}
 
-	// delta only: send only walls destroyed this tick
+	// delta only
 	uint32_t numDestroyedWalls = static_cast<uint32_t>(m_destroyedWallsThisTick.size());
 	pkt << numDestroyedWalls;
 	for(auto const &[gridX, gridY] : m_destroyedWallsThisTick)
@@ -320,13 +322,21 @@ void WorldState::serialize(sf::Packet &pkt) const
 		pkt << gridY;
 	}
 }
+void WorldState::assignExcludingInterp(WorldState const &other)
+{
+	this->m_items = other.m_items;
+	this->m_nextItemId = other.m_nextItemId;
+	this->m_nextProjectileId = other.m_nextProjectileId;
+	this->m_projectiles = other.m_projectiles;
+
+	for(size_t i = 0; i < m_players.size(); ++i)
+	{
+		this->m_players[i].assignSnappedState(other.m_players[i]);
+	}
+}
 
 void WorldState::deserialize(sf::Packet &pkt)
 {
-	for(uint32_t i = 0; i < MAX_PLAYERS; ++i)
-	{
-		m_players[i].deserialize(pkt);
-	}
 
 	uint32_t numProjectiles = 0;
 	pkt >> numProjectiles;
@@ -362,21 +372,6 @@ void WorldState::deserialize(sf::Packet &pkt)
 
 		m_destroyedWallsThisTick.push_back({gridX, gridY});
 	}
-}
-
-// The map is static, it's not serialized in snapshots, therefore don't assign it.
-// Wall deltas are sent separately and applied via applyWallDeltas()
-WorldState &WorldState::operator=(WorldState const &other)
-{
-	if(this != &other)
-	{
-		this->m_players = other.m_players;
-		this->m_projectiles = other.m_projectiles;
-		this->m_items = other.m_items;
-		this->m_nextProjectileId = other.m_nextProjectileId;
-		this->m_nextItemId = other.m_nextItemId;
-	}
-	return *this;
 }
 
 void WorldState::clearWallDeltas()

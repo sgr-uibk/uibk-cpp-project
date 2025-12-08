@@ -2,7 +2,7 @@
 #include "../Utilities.h"
 
 LobbyClient::LobbyClient(std::string const &name, Endpoint const lobbyServer)
-	: m_clientId(0), m_name(name), m_bReady(false), m_loggerName(name)
+	: m_clientId(0), m_name(name), m_bReady(false), m_loggerName(name), m_startData{}
 {
 	if(m_lobbySock.connect(lobbyServer.ip, lobbyServer.port) != sf::Socket::Status::Done)
 	{
@@ -90,9 +90,8 @@ void LobbyClient::connect()
 			SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Unexpected packet type {}", type);
 			std::exit(1);
 		}
-		else if(error == sf::Socket::Status::NotReady)
+		if(error == sf::Socket::Status::NotReady)
 		{
-			// No data yet, sleep briefly and try again
 			sf::sleep(sf::milliseconds(50));
 		}
 		else
@@ -104,8 +103,6 @@ void LobbyClient::connect()
 			std::exit(1);
 		}
 	}
-
-	// Timeout occurred
 	SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Timeout waiting for JOIN_ACK from server");
 	std::exit(1);
 }

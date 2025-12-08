@@ -10,9 +10,9 @@ template <class T, size_t Sz> struct RingQueue
 	{
 	}
 
-	template <typename... U, typename = std::enable_if_t<sizeof...(U) == Sz>>
-	explicit constexpr RingQueue(U &&...u) : m_buf{T(std::forward<U>(u))...}
+	constexpr RingQueue(T ti) : m_buf{}
 	{
+		std::fill(m_buf.begin(), m_buf.end(), ti);
 	}
 
 	/// \brief Inserts a new element, overwriting the oldest entry.
@@ -52,7 +52,7 @@ template <class T, size_t Sz> struct RingQueue
 		m_hot = Sz - 1;
 	}
 
-	size_t capacity() noexcept
+	constexpr size_t capacity() noexcept
 	{
 		return Sz;
 	}
