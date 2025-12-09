@@ -236,7 +236,7 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 
 void LobbyServer::startGame(WorldState &worldState)
 {
-    static std::mt19937_64 rng{std::random_device{}()};
+    static std::mt19937_64 rng{}; // deterministic spawn points
 
     auto spawns = worldState.getMap().getSpawns();
 
@@ -261,8 +261,9 @@ void LobbyServer::startGame(WorldState &worldState)
           continue;
 
        sf::Vector2f const spawnPos = spawns[spawnIndex % spawns.size()];
+       sf::Angle const rot = sf::radians(static_cast<float>(rng()) / static_cast<float>(rng.max()));
 
-       PlayerState ps(lobbyPlayer.id, spawnPos);
+       PlayerState ps(lobbyPlayer.id, spawnPos, rot);
 
        // inject lobby data
        ps.m_name = lobbyPlayer.name;
