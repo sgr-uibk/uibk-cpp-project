@@ -36,7 +36,6 @@ PlayerState *GameServer::matchLoop()
 		m_world.clearWallDeltas();
 
 		processPackets();
-		checkPlayerConnections();
 
 		// maintain fixed tick rate updates
 		float dt = m_tickClock.getElapsedTime().asSeconds();
@@ -217,32 +216,6 @@ void GameServer::floodWorldState()
 		{
 			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send snapshot to {}:{}", p.udpAddr.toString(),
 			                    p.gamePort);
-		}
-	}
-}
-
-void GameServer::checkPlayerConnections()
-{
-	for(LobbyPlayer &lobbySlot : m_lobby.m_slots)
-	{
-		if(!lobbySlot.bValid)
-			continue;
-
-		sf::Packet testPkt;
-		lobbySlot.tcpSocket.setBlocking(false);
-		sf::Socket::Status status = lobbySlot.tcpSocket.receive(testPkt);
-
-		if(status == sf::Socket::Status::Disconnected)
-		{
-			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Player {} (id {}) disconnected during game, marking as dead",
-			                   lobbySlot.name, lobbySlot.id);
-
-			PlayerState &playerState = m_world.getPlayerById(lobbySlot.id);
-			if(playerState.isAlive())
-			{
-				playerState.takeDamage(playerState.getHealth());
-				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} eliminated due to disconnect", lobbySlot.id);
-			}
 		}
 	}
 }

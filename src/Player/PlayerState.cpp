@@ -76,7 +76,6 @@ void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 		float length = std::sqrt(posDelta.x * posDelta.x + posDelta.y * posDelta.y);
 		if(length > 0.01f)
 		{
-			// Your specific rotation logic
 			float const angRad = std::atan2(posDelta.y, posDelta.x);
 			m_iState.m_rot = sf::radians(angRad) + sf::degrees(45);
 		}
@@ -287,8 +286,6 @@ void PlayerState::serialize(sf::Packet &pkt) const
 {
 	pkt << m_iState << m_health << m_maxHealth;
 	pkt << m_shootCooldown.getRemaining();
-	pkt << static_cast<int32_t>(m_kills);
-	pkt << static_cast<int32_t>(m_deaths);
 
 	for(auto const &powerup : m_powerups)
 	{
@@ -308,11 +305,6 @@ void PlayerState::deserialize(sf::Packet &pkt)
 	float cooldownRemaining;
 	pkt >> cooldownRemaining;
 	m_shootCooldown.setRemaining(cooldownRemaining);
-
-	int32_t kills, deaths;
-	pkt >> kills >> deaths;
-	m_kills = kills;
-	m_deaths = deaths;
 
 	for(auto &powerup : m_powerups)
 	{

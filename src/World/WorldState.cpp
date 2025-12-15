@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 #include "Utilities.h"
 #include "WorldState.h"
+#include "GameConfig.h"
 
 WorldState::WorldState(sf::Packet &pkt)
 	: m_map(WINDOW_DIMf),
@@ -13,26 +14,26 @@ WorldState::WorldState(sf::Packet &pkt)
 	deserialize(pkt);
 }
 
-WorldState::WorldState(sf::Vector2f const mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit)
-	: m_map(mapSize), m_players(std::move(playersInit))
+WorldState::WorldState(int mapIndex, std::array<PlayerState, MAX_PLAYERS> playersInit)
+	: m_map(sf::Vector2f(0, 0)), m_players(std::move(playersInit))
 {
-}
-
-WorldState WorldState::fromTiledMap(std::string const &tiledJsonPath, std::array<PlayerState, MAX_PLAYERS> playersInit)
-{
-	auto blueprint = MapParser::parse(tiledJsonPath);
+	std::string mapPath = Maps::getMapPath(mapIndex);
+	auto blueprint = MapParser::parse(mapPath);
 
 	if(!blueprint)
 	{
-		spdlog::error("Failed to load map from {}", tiledJsonPath);
-		return WorldState(sf::Vector2f(0, 0), std::move(playersInit));
+		spdlog::error("Failed to load map from index {} (path: {})", mapIndex, mapPath);
+		m_map = MapState(WINDOW_DIMf);
+		return;
 	}
 
-	WorldState world(sf::Vector2f(0, 0), std::move(playersInit));
+	m_map.loadFromBlueprint(*blueprint);
+	spdlog::info("Loaded map from index {} (path: {})", mapIndex, mapPath);
+}
 
-	world.m_map.loadFromBlueprint(*blueprint);
-
-	return world;
+WorldState::WorldState(sf::Vector2f const mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit)
+	: m_map(mapSize), m_players(std::move(playersInit))
+{
 }
 
 void WorldState::update(float dt)
@@ -127,23 +128,7 @@ void WorldState::checkProjectilePlayerCollisions()
 
 			if(projBounds.findIntersection(playerBounds).has_value())
 			{
-				bool wasAlive = player.isAlive();
 				player.takeDamage(proj.getDamage());
-
-				if(wasAlive && !player.isAlive())
-				{
-					player.incrementDeaths();
-
-					for(auto &shooter : m_players)
-					{
-						if(shooter.getPlayerId() == proj.getOwnerId())
-						{
-							shooter.incrementKills();
-							break;
-						}
-					}
-				}
-
 				proj.deactivate();
 				break;
 			}

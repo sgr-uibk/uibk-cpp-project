@@ -22,11 +22,6 @@ class PauseMenuClient
 		return m_shouldDisconnect;
 	}
 
-	void stopBattleMusic()
-	{
-		m_battleMusic.stop();
-	}
-
   private:
 	enum class PauseMenuState
 	{

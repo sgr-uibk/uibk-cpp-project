@@ -22,7 +22,6 @@ class GameServer
 	void processPackets();
 	void floodWorldState();
 	void spawnItems();
-	void checkPlayerConnections();
 
 	sf::UdpSocket m_gameSock;
 	LobbyServer &m_lobby;

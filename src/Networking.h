@@ -22,7 +22,7 @@ template <typename T> struct Ticked
 	T obj;
 };
 
-constexpr uint8_t MAX_PLAYERS = 2;
+constexpr uint8_t MAX_PLAYERS = 4;
 constexpr std::array ALL_PLAYER_COLORS{sf::Color::Red, sf::Color::Green, sf::Color::Yellow, sf::Color::Magenta};
 
 static_assert(ALL_PLAYER_COLORS.size() >= MAX_PLAYERS,
@@ -47,7 +47,7 @@ enum class ReliablePktType : uint8_t
 	JOIN_REQ = 1,
 	JOIN_ACK,
 	LOBBY_READY,
-	LOBBY_UPDATE, // srv -> clients: broadcast lobby state updates
+	LOBBY_UPDATE,       // srv -> clients: broadcast lobby state updates
 	GAME_START,
 	GAME_END,
 	PLAYER_LEFT, // TODO

@@ -122,3 +122,62 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 
 	return bp;
 }
+
+std::vector<sf::Vector2f> MapParser::parseSpawnsOnly(std::string const &filePath)
+{
+	auto fullPath = g_assetPathResolver.resolveRelative(filePath);
+	std::ifstream file(fullPath);
+	if(!file.is_open())
+	{
+		spdlog::error("MapParser::parseSpawnsOnly: Could not open file {}", fullPath.string());
+		return {};
+	}
+
+	json j;
+	try
+	{
+		file >> j;
+	}
+	catch(json::parse_error const &e)
+	{
+		spdlog::error("MapParser::parseSpawnsOnly: JSON error in {} - {}", filePath, e.what());
+		return {};
+	}
+
+	std::vector<sf::Vector2f> spawns;
+
+	if(j.contains("layers"))
+	{
+		for(auto const &layerJson : j["layers"])
+		{
+			if(layerJson.value("type", "") == "objectgroup" && layerJson.contains("objects"))
+			{
+				for(auto const &objJson : layerJson["objects"])
+				{
+					std::string type = objJson.value("type", "");
+
+					if(objJson.contains("properties"))
+					{
+						for(auto const &prop : objJson["properties"])
+						{
+							if(prop.contains("name") && prop["name"] == "type" && prop.contains("value") &&
+							   prop["value"].is_string())
+							{
+								type = prop["value"].get<std::string>();
+								break;
+							}
+						}
+					}
+
+					if(type == "player_spawn")
+					{
+						sf::Vector2f pos{objJson.value("x", 0.f), objJson.value("y", 0.f)};
+						spawns.push_back(pos);
+					}
+				}
+			}
+		}
+	}
+
+	return spawns;
+}

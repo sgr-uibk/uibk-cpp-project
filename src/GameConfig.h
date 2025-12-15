@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <array>
 
 // ============================================================================
 // Gameplay constants
@@ -7,6 +9,26 @@
 constexpr float TILE_WIDTH = 64.0f;
 constexpr float TILE_HEIGHT = 32.0f;
 constexpr float CARTESIAN_TILE_SIZE = TILE_HEIGHT;
+
+// ============================================================================
+// Map registry
+// ============================================================================
+
+namespace Maps
+{
+	constexpr std::array<char const *, 1> MAP_PATHS = {
+		"map/arena.json"
+	};
+
+	constexpr int DEFAULT_MAP_INDEX = 0;
+
+	inline std::string getMapPath(int mapIndex)
+	{
+		if(mapIndex < 0 || mapIndex >= static_cast<int>(MAP_PATHS.size()))
+			return std::string(MAP_PATHS[DEFAULT_MAP_INDEX]);
+		return std::string(MAP_PATHS[mapIndex]);
+	}
+}
 
 namespace GameConfig
 {
@@ -40,14 +62,14 @@ namespace Powerup
 
 namespace UI
 {
-	// Pause menu buttons (sized for 800x600, will scale with window)
-	constexpr float BUTTON_WIDTH = 180.f;
-	constexpr float BUTTON_HEIGHT = 40.f;
-	constexpr float BUTTON_SPACING = 15.f;
+	// Pause menu buttons
+	constexpr float BUTTON_WIDTH = 200.f;
+	constexpr float BUTTON_HEIGHT = 50.f;
+	constexpr float BUTTON_SPACING = 20.f;
 
 	// Music button (wider for text)
-	constexpr float MUSIC_BUTTON_WIDTH = 220.f;
-	constexpr float MUSIC_BUTTON_HEIGHT = 35.f;
+	constexpr float MUSIC_BUTTON_WIDTH = 250.f;
+	constexpr float MUSIC_BUTTON_HEIGHT = 40.f;
 
 	// Hotbar/Inventory
 	constexpr float HOTBAR_SLOT_SIZE = 50.f;

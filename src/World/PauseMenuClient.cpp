@@ -17,7 +17,7 @@ PauseMenuClient::PauseMenuClient(sf::RenderWindow &window)
 	float startY = windowSize.y / 2.f - 100.f;
 	float spacing = GameConfig::UI::BUTTON_SPACING;
 
-	std::vector<std::string> const buttonLabels = {GameConfig::UI::Text::BUTTON_RESUME,
+	const std::vector<std::string> buttonLabels = {GameConfig::UI::Text::BUTTON_RESUME,
 	                                               GameConfig::UI::Text::BUTTON_DISCONNECT,
 	                                               GameConfig::UI::Text::BUTTON_SETTINGS};
 	for(size_t i = 0; i < buttonLabels.size(); ++i)

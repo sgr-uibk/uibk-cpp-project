@@ -19,12 +19,6 @@ class ServerShutdownException : public std::runtime_error
 	}
 };
 
-enum class GameEndResult
-{
-	RETURN_TO_LOBBY,
-	RETURN_TO_MAIN_MENU
-};
-
 std::shared_ptr<spdlog::logger> createConsoleLogger(std::string const &name);
 std::shared_ptr<spdlog::logger> createConsoleAndFileLogger(std::string const &name,
                                                            spdlog::level::level_enum logLevel = spdlog::level::debug);
@@ -50,12 +44,11 @@ inline sf::Vector2f isoToCartesian(sf::Vector2f iso)
 	return {cartX, cartY};
 }
 
-// Render queue structure for Y-sorting
 struct RenderObject
 {
-	float sortY = 0.0f;                     // Y coordinate for depth sorting
-	sf::Drawable const *drawable = nullptr; // Pointer to persistent drawable
-	std::optional<sf::Sprite> tempSprite;   // For temporary sprites (e.g., wall tiles)
+	float sortY = 0.0f;
+	sf::Drawable const *drawable = nullptr;
+	std::optional<sf::Sprite> tempSprite;
 
 	void draw(sf::RenderWindow &window) const
 	{

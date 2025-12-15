@@ -177,19 +177,17 @@ void PlayerClient::collectRenderObjects(std::vector<RenderObject> &queue) const
 {
 	sf::Vector2f isoPos = m_hullSprite.getPosition();
 	float depthY = isoPos.y;
-	// Add hull
+
 	RenderObject hullObj;
 	hullObj.sortY = depthY;
 	hullObj.drawable = &m_hullSprite;
 	queue.push_back(hullObj);
 
-	// Add turret
 	RenderObject turretObj;
 	turretObj.sortY = depthY + 0.1f;
 	turretObj.drawable = &m_turretSprite;
 	queue.push_back(turretObj);
 
-	// Add name text
 	RenderObject textObj;
 	textObj.sortY = depthY + 1.0f;
 	textObj.drawable = &m_nameText;

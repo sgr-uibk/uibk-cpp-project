@@ -44,7 +44,7 @@ class Cooldown
 	// Try to trigger; returns true if was ready
 	bool try_trigger()
 	{
-		bool const wasReady = isReady();
+		const bool wasReady = isReady();
 		if(wasReady)
 			trigger();
 		return wasReady;

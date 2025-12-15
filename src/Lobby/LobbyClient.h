@@ -1,9 +1,7 @@
 #pragma once
 #include "../Networking.h"
 #include <SFML/Network.hpp>
-#include <memory>
 #include <spdlog/spdlog.h>
-#include <spdlog/logger.h>
 
 #include "Player/PlayerState.h"
 
@@ -14,14 +12,6 @@ struct LobbyPlayerInfo
 	bool bReady;
 };
 
-enum class LobbyEvent
-{
-	NONE,
-	LOBBY_UPDATED,
-	GAME_STARTED,
-	SERVER_DISCONNECTED
-};
-
 class LobbyClient
 {
   public:
@@ -30,7 +20,8 @@ class LobbyClient
 	void bindGameSocket();
 	void connect();
 	void sendReady();
-	LobbyEvent pollLobbyUpdate();
+	bool pollLobbyUpdate();
+	std::optional<std::pair<int, std::array<PlayerState, MAX_PLAYERS>>> waitForGameStart(sf::Time timeout);
 
 	[[nodiscard]] bool getReadiness() const
 	{
@@ -42,11 +33,6 @@ class LobbyClient
 		return m_lobbyPlayers;
 	}
 
-	[[nodiscard]] std::array<PlayerState, MAX_PLAYERS> getGameStartData() const
-	{
-		return m_startData;
-	}
-
 	EntityId m_clientId;
 	sf::TcpSocket m_lobbySock;
 	std::string m_name;
@@ -55,9 +41,5 @@ class LobbyClient
 
   private:
 	bool m_bReady;
-	std::string m_loggerName;
 	std::vector<LobbyPlayerInfo> m_lobbyPlayers;
-	std::array<PlayerState, MAX_PLAYERS> m_startData;
-
-	void parseGameStartPacket(sf::Packet &pkt);
 };

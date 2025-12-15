@@ -31,34 +31,15 @@ int main(int argc, char **argv)
 		sf::sleep(sf::seconds(1));
 		lobbyClient.sendReady();
 		SPDLOG_LOGGER_INFO(spdlog::get("Client"), "I'm ready, waiting for GAME_START...");
-
-		sf::Clock timeout;
-		sf::Time const maxWaitTime = sf::seconds(300);
-		LobbyEvent event = LobbyEvent::NONE;
-
-		while(timeout.getElapsedTime() < maxWaitTime)
-		{
-			event = lobbyClient.pollLobbyUpdate();
-			if(event == LobbyEvent::GAME_STARTED)
-			{
-				break;
-			}
-			else if(event == LobbyEvent::SERVER_DISCONNECTED)
-			{
-				SPDLOG_CRITICAL("Server disconnected while waiting for game start");
-				return EXIT_FAILURE;
-			}
-			sf::sleep(sf::milliseconds(100));
-		}
-
-		if(event != LobbyEvent::GAME_STARTED)
+		auto optGameStart = lobbyClient.waitForGameStart(sf::seconds(300));
+		if(!optGameStart.has_value())
 		{
 			SPDLOG_CRITICAL("Timed out waiting for game start");
 			return EXIT_FAILURE;
 		}
 
-		auto playerStates = lobbyClient.getGameStartData();
-		WorldClient worldClient(window, lobbyClient.m_clientId, playerStates);
+		auto const &[mapIndex, players] = *optGameStart;
+		WorldClient worldClient(window, lobbyClient.m_clientId, mapIndex, players);
 		lobbyClient.m_lobbySock.setBlocking(false); // make reliable channel pollable
 		GameClient gameClient(worldClient, lobbyClient);
 

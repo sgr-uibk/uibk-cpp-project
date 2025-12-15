@@ -4,7 +4,6 @@
 
 #include "Utilities.h"
 #include "Lobby/LobbyClient.h"
-#include "../UI/Scoreboard.h"
 
 GameClient::GameClient(WorldClient &world, LobbyClient &lobby)
 	: m_world(world), m_lobby(lobby), m_gameServer({lobby.m_lobbySock.getRemoteAddress().value(), PORT_UDP})
@@ -76,37 +75,12 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 		case uint8_t(ReliablePktType::GAME_END): {
 			EntityId winnerId;
 			reliablePkt >> winnerId;
-
-			// Read player stats
-			uint32_t numPlayers;
-			reliablePkt >> numPlayers;
-
-			std::vector<Scoreboard::PlayerStats> playerStats;
-			playerStats.reserve(numPlayers);
-
-			for(uint32_t i = 0; i < numPlayers; ++i)
-			{
-				Scoreboard::PlayerStats stats;
-				reliablePkt >> stats.id;
-				reliablePkt >> stats.name;
-
-				int32_t kills, deaths;
-				reliablePkt >> kills >> deaths;
-				stats.kills = kills;
-				stats.deaths = deaths;
-
-				playerStats.push_back(stats);
-			}
-
-			// Show the scoreboard UI with player stats
-			m_world.showScoreboard(winnerId, playerStats);
-
+			// TODO save the player names somewhere, so that we can print the winner here
 			if(m_lobby.m_clientId == winnerId)
 				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "I won the game!", winnerId);
 			else
-				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Battle is over, winner id {}, scoreboard displayed.",
+				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Battle is over, winner id {}, returning to lobby.",
 				                   winnerId);
-
 			return true;
 		}
 		default:

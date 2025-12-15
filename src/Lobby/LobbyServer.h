@@ -2,7 +2,6 @@
 #include "../Utilities.h"
 #include <SFML/Network.hpp>
 #include "World/WorldState.h"
-#include <atomic>
 
 struct LobbyPlayer
 {
@@ -10,12 +9,9 @@ struct LobbyPlayer
 	std::string name = "Invalid";
 	bool bValid = false;
 	bool bReady = false;
-	sf::IpAddress udpAddr = sf::IpAddress::Any;
+	sf::IpAddress udpAddr;
 	uint16_t gamePort = 0;
 	sf::TcpSocket tcpSocket;
-
-	int totalKills{0};
-	int totalDeaths{0};
 };
 
 class LobbyServer
@@ -24,20 +20,9 @@ class LobbyServer
 	explicit LobbyServer(uint16_t tcpPort);
 	~LobbyServer();
 	void lobbyLoop(); // blocks until all players ready
-	void stop()
-	{
-		m_running = false;
-	}
-	bool isRunning() const
-	{
-		return m_running;
-	}
-
-	void startGame(WorldState &worldState);
+	WorldState startGame();
 	void deduplicatePlayerName(std::string &name) const;
 	void endGame(EntityId winner);
-	void resetLobbyState();
-	void updatePlayerStats(std::array<PlayerState, MAX_PLAYERS> const &playerStates);
 
 	std::vector<LobbyPlayer> m_slots; // Vector, clients join sequentially
 
@@ -48,8 +33,7 @@ class LobbyServer
 
 	sf::TcpListener m_listener;
 	sf::SocketSelector m_multiSock;
-	uint32_t m_nextId = 1;
+	uint32_t m_tentativeId = 1;
 	uint8_t m_cReady = 0;
-	bool m_gameInProgress = false;
-	std::atomic<bool> m_running{true};
+	bool m_gameStartRequested = false;
 };

@@ -74,23 +74,7 @@ struct PlayerState
     [[nodiscard]] int getHealth() const;
     [[nodiscard]] int getMaxHealth() const;
     [[nodiscard]] bool isAlive() const;
-    [[nodiscard]] int getKills() const
-    {
-       return m_kills;
-    }
-    [[nodiscard]] int getDeaths() const
-    {
-       return m_deaths;
-    }
 
-    void incrementKills()
-    {
-       m_kills++;
-    }
-    void incrementDeaths()
-    {
-       m_deaths++;
-    }
 
     void serialize(sf::Packet &pkt) const;
     void deserialize(sf::Packet &pkt);
@@ -101,9 +85,6 @@ struct PlayerState
     int m_maxHealth;
     int m_health = m_maxHealth;
     Cooldown m_shootCooldown{GameConfig::Player::SHOOT_COOLDOWN};
-
-    int m_kills = 0;
-    int m_deaths = 0;
 
     static constexpr int MAX_POWERUPS = 5;
     std::array<PowerupEffect, MAX_POWERUPS> m_powerups;

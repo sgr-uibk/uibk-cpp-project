@@ -34,10 +34,6 @@ MapClient::MapClient(MapState &state) : m_state(state)
 
 sf::Vector2f MapClient::isoToScreen(int tileX, int tileY, int tileWidth, int tileHeight) const
 {
-	// Tiled isometric transformation (staggered/diamond isometric)
-	// For isometric maps in Tiled, the tile at (x, y) is rendered at:
-	// screenX = (x - y) * (tileWidth / 2)
-	// screenY = (x + y) * (tileHeight / 2)
 	float screenX = (tileX - tileY) * (tileWidth / 2.0f);
 	float screenY = (tileX + tileY) * (tileHeight / 2.0f);
 	return {screenX, screenY};
@@ -194,12 +190,10 @@ void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
 			sf::Vector2f p = isoToScreen(x, y, mapTileW, mapTileH);
 			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f, p.y - tileSpriteH + mapTileH);
 
-			// Create sprite and calculate depth
 			sf::Sprite tileSprite(*m_tilesetTexture);
 			tileSprite.setTextureRect(sf::IntRect({srcX, srcY}, {tileSpriteW, tileSpriteH}));
 			tileSprite.setPosition(spritePos);
 
-			// Sort by bottom of sprite (foot of the wall)
 			float depthY = spritePos.y + tileSpriteH;
 
 			RenderObject obj;

@@ -9,9 +9,9 @@
 
 struct WorldState
 {
-	explicit WorldState(sf::Packet &pkt);                                               // Client
-	WorldState(sf::Vector2f mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit); // Server
-	static WorldState fromTiledMap(std::string const &tiledJsonPath, std::array<PlayerState, MAX_PLAYERS> playersInit);
+	explicit WorldState(sf::Packet &pkt);                                               // Client: from network packet
+	WorldState(int mapIndex, std::array<PlayerState, MAX_PLAYERS> playersInit);         // Server/Client: from map index
+	WorldState(sf::Vector2f mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit); // Legacy: basic map
 	void update(float dt);
 	void setPlayer(PlayerState const &p);
 
@@ -68,6 +68,7 @@ struct WorldState
 	uint32_t m_nextProjectileId{1};
 	uint32_t m_nextItemId{1};
 	std::vector<std::pair<int, int>> m_destroyedWallsThisTick;
-private:
+
+  private:
 	void deserialize(sf::Packet &pkt);
 };
