@@ -230,17 +230,17 @@ WallState const *MapState::getWallAtGridPos(int x, int y) const
 	return nullptr;
 }
 
-void MapState::destroyWallAtGridPos(int x, int y)
+void MapState::destroyWallAtGridPos(sf::Vector2i pos)
 {
 	for(auto &layer : m_layers)
 	{
 		if(layer.name == "Walls")
 		{
-			int idx = y * layer.width + x;
-			if(idx >= 0 && idx < static_cast<int>(layer.data.size()))
+			size_t const idx = pos.y * layer.width + pos.x;
+			if(idx < layer.data.size())
 			{
 				layer.data[idx] = 0; // Set to empty tile
-				spdlog::debug("Tile swap: Cleared wall tile at grid ({}, {})", x, y);
+				spdlog::debug("Tile swap: Cleared wall tile at grid ({}, {})", pos.x, pos.y);
 			}
 			break;
 		}

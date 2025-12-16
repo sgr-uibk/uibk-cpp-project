@@ -50,8 +50,8 @@ struct WorldState
 	void checkPlayerPlayerCollisions();
 
 	void clearWallDeltas();
-	void markWallDestroyed(int gridX, int gridY);
-	std::vector<std::pair<int, int>> const &getDestroyedWallDeltas() const;
+	void markWallDestroyed(sf::Vector2i gridPos);
+	[[nodiscard]] std::vector<sf::Vector2i> const &getDestroyedWallDeltas() const;
 
 	// serialization (full snapshot for players/items/projectiles, deltas for walls)
 	void serialize(sf::Packet &pkt) const;
@@ -67,7 +67,7 @@ struct WorldState
 	std::vector<ItemState> m_items;
 	uint32_t m_nextProjectileId{1};
 	uint32_t m_nextItemId{1};
-	std::vector<std::pair<int, int>> m_destroyedWallsThisTick;
+	std::vector<sf::Vector2i> m_destroyedWallsThisTick;
 
   private:
 	void deserialize(sf::Packet &pkt);

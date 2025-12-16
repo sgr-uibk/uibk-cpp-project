@@ -23,7 +23,7 @@ class MapState
 	void addWall(float x, float y, float w, float h, int health = 100);
 	void addSpawnPoint(sf::Vector2f spawn);
 	void addItemSpawnZone(sf::Vector2f position, PowerupType itemType);
-	void destroyWallAtGridPos(int x, int y); // Tile Swap: Clear wall tile when destroyed
+	void destroyWallAtGridPos(sf::Vector2i pos); // Tile Swap: Clear wall tile when destroyed
 	[[nodiscard]] bool isColliding(sf::RectangleShape const &r) const;
 	[[nodiscard]] std::vector<WallState> const &getWalls() const;
 	[[nodiscard]] std::vector<WallState> &getWalls();
