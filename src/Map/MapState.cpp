@@ -1,7 +1,6 @@
 #include "MapState.h"
 #include "Utilities.h"
 #include <spdlog/spdlog.h>
-#include <cmath>
 
 MapState::MapState(sf::Vector2f size) : m_size(size)
 {
@@ -205,25 +204,22 @@ void MapState::setWallsLayer(std::optional<RawLayer> const &layer)
 	m_layers.push_back(*layer);
 }
 
-WallState const *MapState::getWallAtGridPos(int x, int y) const
+template <typename T> sf::Vector2<T> abs(sf::Vector2<T> vec)
 {
-	float cellCenterX = (static_cast<float>(x) * CARTESIAN_TILE_SIZE) + (CARTESIAN_TILE_SIZE / 2.0f);
-	float cellCenterY = (static_cast<float>(y) * CARTESIAN_TILE_SIZE) + (CARTESIAN_TILE_SIZE / 2.0f);
+	return {std::abs(vec.x), std::abs(vec.y)};
+}
+
+WallState const *MapState::getWallAtGridPos(sf::Vector2i const pos) const
+{
+	auto const cellCenter = sf::Vector2f(pos) * CARTESIAN_TILE_SIZE + sf::Vector2f{1, 1} * (CARTESIAN_TILE_SIZE / 2.0f);
 
 	for(auto const &wall : m_walls)
 	{
-		sf::FloatRect bounds = wall.getGlobalBounds();
-
-		float wallCenterX = bounds.position.x + (bounds.size.x / 2.0f);
-		float wallCenterY = bounds.position.y + (bounds.size.y / 2.0f);
-
-		float diffX = std::abs(cellCenterX - wallCenterX);
-		float diffY = std::abs(cellCenterY - wallCenterY);
-
-		if(diffX < 1.0f && diffY < 1.0f)
-		{
+		sf::FloatRect const bounds = wall.getGlobalBounds();
+		sf::Vector2f const wallCenter = bounds.position + bounds.size / 2.f;
+		sf::Vector2f const diff = abs(cellCenter - wallCenter);
+		if(diff.x < 1.f && diff.y < 1.f)
 			return &wall;
-		}
 	}
 
 	return nullptr;

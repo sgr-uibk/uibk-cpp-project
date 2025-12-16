@@ -37,7 +37,7 @@ class MapState
 	[[nodiscard]] std::optional<RawLayer> getGroundLayer() const;
 	[[nodiscard]] std::optional<RawLayer> getWallsLayer() const;
 	[[nodiscard]] std::vector<WallState> const &getWallStates() const;
-	[[nodiscard]] WallState const *getWallAtGridPos(int x, int y) const;
+	[[nodiscard]] WallState const *getWallAtGridPos(sf::Vector2i pos) const;
 
 	// Setters for preserving rendering data on client (when applying server snapshots)
 	void setTileset(std::optional<RawTileset> const &tileset);

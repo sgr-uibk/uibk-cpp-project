@@ -122,7 +122,7 @@ void MapClient::drawWallTiles(sf::RenderWindow &window) const
 				continue;
 			}
 
-			WallState const *wall = m_state.getWallAtGridPos(x, y);
+			WallState const *wall = m_state.getWallAtGridPos({x, y});
 			if(wall && wall->isDestroyed())
 			{
 				continue;
@@ -176,7 +176,7 @@ void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
 			if(tileId == 0)
 				continue;
 
-			WallState const *wall = m_state.getWallAtGridPos(x, y);
+			WallState const *wall = m_state.getWallAtGridPos({x, y});
 			if(wall && wall->isDestroyed())
 				continue;
 
