@@ -15,7 +15,7 @@ static int angleToDirection(float degrees)
 	int section = static_cast<int>(adjusted / 45.f);
 
 	// Hardcoded sprite mapping for now
-	int const spriteMap[8] = {5, 4, 3, 2, 1, 8, 7, 6};
+	int const spriteMap[8] = {3, 2, 1, 8, 7, 6, 5, 4};
 	return spriteMap[section];
 }
 
@@ -125,7 +125,7 @@ void PlayerClient::updateSprite()
 void PlayerClient::syncSpriteToState()
 {
 	int hullDir = angleToDirection(m_state.getRotation().asDegrees()) - 1;                // Convert to 0-7 index
-	int turretDir = angleToDirection(m_state.getCannonRotation().asDegrees() - 45.f) - 1; // Convert to 0-7 index
+	int turretDir = angleToDirection(m_state.getCannonRotation().asDegrees() - 135.f) - 1; // Convert to 0-7 index
 
 	hullDir = std::clamp(hullDir, 0, 7);
 	turretDir = std::clamp(turretDir, 0, 7);

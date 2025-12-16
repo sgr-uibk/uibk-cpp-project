@@ -34,8 +34,9 @@ MapClient::MapClient(MapState &state) : m_state(state)
 
 sf::Vector2f MapClient::isoToScreen(int tileX, int tileY, int tileWidth, int tileHeight) const
 {
-	float screenX = (tileX - tileY) * (tileWidth / 2.0f);
-	float screenY = (tileX + tileY) * (tileHeight / 2.0f);
+	sf::Vector2f tile(tileX, tileY);
+	float screenX = (tile.x - tile.y) * (tileWidth / 2.0f);
+	float screenY = (tile.x + tile.y) * (tileHeight / 2.0f);
 	return {screenX, screenY};
 }
 
@@ -72,17 +73,14 @@ void MapClient::drawGroundTiles(sf::RenderWindow &window) const
 			if(tileIndex < 0)
 				continue;
 
-			int srcX = (tileIndex % columns) * tileSpriteW;
-			int srcY = (tileIndex / columns) * tileSpriteH;
+			sf::Vector2i srcPos((tileIndex % columns) * tileSpriteW, (tileIndex / columns) * tileSpriteH);
 
 			sf::Vector2f p = isoToScreen(x, y, mapTileW, mapTileH);
 
-			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f,
-			                       p.y - tileSpriteH + (mapTileH / 2.0f) // Adjust if your tiles have height depth
-			);
+			sf::Vector2f spritePos = p - sf::Vector2f(tileSpriteW / 2.0f, tileSpriteH - (mapTileH / 2.0f));
 
 			sf::Sprite tileSprite(*m_tilesetTexture);
-			tileSprite.setTextureRect(sf::IntRect({srcX, srcY}, {tileSpriteW, tileSpriteH}));
+			tileSprite.setTextureRect(sf::IntRect(srcPos, {tileSpriteW, tileSpriteH}));
 			tileSprite.setPosition(spritePos);
 			window.draw(tileSprite);
 		}
@@ -132,14 +130,13 @@ void MapClient::drawWallTiles(sf::RenderWindow &window) const
 			if(tileIndex < 0)
 				continue;
 
-			int srcX = (tileIndex % columns) * tileSpriteW;
-			int srcY = (tileIndex / columns) * tileSpriteH;
+			sf::Vector2i srcPos((tileIndex % columns) * tileSpriteW, (tileIndex / columns) * tileSpriteH);
 
 			sf::Vector2f p = isoToScreen(x, y, mapTileW, mapTileH);
-			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f, p.y - tileSpriteH + mapTileH);
+			sf::Vector2f spritePos = p - sf::Vector2f(tileSpriteW / 2.0f, tileSpriteH - mapTileH);
 
 			sf::Sprite tileSprite(*m_tilesetTexture);
-			tileSprite.setTextureRect(sf::IntRect({srcX, srcY}, {tileSpriteW, tileSpriteH}));
+			tileSprite.setTextureRect(sf::IntRect(srcPos, {tileSpriteW, tileSpriteH}));
 			tileSprite.setPosition(spritePos);
 			window.draw(tileSprite);
 		}
@@ -184,14 +181,13 @@ void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
 			if(tileIndex < 0)
 				continue;
 
-			int srcX = (tileIndex % columns) * tileSpriteW;
-			int srcY = (tileIndex / columns) * tileSpriteH;
+			sf::Vector2i srcPos((tileIndex % columns) * tileSpriteW, (tileIndex / columns) * tileSpriteH);
 
 			sf::Vector2f p = isoToScreen(x, y, mapTileW, mapTileH);
-			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f, p.y - tileSpriteH + mapTileH);
+			sf::Vector2f spritePos = p - sf::Vector2f(tileSpriteW / 2.0f, tileSpriteH - mapTileH);
 
 			sf::Sprite tileSprite(*m_tilesetTexture);
-			tileSprite.setTextureRect(sf::IntRect({srcX, srcY}, {tileSpriteW, tileSpriteH}));
+			tileSprite.setTextureRect(sf::IntRect(srcPos, {tileSpriteW, tileSpriteH}));
 			tileSprite.setPosition(spritePos);
 
 			float depthY = spritePos.y + tileSpriteH;

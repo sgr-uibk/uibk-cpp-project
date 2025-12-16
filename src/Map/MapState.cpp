@@ -208,20 +208,16 @@ void MapState::setWallsLayer(std::optional<RawLayer> const &layer)
 
 WallState const *MapState::getWallAtGridPos(int x, int y) const
 {
-	float cellCenterX = (static_cast<float>(x) * CARTESIAN_TILE_SIZE) + (CARTESIAN_TILE_SIZE / 2.0f);
-	float cellCenterY = (static_cast<float>(y) * CARTESIAN_TILE_SIZE) + (CARTESIAN_TILE_SIZE / 2.0f);
+	sf::Vector2f cellCenter = (sf::Vector2f(x, y) * CARTESIAN_TILE_SIZE) + sf::Vector2f(CARTESIAN_TILE_SIZE / 2.0f, CARTESIAN_TILE_SIZE / 2.0f);
 
 	for(auto const &wall : m_walls)
 	{
 		sf::FloatRect bounds = wall.getGlobalBounds();
+		sf::Vector2f wallCenter = bounds.getCenter();
 
-		float wallCenterX = bounds.position.x + (bounds.size.x / 2.0f);
-		float wallCenterY = bounds.position.y + (bounds.size.y / 2.0f);
+		sf::Vector2f diff = sf::Vector2f(std::abs(cellCenter.x - wallCenter.x), std::abs(cellCenter.y - wallCenter.y));
 
-		float diffX = std::abs(cellCenterX - wallCenterX);
-		float diffY = std::abs(cellCenterY - wallCenterY);
-
-		if(diffX < 1.0f && diffY < 1.0f)
+		if(diff.x < 1.0f && diff.y < 1.0f)
 		{
 			return &wall;
 		}
