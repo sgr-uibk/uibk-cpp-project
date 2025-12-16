@@ -152,14 +152,14 @@ inline sf::Socket::Status checkedReceive(sf::UdpSocket &sock, sf::Packet &pkt,
 	return st;
 }
 
-inline sf::Packet &operator<<(sf::Packet &pkt, sf::Vector2f const &vec)
+template <typename T> sf::Packet &operator<<(sf::Packet &pkt, sf::Vector2<T> const &vec)
 {
 	pkt << vec.x;
 	pkt << vec.y;
 	return pkt;
 }
 
-inline sf::Packet &operator>>(sf::Packet &pkt, sf::Vector2f &vec)
+template <typename T> sf::Packet &operator>>(sf::Packet &pkt, sf::Vector2<T> &vec)
 {
 	pkt >> vec.x;
 	pkt >> vec.y;
