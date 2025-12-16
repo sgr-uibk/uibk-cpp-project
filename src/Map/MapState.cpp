@@ -78,7 +78,7 @@ void MapState::loadFromBlueprint(MapBlueprint const &bp)
 		sf::Vector2i pos = {0, 0};
 		for(; pos.y < layer.height; ++pos.y)
 		{
-			for(; pos.x < layer.width; ++pos.x)
+			for(pos.x = 0; pos.x < layer.width; ++pos.x)
 			{
 				int idx = pos.y * layer.width + pos.x;
 				int tileId = layer.data[idx];
