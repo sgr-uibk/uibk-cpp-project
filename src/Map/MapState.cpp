@@ -7,9 +7,9 @@ MapState::MapState(sf::Vector2f size) : m_size(size)
 {
 }
 
-void MapState::addWall(float x, float y, float w, float h, int health)
+void MapState::addWall(sf::Vector2f pos, sf::Vector2f dim, int health)
 {
-	m_walls.emplace_back(x, y, w, h, health);
+	m_walls.emplace_back(pos, dim, health);
 }
 
 void MapState::addSpawnPoint(sf::Vector2f spawn)
@@ -75,19 +75,18 @@ void MapState::loadFromBlueprint(MapBlueprint const &bp)
 		if(layer.name != "Walls")
 			continue;
 
-		for(int y = 0; y < layer.height; ++y)
+		sf::Vector2i pos = {0, 0};
+		for(; pos.y < layer.height; ++pos.y)
 		{
-			for(int x = 0; x < layer.width; ++x)
+			for(; pos.x < layer.width; ++pos.x)
 			{
-				int idx = y * layer.width + x;
+				int idx = pos.y * layer.width + pos.x;
 				int tileId = layer.data[idx];
 
 				if(tileId != 0)
 				{
-					float worldX = static_cast<float>(x) * CARTESIAN_TILE_SIZE;
-					float worldY = static_cast<float>(y) * CARTESIAN_TILE_SIZE;
-
-					m_walls.emplace_back(worldX, worldY, CARTESIAN_TILE_SIZE, CARTESIAN_TILE_SIZE, 100);
+					sf::Vector2f world = sf::Vector2f(pos) * CARTESIAN_TILE_SIZE;
+					m_walls.emplace_back(world, sf::Vector2f{CARTESIAN_TILE_SIZE, CARTESIAN_TILE_SIZE}, 100);
 				}
 			}
 		}
