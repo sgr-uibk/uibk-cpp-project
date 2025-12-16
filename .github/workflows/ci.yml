@@ -6,6 +6,7 @@ on:
       - main
       - simon
       - simon-networking
+      - simon-feat
       - julian
       - max
   pull_request:
