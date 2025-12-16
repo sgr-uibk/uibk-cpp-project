@@ -47,7 +47,7 @@ enum class ReliablePktType : uint8_t
 	JOIN_REQ = 1,
 	JOIN_ACK,
 	LOBBY_READY,
-	LOBBY_UPDATE,       // srv -> clients: broadcast lobby state updates
+	LOBBY_UPDATE, // srv -> clients: broadcast lobby state updates
 	GAME_START,
 	GAME_END,
 	PLAYER_LEFT, // TODO

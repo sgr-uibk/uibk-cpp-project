@@ -29,30 +29,26 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 		return std::nullopt;
 	}
 
-	MapBlueprint bp;
+	auto const tileDim = sf::Vector2i{j.value("tilewidth", 0), j.value("tileheight", 0)};
 
-	bp.widthInTiles = j.value("width", 0);
-	bp.heightInTiles = j.value("height", 0);
-	bp.tileWidth = j.value("tilewidth", 0);
-	bp.tileHeight = j.value("tileheight", 0);
-
+	std::optional<RawTileset> tilesets = std::nullopt;
 	if(j.contains("tilesets") && !j["tilesets"].empty())
 	{
 		auto const &tsJson = j["tilesets"][0];
-		RawTileset ts;
-		ts.firstGid = tsJson.value("firstgid", 1);
-		ts.imagePath = tsJson.value("image", "");
-		ts.tileWidth = tsJson.value("tilewidth", 0);
-		ts.tileHeight = tsJson.value("tileheight", 0);
-		ts.columns = tsJson.value("columns", 0);
-		ts.spacing = tsJson.value("spacing", 0);
-		ts.margin = tsJson.value("margin", 0);
+		RawTileset ts{.imagePath = tsJson.value("image", ""),
+		              .tileDim = {tsJson.value("tilewidth", 0), tsJson.value("tileheight", 0)},
+		              .mapTileDim = tileDim,
+		              .columns = tsJson.value("columns", 0),
+		              .firstGid = tsJson.value("firstgid", 1),
+		              .spacing = tsJson.value("spacing", 0),
+		              .margin = tsJson.value("margin", 0)};
+
 		// Store map tile dimensions (from map root, not tileset)
-		ts.mapTileWidth = bp.tileWidth;
-		ts.mapTileHeight = bp.tileHeight;
-		bp.tileset = ts;
+		tilesets = ts;
 	}
 
+	std::vector<RawLayer> layers{};
+	std::vector<RawObject> objects{};
 	if(j.contains("layers"))
 	{
 		for(auto const &layerJson : j["layers"])
@@ -63,15 +59,14 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 			{
 				RawLayer layer;
 				layer.name = layerJson.value("name", "Unnamed");
-				layer.width = layerJson.value("width", 0);
-				layer.height = layerJson.value("height", 0);
+				layer.dim = {layerJson.value("width", 0), layerJson.value("height", 0)};
 				layer.visible = layerJson.value("visible", true);
 
 				if(layerJson.contains("data"))
 				{
 					layer.data = layerJson["data"].get<std::vector<int>>();
 				}
-				bp.layers.push_back(layer);
+				layers.push_back(layer);
 			}
 			else if(type == "objectgroup")
 			{
@@ -113,14 +108,18 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 								}
 							}
 						}
-						bp.objects.push_back(obj);
+						objects.push_back(obj);
 					}
 				}
 			}
 		}
 	}
 
-	return bp;
+	return MapBlueprint({.dimInTiles = {j.value("width", 0), j.value("height", 0)},
+	                     .tileDim = tileDim,
+	                     .tileset = tilesets,
+	                     .layers = layers,
+	                     .objects = objects});
 }
 
 std::vector<sf::Vector2f> MapParser::parseSpawnsOnly(std::string const &filePath)

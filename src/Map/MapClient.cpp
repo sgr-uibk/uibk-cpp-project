@@ -36,171 +36,42 @@ sf::Vector2i MapClient::isoToScreen(sf::Vector2i tilePos, sf::Vector2i tileDim)
 {
 	tilePos = {tilePos.x - tilePos.y, tilePos.x + tilePos.y};
 	tilePos = tilePos.componentWiseMul(tileDim / 2);
-	assert(tileDim.x > 2 && tileDim.y > 2); // if always the case, we can return Vector2i here.
+	assert(tileDim.x > 2 && tileDim.y > 2); // ensure we're not loosing precision here
 	return tilePos;
 }
 
 void MapClient::drawGroundTiles(sf::RenderWindow &window) const
 {
-	if(!m_tilesetTexture.has_value())
-		return;
-
-	auto const &groundLayer = m_state.getGroundLayer();
-	auto const &tileset = m_state.getTileset();
-	if(!groundLayer.has_value() || !tileset.has_value())
-		return;
-
-	int const mapWidth = groundLayer->width;
-	int const mapHeight = groundLayer->height;
-	int const tileSpriteW = tileset->tileWidth;
-	int const tileSpriteH = tileset->tileHeight;
-	int const mapTileW = tileset->mapTileWidth;
-	int const mapTileH = tileset->mapTileHeight;
-	int const columns = tileset->columns;
-	int const firstGid = tileset->firstGid;
-
-	for(int y = 0; y < mapHeight; ++y)
-	{
-		for(int x = 0; x < mapWidth; ++x)
-		{
-			int idx = y * mapWidth + x;
-			int tileId = groundLayer->data[idx];
-			if(tileId == 0)
-				continue;
-
-			int tileIndex = tileId - firstGid;
-			// Safety check for tile index
-			if(tileIndex < 0)
-				continue;
-
-			int srcX = (tileIndex % columns) * tileSpriteW;
-			int srcY = (tileIndex / columns) * tileSpriteH;
-
-			auto p = isoToScreen({x, y}, {mapTileW, mapTileH});
-
-			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f,
-			                       p.y - tileSpriteH + (mapTileH / 2.0f) // Adjust if your tiles have height depth
-			);
-
-			sf::Sprite tileSprite(*m_tilesetTexture);
-			tileSprite.setTextureRect(sf::IntRect({srcX, srcY}, {tileSpriteW, tileSpriteH}));
-			tileSprite.setPosition(spritePos);
-			window.draw(tileSprite);
-		}
-	}
+	forEachTileInLayer<false>(m_state.getGroundLayer(), [&](sf::Vector2i tileSprite, sf::Vector2i mapTileDim,
+	                                                        sf::Vector2i srcPixel, sf::Vector2i screenPos) {
+		sf::Vector2f const spritePos{screenPos.x - tileSprite.x / 2.f, screenPos.y - tileSprite.y + mapTileDim.y / 2.f};
+		sf::Sprite s(*m_tilesetTexture, {srcPixel, tileSprite});
+		s.setPosition(spritePos);
+		window.draw(s);
+	});
 }
 
 void MapClient::drawWallTiles(sf::RenderWindow &window) const
 {
-	if(!m_tilesetTexture.has_value())
-		return;
-
-	auto const &wallsLayer = m_state.getWallsLayer();
-	auto const &tileset = m_state.getTileset();
-
-	if(!wallsLayer.has_value() || !tileset.has_value())
-		return;
-
-	int const mapWidth = wallsLayer->width;
-	int const mapHeight = wallsLayer->height;
-	int const tileSpriteW = tileset->tileWidth;
-	int const tileSpriteH = tileset->tileHeight;
-	int const mapTileW = tileset->mapTileWidth;
-	int const mapTileH = tileset->mapTileHeight;
-	int const columns = tileset->columns;
-	int const firstGid = tileset->firstGid;
-
-	for(int y = 0; y < mapHeight; ++y)
-	{
-		for(int x = 0; x < mapWidth; ++x)
-		{
-			int idx = y * mapWidth + x;
-			int tileId = wallsLayer->data[idx];
-
-			// Skip empty tiles
-			if(tileId == 0)
-			{
-				continue;
-			}
-
-			WallState const *wall = m_state.getWallAtGridPos({x, y});
-			if(wall && wall->isDestroyed())
-			{
-				continue;
-			}
-
-			int tileIndex = tileId - firstGid;
-			if(tileIndex < 0)
-				continue;
-
-			int srcX = (tileIndex % columns) * tileSpriteW;
-			int srcY = (tileIndex / columns) * tileSpriteH;
-
-			auto p = isoToScreen({x, y}, {mapTileW, mapTileH});
-			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f, p.y - tileSpriteH + mapTileH);
-
-			sf::Sprite tileSprite(*m_tilesetTexture);
-			tileSprite.setTextureRect(sf::IntRect({srcX, srcY}, {tileSpriteW, tileSpriteH}));
-			tileSprite.setPosition(spritePos);
-			window.draw(tileSprite);
-		}
-	}
+	forEachTileInLayer<true>(m_state.getWallsLayer(), [&](sf::Vector2i tileSprite, sf::Vector2i mapTileDim,
+	                                                      sf::Vector2i srcPixel, sf::Vector2i screenPos) {
+		sf::Vector2f const spritePos{screenPos.x - tileSprite.x / 2.f,
+		                             float(screenPos.y) - tileSprite.y + mapTileDim.y};
+		sf::Sprite s(*m_tilesetTexture, {srcPixel, tileSprite});
+		s.setPosition(spritePos);
+		window.draw(s);
+	});
 }
 
 void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
 {
-	if(!m_tilesetTexture.has_value())
-		return;
-
-	auto const &wallsLayer = m_state.getWallsLayer();
-	auto const &tileset = m_state.getTileset();
-
-	if(!wallsLayer.has_value() || !tileset.has_value())
-		return;
-
-	int const mapWidth = wallsLayer->width;
-	int const mapHeight = wallsLayer->height;
-	int const tileSpriteW = tileset->tileWidth;
-	int const tileSpriteH = tileset->tileHeight;
-	int const mapTileW = tileset->mapTileWidth;
-	int const mapTileH = tileset->mapTileHeight;
-	int const columns = tileset->columns;
-	int const firstGid = tileset->firstGid;
-
-	for(int y = 0; y < mapHeight; ++y)
-	{
-		for(int x = 0; x < mapWidth; ++x)
-		{
-			int idx = y * mapWidth + x;
-			int tileId = wallsLayer->data[idx];
-
-			if(tileId == 0)
-				continue;
-
-			WallState const *wall = m_state.getWallAtGridPos({x, y});
-			if(wall && wall->isDestroyed())
-				continue;
-
-			int tileIndex = tileId - firstGid;
-			if(tileIndex < 0)
-				continue;
-
-			int srcX = (tileIndex % columns) * tileSpriteW;
-			int srcY = (tileIndex / columns) * tileSpriteH;
-
-			auto p = isoToScreen({x, y}, {mapTileW, mapTileH});
-			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f, p.y - tileSpriteH + mapTileH);
-
-			sf::Sprite tileSprite(*m_tilesetTexture);
-			tileSprite.setTextureRect(sf::IntRect({srcX, srcY}, {tileSpriteW, tileSpriteH}));
-			tileSprite.setPosition(spritePos);
-
-			float depthY = spritePos.y + tileSpriteH;
-
-			RenderObject obj;
-			obj.sortY = depthY;
-			obj.tempSprite = tileSprite;
-			queue.push_back(obj);
-		}
-	}
+	forEachTileInLayer<true>(m_state.getWallsLayer(), [&](sf::Vector2i tileSprite, sf::Vector2i mapTileDim,
+	                                                      sf::Vector2i srcPixel, sf::Vector2i screenPos) {
+		sf::Vector2f const spritePos{screenPos.x - tileSprite.x / 2.f,
+		                             float(screenPos.y) - tileSprite.y + mapTileDim.y};
+		sf::Sprite s(*m_tilesetTexture, {srcPixel, tileSprite});
+		s.setPosition(spritePos);
+		RenderObject const obj{.sortY = spritePos.y + tileSprite.y, .tempSprite = std::move(s)};
+		queue.push_back(obj);
+	});
 }

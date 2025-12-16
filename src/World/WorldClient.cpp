@@ -207,9 +207,9 @@ void WorldClient::applyNonInterpState(WorldState const &snapshot)
 	}
 
 	auto const &destroyedWalls = snapshot.getDestroyedWallDeltas();
-	for(auto const &grid : destroyedWalls)
+	for(auto const &gridPos : destroyedWalls)
 	{
-		m_state.getMap().destroyWallAtGridPos(grid);
+		m_state.getMap().destroyWallAtGridPos(gridPos);
 	}
 }
 

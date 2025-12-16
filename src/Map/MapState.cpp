@@ -75,11 +75,11 @@ void MapState::loadFromBlueprint(MapBlueprint const &bp)
 			continue;
 
 		sf::Vector2i pos = {0, 0};
-		for(; pos.y < layer.height; ++pos.y)
+		for(; pos.y < layer.dim.y; ++pos.y)
 		{
-			for(pos.x = 0; pos.x < layer.width; ++pos.x)
+			for(pos.x = 0; pos.x < layer.dim.x; ++pos.x)
 			{
-				int idx = pos.y * layer.width + pos.x;
+				int idx = pos.y * layer.dim.x + pos.x;
 				int tileId = layer.data[idx];
 
 				if(tileId != 0)
@@ -231,7 +231,7 @@ void MapState::destroyWallAtGridPos(sf::Vector2i pos)
 	{
 		if(layer.name == "Walls")
 		{
-			size_t const idx = pos.y * layer.width + pos.x;
+			size_t const idx = pos.y * layer.dim.x + pos.x;
 			if(idx < layer.data.size())
 			{
 				layer.data[idx] = 0; // Set to empty tile
