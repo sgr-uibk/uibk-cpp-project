@@ -17,6 +17,7 @@ include(FetchContent)
 if(NOT WIN32)
     set(FETCHCONTENT_TRY_FIND_PACKAGE_MODE ALWAYS)
 endif()
+set(FETCHCONTENT_QUIET FALSE)
 FetchContent_Declare(
     SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
@@ -40,6 +41,7 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     GIT_TAG        v3.11.3
     GIT_SHALLOW    ON
+        GIT_PROGRESS TRUE
     FIND_PACKAGE_ARGS NAMES nlohmann_json
 )
 FetchContent_MakeAvailable(json)
