@@ -21,12 +21,8 @@ void WallState::takeDamage(int amount)
 	if(m_isDestroyed)
 		return;
 
-	m_health -= amount;
-	if(m_health <= 0)
-	{
-		m_health = 0;
-		m_isDestroyed = true;
-	}
+	m_health = std::max(0, m_health - amount);
+	m_isDestroyed = m_health == 0;
 	updateVisuals();
 }
 
@@ -52,11 +48,7 @@ void WallState::setHealth(int health)
 		return;
 
 	m_health = std::clamp(health, 0, m_maxHealth);
-	if(m_health <= 0)
-	{
-		m_health = 0;
-		m_isDestroyed = true;
-	}
+	m_isDestroyed = m_health == 0;
 	updateVisuals();
 }
 

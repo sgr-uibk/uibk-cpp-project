@@ -5,12 +5,10 @@
 
 static int angleToDirection(float degrees)
 {
-	while(degrees < 0)
-		degrees += 360.f;
-	while(degrees >= 360.f)
-		degrees -= 360.f;
+	sf::Angle angle = sf::degrees(degrees).wrapUnsigned();
+	float normalized = angle.asDegrees();
 
-	float adjusted = degrees + 22.5f;
+	float adjusted = normalized + 22.5f;
 	if(adjusted >= 360.f)
 		adjusted -= 360.f;
 
@@ -60,9 +58,7 @@ void PlayerClient::update([[maybe_unused]] float dt)
 
 	if(m_shootAnimTimer > 0.f)
 	{
-		m_shootAnimTimer -= dt;
-		if(m_shootAnimTimer < 0.f)
-			m_shootAnimTimer = 0.f;
+		m_shootAnimTimer = std::clamp(m_shootAnimTimer - dt, 0.f, SHOOT_ANIM_DURATION);
 	}
 
 	// smoothing / interpolation can be inserted here

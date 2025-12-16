@@ -68,16 +68,8 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 
 		sf::Vector2f dir = mouseCartPos - playerCartCenter;
 		float angleRad = std::atan2(dir.y, dir.x);
-		float angleDeg = angleRad * 180.0f / 3.14159265f;
 
-		while(angleDeg < 0.0f)
-			angleDeg += 360.0f;
-		while(angleDeg >= 360.0f)
-			angleDeg -= 360.0f;
-
-		angleDeg += 90.0f;
-
-		aimAngle = sf::degrees(angleDeg);
+		aimAngle = (sf::radians(angleRad) + sf::degrees(90.0f)).wrapUnsigned();
 	}
 
 	if(m_ownPlayerId > 0 && m_ownPlayerId <= MAX_PLAYERS)

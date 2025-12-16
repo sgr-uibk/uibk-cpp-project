@@ -73,11 +73,10 @@ void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 	else
 	{ // no collision, let them move there
 		m_iState.m_pos += posDelta;
-		float length = std::sqrt(posDelta.x * posDelta.x + posDelta.y * posDelta.y);
-		if(length > 0.01f)
+		float lengthSq = posDelta.lengthSquared();
+		if(lengthSq > 0.0001f)
 		{
-			float const angRad = std::atan2(posDelta.y, posDelta.x);
-			m_iState.m_rot = sf::radians(angRad) + sf::degrees(45);
+			m_iState.m_rot = sf::Vector2f(1.f, 1.f).angleTo(posDelta);
 		}
 	}
 }

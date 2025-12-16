@@ -127,13 +127,11 @@ void GameServer::processPackets()
 
 					// spawn projectile at cannon tip
 					sf::Vector2f tankCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
-					sf::Vector2f cannonOffset(std::sin(cannonAngle.asRadians()) * GameConfig::Player::CANNON_LENGTH,
-					                          -std::cos(cannonAngle.asRadians()) * GameConfig::Player::CANNON_LENGTH);
+					sf::Vector2f cannonOffset = sf::Vector2f(0.f, -GameConfig::Player::CANNON_LENGTH).rotatedBy(cannonAngle);
 					sf::Vector2f position = tankCenter + cannonOffset;
 
 					// calculate velocity from cannon angle
-					sf::Vector2f velocity(std::sin(cannonAngle.asRadians()) * GameConfig::Projectile::SPEED,
-					                      -std::cos(cannonAngle.asRadians()) * GameConfig::Projectile::SPEED);
+					sf::Vector2f velocity = sf::Vector2f(0.f, -GameConfig::Projectile::SPEED).rotatedBy(cannonAngle);
 
 					// Apply damage multiplier from powerups
 					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();

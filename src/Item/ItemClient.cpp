@@ -1,6 +1,7 @@
 #include "ItemClient.h"
 #include "Utilities.h"
 #include <cmath>
+#include <numbers>
 
 ItemClient::ItemClient(const ItemState &state)
 	: m_state(state), m_shape(sf::Vector2f(20.f, 20.f)), m_bobPhase(0.f), m_bobSpeed(2.f), m_bobHeight(5.f)
@@ -23,11 +24,8 @@ void ItemClient::syncSpriteToState(const ItemState &state)
 void ItemClient::update(float dt)
 {
 	// bobbing animation
-	m_bobPhase += dt * m_bobSpeed * 2.f * 3.14159f;
-	if(m_bobPhase > 2.f * 3.14159f)
-	{
-		m_bobPhase -= 2.f * 3.14159f;
-	}
+	m_bobPhase += dt * m_bobSpeed * 2.f * std::numbers::pi_v<float>;
+	m_bobPhase = sf::radians(m_bobPhase).wrapUnsigned().asRadians();
 
 	float bobOffset = std::sin(m_bobPhase) * m_bobHeight;
 	sf::Vector2f basePos = m_state.getPosition();

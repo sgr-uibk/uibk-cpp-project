@@ -157,12 +157,11 @@ void WorldState::checkProjectileWallCollisions()
 
 				if(wall.isDestroyed())
 				{
-					auto pos = wall.getShape().getPosition();
-					int gridX = static_cast<int>(pos.x / CARTESIAN_TILE_SIZE);
-					int gridY = static_cast<int>(pos.y / CARTESIAN_TILE_SIZE);
-					m_map.destroyWallAtGridPos(gridX, gridY);
+					sf::Vector2f pos = wall.getShape().getPosition();
+					sf::Vector2i gridPos = sf::Vector2i(pos / CARTESIAN_TILE_SIZE);
+					m_map.destroyWallAtGridPos(gridPos.x, gridPos.y);
 
-					markWallDestroyed(gridX, gridY);
+					markWallDestroyed(gridPos.x, gridPos.y);
 				}
 
 				proj.deactivate();
