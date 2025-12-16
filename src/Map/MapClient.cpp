@@ -32,11 +32,12 @@ MapClient::MapClient(MapState &state) : m_state(state)
 	}
 }
 
-sf::Vector2f MapClient::isoToScreen(int tileX, int tileY, int tileWidth, int tileHeight) const
+sf::Vector2i MapClient::isoToScreen(sf::Vector2i tilePos, sf::Vector2i tileDim)
 {
-	float screenX = (tileX - tileY) * (tileWidth / 2.0f);
-	float screenY = (tileX + tileY) * (tileHeight / 2.0f);
-	return {screenX, screenY};
+	tilePos = {tilePos.x - tilePos.y, tilePos.x + tilePos.y};
+	tilePos = tilePos.componentWiseMul(tileDim / 2);
+	assert(tileDim.x > 2 && tileDim.y > 2); // if always the case, we can return Vector2i here.
+	return tilePos;
 }
 
 void MapClient::drawGroundTiles(sf::RenderWindow &window) const
@@ -75,7 +76,7 @@ void MapClient::drawGroundTiles(sf::RenderWindow &window) const
 			int srcX = (tileIndex % columns) * tileSpriteW;
 			int srcY = (tileIndex / columns) * tileSpriteH;
 
-			sf::Vector2f p = isoToScreen(x, y, mapTileW, mapTileH);
+			auto p = isoToScreen({x, y}, {mapTileW, mapTileH});
 
 			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f,
 			                       p.y - tileSpriteH + (mapTileH / 2.0f) // Adjust if your tiles have height depth
@@ -135,7 +136,7 @@ void MapClient::drawWallTiles(sf::RenderWindow &window) const
 			int srcX = (tileIndex % columns) * tileSpriteW;
 			int srcY = (tileIndex / columns) * tileSpriteH;
 
-			sf::Vector2f p = isoToScreen(x, y, mapTileW, mapTileH);
+			auto p = isoToScreen({x, y}, {mapTileW, mapTileH});
 			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f, p.y - tileSpriteH + mapTileH);
 
 			sf::Sprite tileSprite(*m_tilesetTexture);
@@ -187,7 +188,7 @@ void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
 			int srcX = (tileIndex % columns) * tileSpriteW;
 			int srcY = (tileIndex / columns) * tileSpriteH;
 
-			sf::Vector2f p = isoToScreen(x, y, mapTileW, mapTileH);
+			auto p = isoToScreen({x, y}, {mapTileW, mapTileH});
 			sf::Vector2f spritePos(p.x - tileSpriteW / 2.0f, p.y - tileSpriteH + mapTileH);
 
 			sf::Sprite tileSprite(*m_tilesetTexture);

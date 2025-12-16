@@ -15,7 +15,7 @@ class MapClient
 
   private:
 	void drawWallTiles(sf::RenderWindow &window) const;
-	sf::Vector2f isoToScreen(int tileX, int tileY, int tileWidth, int tileHeight) const;
+	static sf::Vector2i isoToScreen(sf::Vector2i tilePos, sf::Vector2i tileDim);
 
 	MapState &m_state;
 	std::optional<sf::Texture> m_tilesetTexture;
