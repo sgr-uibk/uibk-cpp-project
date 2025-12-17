@@ -20,10 +20,10 @@ class MapState
 
 	void loadFromBlueprint(MapBlueprint const &bp);
 
-	void addWall(float x, float y, float w, float h, int health = 100);
+	void addWall(sf::Vector2f pos, sf::Vector2f dim, int health = 100);
 	void addSpawnPoint(sf::Vector2f spawn);
 	void addItemSpawnZone(sf::Vector2f position, PowerupType itemType);
-	void destroyWallAtGridPos(int x, int y); // Tile Swap: Clear wall tile when destroyed
+	void destroyWallAtGridPos(sf::Vector2i pos); // Tile Swap: Clear wall tile when destroyed
 	[[nodiscard]] bool isColliding(sf::RectangleShape const &r) const;
 	[[nodiscard]] std::vector<WallState> const &getWalls() const;
 	[[nodiscard]] std::vector<WallState> &getWalls();
@@ -37,7 +37,7 @@ class MapState
 	[[nodiscard]] std::optional<RawLayer> getGroundLayer() const;
 	[[nodiscard]] std::optional<RawLayer> getWallsLayer() const;
 	[[nodiscard]] std::vector<WallState> const &getWallStates() const;
-	[[nodiscard]] WallState const *getWallAtGridPos(int x, int y) const;
+	[[nodiscard]] WallState const *getWallAtGridPos(sf::Vector2i pos) const;
 
 	// Setters for preserving rendering data on client (when applying server snapshots)
 	void setTileset(std::optional<RawTileset> const &tileset);

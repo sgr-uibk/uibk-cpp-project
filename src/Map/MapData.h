@@ -13,21 +13,18 @@
 struct RawTileset
 {
 	std::string imagePath;
-	int tileWidth;
-	int tileHeight;
+	sf::Vector2i tileDim;
+	sf::Vector2i mapTileDim;
 	int columns;
 	int firstGid;
 	int spacing = 0;
 	int margin = 0;
-	int mapTileWidth;
-	int mapTileHeight;
 };
 
 struct RawLayer
 {
 	std::string name;
-	int width;
-	int height;
+	sf::Vector2i dim;
 	std::vector<int> data;
 	bool visible = true;
 };
@@ -53,19 +50,14 @@ struct RawObject
 
 struct MapBlueprint
 {
-	int widthInTiles;
-	int heightInTiles;
-	int tileWidth;
-	int tileHeight;
-
+	sf::Vector2i dimInTiles;
+	sf::Vector2i tileDim;
 	std::optional<RawTileset> tileset;
-
 	std::vector<RawLayer> layers;
 	std::vector<RawObject> objects;
 
-	sf::Vector2f getTotalSize() const
+	[[nodiscard]] sf::Vector2f getTotalSize() const
 	{
-		return {static_cast<float>(widthInTiles) * CARTESIAN_TILE_SIZE,
-		        static_cast<float>(heightInTiles) * CARTESIAN_TILE_SIZE};
+		return sf::Vector2f(dimInTiles) * CARTESIAN_TILE_SIZE;
 	}
 };

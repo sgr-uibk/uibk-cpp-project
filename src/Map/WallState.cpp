@@ -3,16 +3,15 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
-WallState::WallState()
-	: m_shape(), m_health(DEFAULT_WALL_HEALTH), m_maxHealth(DEFAULT_WALL_HEALTH), m_isDestroyed(false)
+WallState::WallState() : m_health(DEFAULT_WALL_HEALTH), m_maxHealth(DEFAULT_WALL_HEALTH), m_isDestroyed(false)
 {
 	m_shape.setFillColor(sf::Color::Black);
 }
 
-WallState::WallState(float x, float y, float w, float h, int maxHealth)
-	: m_shape({w, h}), m_health(maxHealth), m_maxHealth(maxHealth), m_isDestroyed(false)
+WallState::WallState(sf::Vector2f pos, sf::Vector2f dim, int maxHealth)
+	: m_shape(dim), m_health(maxHealth), m_maxHealth(maxHealth), m_isDestroyed(false)
 {
-	m_shape.setPosition({x, y});
+	m_shape.setPosition(pos);
 	m_shape.setFillColor(sf::Color::Black);
 }
 

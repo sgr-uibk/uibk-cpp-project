@@ -6,7 +6,7 @@ class WallState
 {
   public:
 	WallState();
-	WallState(float x, float y, float w, float h, int maxHealth = 100);
+	WallState(sf::Vector2f pos, sf::Vector2f dim, int maxHealth = 100);
 
 	void takeDamage(int amount);
 	void repair(int amount);

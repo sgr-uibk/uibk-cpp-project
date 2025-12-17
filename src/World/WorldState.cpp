@@ -157,11 +157,10 @@ void WorldState::checkProjectileWallCollisions()
 
 				if(wall.isDestroyed())
 				{
-					sf::Vector2f pos = wall.getShape().getPosition();
-					sf::Vector2i gridPos = sf::Vector2i(pos / CARTESIAN_TILE_SIZE);
-					m_map.destroyWallAtGridPos(gridPos.x, gridPos.y);
-
-					markWallDestroyed(gridPos.x, gridPos.y);
+					auto pos = wall.getShape().getPosition();
+					sf::Vector2i grid = sf::Vector2i{pos / CARTESIAN_TILE_SIZE};
+					m_map.destroyWallAtGridPos(grid);
+					markWallDestroyed(grid);
 				}
 
 				proj.deactivate();
@@ -300,11 +299,8 @@ void WorldState::serialize(sf::Packet &pkt) const
 	// delta only
 	uint32_t numDestroyedWalls = static_cast<uint32_t>(m_destroyedWallsThisTick.size());
 	pkt << numDestroyedWalls;
-	for(auto const &[gridX, gridY] : m_destroyedWallsThisTick)
-	{
-		pkt << gridX;
-		pkt << gridY;
-	}
+	for(auto const &grid : m_destroyedWallsThisTick)
+		pkt << grid;
 }
 void WorldState::assignExcludingInterp(WorldState const &other)
 {
@@ -351,10 +347,10 @@ void WorldState::deserialize(sf::Packet &pkt)
 
 	for(uint32_t i = 0; i < numDestroyedWalls; ++i)
 	{
-		int32_t gridX, gridY;
-		pkt >> gridX >> gridY;
+		sf::Vector2i gridPos;
+		pkt >> gridPos;
 
-		m_destroyedWallsThisTick.push_back({gridX, gridY});
+		m_destroyedWallsThisTick.push_back(gridPos);
 	}
 }
 
@@ -363,13 +359,13 @@ void WorldState::clearWallDeltas()
 	m_destroyedWallsThisTick.clear();
 }
 
-void WorldState::markWallDestroyed(int gridX, int gridY)
+void WorldState::markWallDestroyed(sf::Vector2i gridPos)
 {
-	m_destroyedWallsThisTick.push_back({gridX, gridY});
-	spdlog::debug("Marked wall at grid ({}, {}) for delta update", gridX, gridY);
+	m_destroyedWallsThisTick.push_back(gridPos);
+	spdlog::debug("Marked wall at grid ({}, {}) for delta update", gridPos.x, gridPos.y);
 }
 
-std::vector<std::pair<int, int>> const &WorldState::getDestroyedWallDeltas() const
+std::vector<sf::Vector2i> const &WorldState::getDestroyedWallDeltas() const
 {
 	return m_destroyedWallsThisTick;
 }

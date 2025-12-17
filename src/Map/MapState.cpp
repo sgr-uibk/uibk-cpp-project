@@ -1,15 +1,14 @@
 #include "MapState.h"
 #include "Utilities.h"
 #include <spdlog/spdlog.h>
-#include <cmath>
 
 MapState::MapState(sf::Vector2f size) : m_size(size)
 {
 }
 
-void MapState::addWall(float x, float y, float w, float h, int health)
+void MapState::addWall(sf::Vector2f pos, sf::Vector2f dim, int health)
 {
-	m_walls.emplace_back(x, y, w, h, health);
+	m_walls.emplace_back(pos, dim, health);
 }
 
 void MapState::addSpawnPoint(sf::Vector2f spawn)
@@ -75,19 +74,18 @@ void MapState::loadFromBlueprint(MapBlueprint const &bp)
 		if(layer.name != "Walls")
 			continue;
 
-		for(int y = 0; y < layer.height; ++y)
+		sf::Vector2i pos = {0, 0};
+		for(; pos.y < layer.dim.y; ++pos.y)
 		{
-			for(int x = 0; x < layer.width; ++x)
+			for(pos.x = 0; pos.x < layer.dim.x; ++pos.x)
 			{
-				int idx = y * layer.width + x;
+				int idx = pos.y * layer.dim.x + pos.x;
 				int tileId = layer.data[idx];
 
 				if(tileId != 0)
 				{
-					float worldX = static_cast<float>(x) * CARTESIAN_TILE_SIZE;
-					float worldY = static_cast<float>(y) * CARTESIAN_TILE_SIZE;
-
-					m_walls.emplace_back(worldX, worldY, CARTESIAN_TILE_SIZE, CARTESIAN_TILE_SIZE, 100);
+					sf::Vector2f world = sf::Vector2f(pos) * CARTESIAN_TILE_SIZE;
+					m_walls.emplace_back(world, sf::Vector2f{CARTESIAN_TILE_SIZE, CARTESIAN_TILE_SIZE}, 100);
 				}
 			}
 		}
@@ -206,37 +204,38 @@ void MapState::setWallsLayer(std::optional<RawLayer> const &layer)
 	m_layers.push_back(*layer);
 }
 
-WallState const *MapState::getWallAtGridPos(int x, int y) const
+template <typename T> sf::Vector2<T> abs(sf::Vector2<T> vec)
 {
-	sf::Vector2f cellCenter = (sf::Vector2f(x, y) * CARTESIAN_TILE_SIZE) + sf::Vector2f(CARTESIAN_TILE_SIZE / 2.0f, CARTESIAN_TILE_SIZE / 2.0f);
+	return {std::abs(vec.x), std::abs(vec.y)};
+}
+
+WallState const *MapState::getWallAtGridPos(sf::Vector2i const pos) const
+{
+	auto const cellCenter = sf::Vector2f(pos) * CARTESIAN_TILE_SIZE + sf::Vector2f{1, 1} * (CARTESIAN_TILE_SIZE / 2.0f);
 
 	for(auto const &wall : m_walls)
 	{
-		sf::FloatRect bounds = wall.getGlobalBounds();
-		sf::Vector2f wallCenter = bounds.getCenter();
-
-		sf::Vector2f diff = sf::Vector2f(std::abs(cellCenter.x - wallCenter.x), std::abs(cellCenter.y - wallCenter.y));
-
-		if(diff.x < 1.0f && diff.y < 1.0f)
-		{
+		sf::FloatRect const bounds = wall.getGlobalBounds();
+		sf::Vector2f const wallCenter = bounds.position + bounds.size / 2.f;
+		sf::Vector2f const diff = abs(cellCenter - wallCenter);
+		if(diff.x < 1.f && diff.y < 1.f)
 			return &wall;
-		}
 	}
 
 	return nullptr;
 }
 
-void MapState::destroyWallAtGridPos(int x, int y)
+void MapState::destroyWallAtGridPos(sf::Vector2i pos)
 {
 	for(auto &layer : m_layers)
 	{
 		if(layer.name == "Walls")
 		{
-			int idx = y * layer.width + x;
-			if(idx >= 0 && idx < static_cast<int>(layer.data.size()))
+			size_t const idx = pos.y * layer.dim.x + pos.x;
+			if(idx < layer.data.size())
 			{
 				layer.data[idx] = 0; // Set to empty tile
-				spdlog::debug("Tile swap: Cleared wall tile at grid ({}, {})", x, y);
+				spdlog::debug("Tile swap: Cleared wall tile at grid ({}, {})", pos.x, pos.y);
 			}
 			break;
 		}

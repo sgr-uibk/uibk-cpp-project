@@ -8,10 +8,7 @@ static int angleToDirection(float degrees)
 	sf::Angle angle = sf::degrees(degrees).wrapUnsigned();
 	float normalized = angle.asDegrees();
 
-	float adjusted = normalized + 22.5f;
-	if(adjusted >= 360.f)
-		adjusted -= 360.f;
-
+	float adjusted = std::min(normalized + 22.5f, 360.f);
 	int section = static_cast<int>(adjusted / 45.f);
 
 	// Hardcoded sprite mapping for now
@@ -124,7 +121,7 @@ void PlayerClient::updateSprite()
 
 void PlayerClient::syncSpriteToState()
 {
-	int hullDir = angleToDirection(m_state.getRotation().asDegrees()) - 1;                // Convert to 0-7 index
+	int hullDir = angleToDirection(m_state.getRotation().asDegrees()) - 1;                 // Convert to 0-7 index
 	int turretDir = angleToDirection(m_state.getCannonRotation().asDegrees() - 135.f) - 1; // Convert to 0-7 index
 
 	hullDir = std::clamp(hullDir, 0, 7);
