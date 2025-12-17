@@ -61,7 +61,7 @@ void Menu::reset()
 	setupMainMenu();
 }
 
-void Menu::setTitle(const std::string &title)
+void Menu::setTitle(std::string const &title)
 {
 	m_title.setString(title);
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
@@ -75,10 +75,10 @@ void Menu::setupMainMenu()
 	m_buttonEnabled.clear();
 	m_lobbyTexts.clear();
 
-	const float buttonWidth = 280.f;
-	const float buttonHeight = 45.f;
-	const float spacing = 15.f;
-	const float startY = 200.f;
+	float const buttonWidth = 280.f;
+	float const buttonHeight = 45.f;
+	float const spacing = 15.f;
+	float const startY = 200.f;
 
 	std::vector<std::string> labels = {"Host Lobby", "Join Lobby", "Settings", "Exit"};
 
@@ -110,8 +110,8 @@ void Menu::setupLobbyHost()
 	m_buttonEnabled.clear();
 	m_lobbyTexts.clear();
 
-	const float buttonWidth = 200.f;
-	const float buttonHeight = 50.f;
+	float const buttonWidth = 200.f;
+	float const buttonHeight = 50.f;
 
 	sf::Text lobbyInfo(m_font);
 	lobbyInfo.setString("Server running on port " + std::to_string(PORT_TCP));
@@ -146,8 +146,8 @@ void Menu::setupLobbyHost()
 	}
 
 	// map selection
-	const float smallButtonWidth = 180.f;
-	const float smallButtonHeight = 35.f;
+	float const smallButtonWidth = 180.f;
+	float const smallButtonHeight = 35.f;
 
 	sf::Text mapLabel(m_font);
 	mapLabel.setString("Map:");
@@ -241,8 +241,8 @@ void Menu::setupLobbyClient()
 	m_buttonEnabled.clear();
 	m_lobbyTexts.clear();
 
-	const float buttonWidth = 200.f;
-	const float buttonHeight = 50.f;
+	float const buttonWidth = 200.f;
+	float const buttonHeight = 50.f;
 
 	sf::Text lobbyInfo(m_font);
 	lobbyInfo.setString("Waiting in lobby...");
@@ -318,8 +318,8 @@ void Menu::setupJoinLobby()
 	m_buttonEnabled.clear();
 	m_lobbyTexts.clear();
 
-	const float buttonWidth = 200.f;
-	const float buttonHeight = 50.f;
+	float const buttonWidth = 200.f;
+	float const buttonHeight = 50.f;
 
 	sf::Text ipLabel(m_font);
 	ipLabel.setString("Server IP:");
@@ -399,9 +399,9 @@ void Menu::setupSettings()
 	m_buttonEnabled.clear();
 	m_lobbyTexts.clear();
 
-	const float buttonWidth = 280.f;
-	const float buttonHeight = 42.f;
-	const float startY = 180.f;
+	float const buttonWidth = 280.f;
+	float const buttonHeight = 42.f;
+	float const startY = 180.f;
 
 	sf::Text audioHeader(m_font);
 	audioHeader.setString("AUDIO SETTINGS");
@@ -456,10 +456,10 @@ void Menu::setupSettings()
 	std::vector<std::string> keybindLabels = {"Move: W A S D", "Shoot: Space / Click", "Use Item: Q",
 	                                          "Hotbar: 1-9 / Wheel", "Pause: Escape"};
 
-	const float leftColX = 150.f;
-	const float rightColX = 450.f;
-	const float keybindStartY = startY + 175.f;
-	const float keybindSpacing = 24.f;
+	float const leftColX = 150.f;
+	float const rightColX = 450.f;
+	float const keybindStartY = startY + 175.f;
+	float const keybindSpacing = 24.f;
 
 	for(size_t i = 0; i < keybindLabels.size(); ++i)
 	{
@@ -504,11 +504,11 @@ void Menu::setupMapSelection()
 	m_buttonEnabled.clear();
 	m_lobbyTexts.clear();
 
-	const float buttonWidth = 250.f;
-	const float buttonHeight = 50.f;
-	const float startY = 180.f;
+	float const buttonWidth = 250.f;
+	float const buttonHeight = 50.f;
+	float const startY = 180.f;
 
-	const std::vector<std::string> maps = {"Test1", "Test2", "Test3", "Test4"};
+	std::vector<std::string> const maps = {"Test1", "Test2", "Test3", "Test4"};
 
 	for(size_t i = 0; i < maps.size(); ++i)
 	{
@@ -561,11 +561,11 @@ void Menu::setupModeSelection()
 	m_buttonEnabled.clear();
 	m_lobbyTexts.clear();
 
-	const float buttonWidth = 250.f;
-	const float buttonHeight = 50.f;
-	const float startY = 180.f;
+	float const buttonWidth = 250.f;
+	float const buttonHeight = 50.f;
+	float const startY = 180.f;
 
-	const std::vector<std::string> modes = {"Deathmatch", "TestMode2", "TestMode3", "TestMode4"};
+	std::vector<std::string> const modes = {"Deathmatch", "TestMode2", "TestMode3", "TestMode4"};
 
 	for(size_t i = 0; i < modes.size(); ++i)
 	{
@@ -611,7 +611,7 @@ void Menu::setupModeSelection()
 	m_buttonEnabled.push_back(true);
 }
 
-bool Menu::isMouseOver(const sf::RectangleShape &shape, sf::Vector2f mousePos) const
+bool Menu::isMouseOver(sf::RectangleShape const &shape, sf::Vector2f mousePos) const
 {
 	sf::FloatRect bounds = shape.getGlobalBounds();
 	return bounds.contains(mousePos);
@@ -841,7 +841,7 @@ void Menu::handleClick(sf::Vector2f mousePos)
 			}
 			else if(m_state == State::MAP_SELECT)
 			{
-				const std::vector<std::string> maps = {"Test1", "Test2", "Test3", "Test4"};
+				std::vector<std::string> const maps = {"Test1", "Test2", "Test3", "Test4"};
 				if(i < maps.size())
 				{
 					m_selectedMap = maps[i];
@@ -859,7 +859,7 @@ void Menu::handleClick(sf::Vector2f mousePos)
 			}
 			else if(m_state == State::MODE_SELECT)
 			{
-				const std::vector<std::string> modes = {"Deathmatch", "TestMode2", "TestMode3", "TestMode4"};
+				std::vector<std::string> const modes = {"Deathmatch", "TestMode2", "TestMode3", "TestMode4"};
 				if(i < modes.size())
 				{
 					m_selectedMode = modes[i];
@@ -900,7 +900,7 @@ void Menu::draw(sf::RenderWindow &window) const
 		window.draw(m_serverPortText);
 	}
 
-	for(const auto &text : m_lobbyTexts)
+	for(auto const &text : m_lobbyTexts)
 	{
 		window.draw(text);
 	}
@@ -912,7 +912,7 @@ void Menu::draw(sf::RenderWindow &window) const
 	}
 }
 
-void Menu::updateLobbyDisplay(const std::vector<LobbyPlayerInfo> &players)
+void Menu::updateLobbyDisplay(std::vector<LobbyPlayerInfo> const &players)
 {
 	if(m_state != State::LOBBY_CLIENT)
 		return;
@@ -956,12 +956,13 @@ void Menu::updateLobbyDisplay(const std::vector<LobbyPlayerInfo> &players)
 
 void Menu::updateHostButton(bool canStartGame, bool hasEnoughPlayers, bool hostReady)
 {
+	(void)hasEnoughPlayers; // Unused parameter
 	if(m_buttonTexts.size() < 3)
 		return;
 
-	const int buttonIdx = 2;
-	const float buttonWidth = 200.f;
-	const float buttonHeight = 50.f;
+	int const buttonIdx = 2;
+	float const buttonWidth = 200.f;
+	float const buttonHeight = 50.f;
 
 	if(!hostReady)
 	{
@@ -994,9 +995,9 @@ void Menu::updateClientButton(bool clientReady)
 		return;
 
 	// ready button
-	const int buttonIdx = 0;
-	const float buttonWidth = 200.f;
-	const float buttonHeight = 50.f;
+	int const buttonIdx = 0;
+	float const buttonWidth = 200.f;
+	float const buttonHeight = 50.f;
 
 	if(!clientReady)
 	{

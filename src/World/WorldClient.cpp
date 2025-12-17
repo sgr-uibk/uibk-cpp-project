@@ -15,11 +15,11 @@ std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states, std
 	}(std::make_index_sequence<N>{});
 }
 
-WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId,
-                         std::array<PlayerState, MAX_PLAYERS> &players)
-	: m_bAcceptInput(true), m_pauseMenu(window), m_state(sf::Vector2f(window.getSize()), players),
+WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, int mapIndex,
+                         std::array<PlayerState, MAX_PLAYERS> players)
+	: m_bAcceptInput(true), m_pauseMenu(window), m_state(mapIndex, std::move(players)),
 	  m_itemBar(m_state.getPlayerById(ownPlayerId), window), m_window(window), m_mapClient(m_state.getMap()),
-	  m_players(make_players<MAX_PLAYERS>(players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
+	  m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
 	  m_interp(m_state.getMap(), ownPlayerId, m_players)
 {
 	m_worldView = sf::View(sf::FloatRect({0, 0}, sf::Vector2f(window.getSize())));
@@ -46,15 +46,36 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 	if(bServerTickExpired)
 		m_tickClock.restart();
 	propagateUpdate(frameDelta);
-	if(m_pauseMenu.isPaused() || !m_bAcceptInput)
+	if(m_pauseMenu.isPaused() || !m_bAcceptInput || !m_window.hasFocus())
 	{ // skip game logic
 		return std::nullopt;
 	}
 
-	sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
-	sf::Vector2f mouseWorldPos = m_window.mapPixelToCoords(mousePixelPos, m_worldView);
-	sf::Vector2f playerPos = m_state.getPlayerById(m_ownPlayerId).getPosition();
-	sf::Angle aimAngle = playerPos.angleTo(mouseWorldPos);
+	sf::Angle aimAngle;
+	{
+		PlayerState const &ps = m_state.getPlayerById(m_ownPlayerId);
+		sf::Vector2f playerCartCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+
+		sf::View cameraView = m_worldView;
+		sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
+		cameraView.setCenter(isoPlayerPos);
+		cameraView.zoom(m_zoomLevel);
+
+		sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
+		sf::Vector2f mouseIsoPos = m_window.mapPixelToCoords(mousePixelPos, cameraView);
+
+		sf::Vector2f mouseCartPos = isoToCartesian(mouseIsoPos);
+
+		sf::Vector2f dir = mouseCartPos - playerCartCenter;
+		float angleRad = std::atan2(dir.y, dir.x);
+
+		aimAngle = (sf::radians(angleRad) + sf::degrees(90.0f)).wrapUnsigned();
+	}
+
+	if(m_ownPlayerId > 0 && m_ownPlayerId <= MAX_PLAYERS)
+	{
+		m_players[m_ownPlayerId - 1].setTurretRotation(aimAngle);
+	}
 
 	if(m_itemBar.handleItemUse())
 	{
@@ -93,23 +114,62 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 
 void WorldClient::draw(sf::RenderWindow &window) const
 {
-	window.setView(m_worldView);
+	PlayerState const &ownPlayer = m_players[m_ownPlayerId - 1].getState();
+	sf::Vector2f playerCartCenter = ownPlayer.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+	sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
+
+	sf::View cameraView = m_worldView;
+	cameraView.setCenter(isoPlayerPos);
+	cameraView.zoom(m_zoomLevel);
+	window.setView(cameraView);
+
 	window.clear(sf::Color::White);
-	m_mapClient.draw(window);
+
+	m_mapClient.drawGroundTiles(window);
+
+	// y-sorting
+	std::vector<RenderObject> renderQueue;
+	renderQueue.reserve(2000);
+
+	m_mapClient.collectWallSprites(renderQueue);
 
 	for(auto const &item : m_items)
-		item.draw(window);
+	{
+		if(item.getState().isActive())
+		{
+			sf::Vector2f itemPos = item.getShape().getPosition();
+			RenderObject obj;
+			obj.sortY = itemPos.y;
+			obj.drawable = &item.getShape();
+			renderQueue.push_back(obj);
+		}
+	}
 
 	for(auto const &proj : m_projectiles)
-		proj.draw(window);
+	{
+		if(proj.getState().isActive())
+		{
+			sf::Vector2f projPos = proj.getShape().getPosition();
+			RenderObject obj;
+			obj.sortY = projPos.y;
+			obj.drawable = &proj.getShape();
+			renderQueue.push_back(obj);
+		}
+	}
 
 	for(auto const &pc : m_players)
 	{
-		if(pc.getState().m_id != 0)
-			pc.draw(window);
+		if(pc.getState().m_id != 0 && pc.getState().isAlive())
+		{
+			pc.collectRenderObjects(renderQueue);
+		}
 	}
 
-	// HUD
+	std::sort(renderQueue.begin(), renderQueue.end());
+
+	for(auto const &obj : renderQueue)
+		obj.draw(window);
+
 	window.setView(m_hudView);
 	m_itemBar.draw(window);
 	m_pauseMenu.draw(window);
@@ -136,6 +196,12 @@ void WorldClient::applyNonInterpState(WorldState const &snapshot)
 	{
 		if(itemState.isActive())
 			m_items.emplace_back(itemState);
+	}
+
+	auto const &destroyedWalls = snapshot.getDestroyedWallDeltas();
+	for(auto const &gridPos : destroyedWalls)
+	{
+		m_state.getMap().destroyWallAtGridPos(gridPos);
 	}
 }
 

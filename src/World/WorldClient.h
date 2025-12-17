@@ -13,7 +13,8 @@
 class WorldClient
 {
   public:
-	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, std::array<PlayerState, MAX_PLAYERS> &players);
+	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, int mapIndex,
+	            std::array<PlayerState, MAX_PLAYERS> players);
 
 	std::optional<sf::Packet> update(sf::Vector2f posDelta);
 	void draw(sf::RenderWindow &window) const;
@@ -44,6 +45,8 @@ class WorldClient
 	EntityId m_ownPlayerId;
 	sf::View m_worldView;
 	sf::View m_hudView;
-public:
+	float m_zoomLevel = 1.0f;
+
+  public:
 	InterpClient m_interp;
 };

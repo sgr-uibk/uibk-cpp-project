@@ -1,5 +1,7 @@
 #include "ItemClient.h"
+#include "Utilities.h"
 #include <cmath>
+#include <numbers>
 
 ItemClient::ItemClient(const ItemState &state)
 	: m_state(state), m_shape(sf::Vector2f(20.f, 20.f)), m_bobPhase(0.f), m_bobSpeed(2.f), m_bobHeight(5.f)
@@ -14,30 +16,21 @@ ItemClient::ItemClient(const ItemState &state)
 void ItemClient::syncSpriteToState(const ItemState &state)
 {
 	m_state = state;
-	m_shape.setPosition(m_state.getPosition());
+	sf::Vector2f isoPos = cartesianToIso(m_state.getPosition());
+	m_shape.setPosition(isoPos);
 	m_shape.setFillColor(getColorForType(state.getType()));
 }
 
 void ItemClient::update(float dt)
 {
 	// bobbing animation
-	m_bobPhase += dt * m_bobSpeed * 2.f * 3.14159f;
-	if(m_bobPhase > 2.f * 3.14159f)
-	{
-		m_bobPhase -= 2.f * 3.14159f;
-	}
+	m_bobPhase += dt * m_bobSpeed * 2.f * std::numbers::pi_v<float>;
+	m_bobPhase = sf::radians(m_bobPhase).wrapUnsigned().asRadians();
 
 	float bobOffset = std::sin(m_bobPhase) * m_bobHeight;
 	sf::Vector2f basePos = m_state.getPosition();
-	m_shape.setPosition(sf::Vector2f(basePos.x, basePos.y + bobOffset));
-}
-
-void ItemClient::draw(sf::RenderWindow &window) const
-{
-	if(m_state.isActive())
-	{
-		window.draw(m_shape);
-	}
+	sf::Vector2f isoPos = cartesianToIso(basePos);
+	m_shape.setPosition(sf::Vector2f(isoPos.x, isoPos.y + bobOffset));
 }
 
 sf::Color ItemClient::getColorForType(PowerupType type)

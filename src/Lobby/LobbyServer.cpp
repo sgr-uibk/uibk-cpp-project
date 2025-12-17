@@ -3,13 +3,15 @@
 #include <memory>
 #include <random>
 #include <spdlog/spdlog.h>
+#include "GameConfig.h"
+#include "Map/MapParser.h"
 
 LobbyServer::LobbyServer(uint16_t tcpPort)
 {
 	if(m_listener.listen(tcpPort) != sf::Socket::Status::Done)
 	{
 		SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to listen on TCP {}", tcpPort);
-		std::exit(1);
+		throw std::runtime_error("Port " + std::to_string(tcpPort) + " is already in use.");
 	}
 	m_listener.setBlocking(false);
 	m_multiSock.add(m_listener);
@@ -188,16 +190,30 @@ std::array<PlayerState, Sz> make_player_init(std::vector<sf::Vector2f> const &sp
 
 WorldState LobbyServer::startGame()
 {
-	auto const mapSize = WINDOW_DIMf;
-	MapState map(mapSize); // for now, later we'll randomly select a map here
+	// Select map (for now always use default map)
+	int mapIndex = Maps::DEFAULT_MAP_INDEX;
+	std::string mapPath = Maps::getMapPath(mapIndex);
+
+	// Read only spawn points (no full map loading)
+	auto spawns = MapParser::parseSpawnsOnly(mapPath);
+
+	if(spawns.size() < MAX_PLAYERS)
+	{
+		SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Map {} has insufficient spawn points ({} < {})", mapPath,
+		                    spawns.size(), MAX_PLAYERS);
+		// Fallback: use default positions
+		spawns.clear();
+		for(size_t i = 0; i < MAX_PLAYERS; ++i)
+			spawns.push_back(sf::Vector2f(100.f + i * 100.f, 100.f + i * 100.f));
+	}
 
 	static std::mt19937_64 rng{}; // deterministic spawn points
-	auto spawns = map.getSpawns();
 	std::ranges::shuffle(spawns, rng);
 
 	auto playerInit = make_player_init<MAX_PLAYERS>(spawns, rng);
 
 	sf::Packet startPkt = createPkt(ReliablePktType::GAME_START);
+	startPkt << mapIndex; // Send map index to clients
 	serializePlayerStateArray<MAX_PLAYERS>(startPkt, playerInit, std::make_index_sequence<MAX_PLAYERS>{});
 
 	for(auto &lp : m_slots)
@@ -207,7 +223,7 @@ WorldState LobbyServer::startGame()
 		if(checkedSend(lp.tcpSocket, startPkt) != sf::Socket::Status::Done)
 			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send GAME_START to {} (id {})", lp.name, lp.id);
 	}
-	return WorldState{mapSize, std::move(playerInit)};
+	return WorldState{mapIndex, std::move(playerInit)};
 }
 
 void LobbyServer::endGame(EntityId winner)

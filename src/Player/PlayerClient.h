@@ -2,6 +2,11 @@
 #include "PlayerState.h"
 #include "Map/MapState.h"
 #include <SFML/Graphics.hpp>
+#include <functional>
+#include <array>
+#include <vector>
+
+struct RenderObject;
 
 class PlayerClient
 {
@@ -12,12 +17,14 @@ class PlayerClient
 	PlayerClient(PlayerClient const &) = default;
 
 	void update(float dt);
-	void draw(sf::RenderWindow &window) const;
+	void collectRenderObjects(std::vector<RenderObject> &queue) const;
 
 	// apply authoritative server state (reconciliation)
 	void applyServerState(PlayerState const &serverState);
 	// input / local movement (prediction)
 	void applyLocalMove(MapState const &map, sf::Vector2f delta);
+
+	void setTurretRotation(sf::Angle angle);
 
 	PlayerState const &getState() const
 	{
@@ -36,13 +43,19 @@ class PlayerClient
 
 	// visuals
 	sf::Color m_color;
-	sf::Texture &m_healthyTex;
-	sf::Texture &m_damagedTex;
-	sf::Texture &m_deadTex;
-	sf::Sprite m_sprite;
+
+	std::array<sf::Texture *, 8> m_hullTextures;
+	std::array<sf::Texture *, 8> m_turretTextures;
+	sf::Sprite m_hullSprite;
+	sf::Sprite m_turretSprite;
+
 	sf::Font &m_font; // must be declared before m_nameText
 	sf::Text m_nameText;
 	HealthCallback m_onHealthChanged;
+
+	float m_shootAnimTimer;
+	float m_lastShootCooldown;
+	static constexpr float SHOOT_ANIM_DURATION = 0.1f;
 
 	void syncSpriteToState();
 };

@@ -9,8 +9,9 @@
 
 struct WorldState
 {
-	explicit WorldState(sf::Packet &pkt);                                               // Client
-	WorldState(sf::Vector2f mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit); // Server
+	explicit WorldState(sf::Packet &pkt);                                               // Client: from network packet
+	WorldState(int mapIndex, std::array<PlayerState, MAX_PLAYERS> playersInit);         // Server/Client: from map index
+	WorldState(sf::Vector2f mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit); // Legacy: basic map
 	void update(float dt);
 	void setPlayer(PlayerState const &p);
 
@@ -18,6 +19,7 @@ struct WorldState
 	PlayerState &getPlayerById(size_t id);
 	PlayerState const &getPlayerById(size_t id) const;
 	[[nodiscard]] MapState &getMap();
+	[[nodiscard]] MapState const &getMap() const;
 
 	uint32_t addProjectile(sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId, int damage = 25);
 	void removeProjectile(uint32_t id);
@@ -47,7 +49,11 @@ struct WorldState
 	void checkPlayerItemCollisions();
 	void checkPlayerPlayerCollisions();
 
-	// serialization (full snapshot)
+	void clearWallDeltas();
+	void markWallDestroyed(sf::Vector2i gridPos);
+	[[nodiscard]] std::vector<sf::Vector2i> const &getDestroyedWallDeltas() const;
+
+	// serialization (full snapshot for players/items/projectiles, deltas for walls)
 	void serialize(sf::Packet &pkt) const;
 
 	WorldState &operator=(WorldState const &) = delete;
@@ -61,6 +67,8 @@ struct WorldState
 	std::vector<ItemState> m_items;
 	uint32_t m_nextProjectileId{1};
 	uint32_t m_nextItemId{1};
-private:
+	std::vector<sf::Vector2i> m_destroyedWallsThisTick;
+
+  private:
 	void deserialize(sf::Packet &pkt);
 };

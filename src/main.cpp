@@ -13,25 +13,27 @@
 #include "Game/GameClient.h"
 #include "World/WorldClient.h"
 
-void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, std::array<PlayerState, MAX_PLAYERS> &playerStates)
+void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, int mapIndex,
+                 std::array<PlayerState, MAX_PLAYERS> const &players)
 {
-	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting game with player ID {}", lobbyClient.m_clientId);
+	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting game with player ID {} on map {}", lobbyClient.m_clientId,
+	                   mapIndex);
 
 	lobbyClient.m_lobbySock.setBlocking(false);
 
 	int validPlayerCount = 0;
-	for(size_t i = 0; i < playerStates.size(); ++i)
+	for(size_t i = 0; i < players.size(); ++i)
 	{
-		if(playerStates[i].m_id != 0)
+		if(players[i].m_id != 0)
 		{
 			validPlayerCount++;
 			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Player {}: pos=({:.1f},{:.1f}), rot={:.1f}°, hp={}",
-			                   playerStates[i].m_id, playerStates[i].getPosition().x, playerStates[i].getPosition().y,
-			                   playerStates[i].getRotation().asDegrees(), playerStates[i].getHealth());
+			                   players[i].m_id, players[i].getPosition().x, players[i].getPosition().y,
+			                   players[i].getRotation().asDegrees(), players[i].getHealth());
 		}
 	}
 	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting game loop with {} valid players", validPlayerCount);
-	WorldClient worldClient(window, lobbyClient.m_clientId, playerStates);
+	WorldClient worldClient(window, lobbyClient.m_clientId, mapIndex, players);
 	GameClient gameClient(worldClient, lobbyClient);
 
 	while(window.isOpen())
@@ -156,7 +158,8 @@ int main()
 					SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Client received GAME_START packet, starting game...");
 
 					menuMusic.stop();
-					runGameLoop(window, *lobbyClient, *gameStartResult);
+					auto const &[mapIndex, players] = *gameStartResult;
+					runGameLoop(window, *lobbyClient, mapIndex, players);
 					clientReady = false;
 				}
 				else

@@ -18,6 +18,8 @@ GameServer::GameServer(LobbyServer &lobbyServer, uint16_t const gamePort, WorldS
 	}
 	m_gameSock.setBlocking(false);
 	m_itemSpawnClock.start();
+
+	m_nextItemSpawnIndex = 0;
 }
 
 GameServer::~GameServer()
@@ -30,6 +32,9 @@ PlayerState *GameServer::matchLoop()
 	PlayerState *pWinner = nullptr;
 	while(true)
 	{
+		// Clear wall deltas from previous tick
+		m_world.clearWallDeltas();
+
 		processPackets();
 
 		// maintain fixed tick rate updates
@@ -86,7 +91,8 @@ void GameServer::processPackets()
 		case UnreliablePktType::MOVE: {
 			uint32_t clientId;
 			sf::Vector2f posDelta;
-			rxPkt >> clientId >> posDelta;
+			sf::Angle cannonAngle;
+			rxPkt >> clientId >> posDelta >> cannonAngle;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
@@ -99,6 +105,7 @@ void GameServer::processPackets()
 				m_lastClientTicks[clientId - 1] = tick;
 				PlayerState &ps = m_world.getPlayerById(clientId);
 				ps.moveOn(m_world.getMap(), posDelta);
+				ps.setCannonRotation(cannonAngle);
 			}
 			else
 				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Dropping packet from invalid player id {}", clientId);
@@ -106,8 +113,8 @@ void GameServer::processPackets()
 		}
 		case UnreliablePktType::SHOOT: {
 			uint32_t clientId;
-			sf::Angle aimAngle;
-			rxPkt >> clientId >> aimAngle;
+			sf::Angle cannonAngle;
+			rxPkt >> clientId >> cannonAngle;
 			auto const &states = m_world.getPlayers();
 			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
 			{
@@ -116,15 +123,21 @@ void GameServer::processPackets()
 				if(ps.canShoot())
 				{
 					ps.shoot();
+					ps.setCannonRotation(cannonAngle);
 
-					sf::Vector2f position = ps.getPosition();
-					sf::Vector2f velocity(GameConfig::Projectile::SPEED, aimAngle);
+					// spawn projectile at cannon tip
+					sf::Vector2f tankCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+					sf::Vector2f cannonOffset = sf::Vector2f(0.f, -GameConfig::Player::CANNON_LENGTH).rotatedBy(cannonAngle);
+					sf::Vector2f position = tankCenter + cannonOffset;
+
+					// calculate velocity from cannon angle
+					sf::Vector2f velocity = sf::Vector2f(0.f, -GameConfig::Projectile::SPEED).rotatedBy(cannonAngle);
 
 					// Apply damage multiplier from powerups
 					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
 					m_world.addProjectile(position, velocity, clientId, damage);
-					SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} shooting at t={}, angle={}, dmg={}", clientId,
-					                   tick, aimAngle.asDegrees(), damage);
+					SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} shoots at t={}, angle={} (damage={})",
+					                   clientId, tick, cannonAngle.asDegrees(), damage);
 				}
 			}
 			else
@@ -163,14 +176,27 @@ void GameServer::spawnItems()
 	{
 		m_itemSpawnClock.restart();
 
-		float x = 100.f + static_cast<float>(rand() % 600);
-		float y = 100.f + static_cast<float>(rand() % 400);
-		sf::Vector2f position(x, y);
+		auto const &itemSpawnZones = m_world.getMap().getItemSpawnZones();
 
-		PowerupType type = static_cast<PowerupType>(1 + (rand() % 5));
+		if(itemSpawnZones.empty())
+		{
+			float x = 100.f + static_cast<float>(rand() % 600);
+			float y = 100.f + static_cast<float>(rand() % 400);
+			sf::Vector2f position(x, y);
+			PowerupType type = static_cast<PowerupType>(1 + (rand() % 5));
+			m_world.addItem(position, type);
+			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Spawned random powerup type {} at ({}, {})",
+			                   static_cast<int>(type), x, y);
+		}
+		else
+		{
+			ItemSpawnZone const &zone = itemSpawnZones[m_nextItemSpawnIndex];
+			m_world.addItem(zone.position, zone.itemType);
+			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Spawned powerup type {} at ({}, {}) from map spawn zone",
+			                   static_cast<int>(zone.itemType), zone.position.x, zone.position.y);
 
-		m_world.addItem(position, type);
-		SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Spawned powerup type {} at ({}, {})", static_cast<int>(type), x, y);
+			m_nextItemSpawnIndex = (m_nextItemSpawnIndex + 1) % itemSpawnZones.size();
+		}
 	}
 }
 

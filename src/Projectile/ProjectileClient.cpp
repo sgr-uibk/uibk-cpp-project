@@ -1,5 +1,5 @@
 #include "ProjectileClient.h"
-#include <cmath>
+#include "Utilities.h"
 
 ProjectileClient::ProjectileClient(const ProjectileState &state) : m_state(state), m_shape(4.f)
 {
@@ -11,18 +11,11 @@ ProjectileClient::ProjectileClient(const ProjectileState &state) : m_state(state
 void ProjectileClient::syncSpriteToState(const ProjectileState &state)
 {
 	m_state = state;
-	m_shape.setPosition(m_state.getPosition());
+	sf::Vector2f isoPos = cartesianToIso(m_state.getPosition());
+	m_shape.setPosition(isoPos);
 }
 
 void ProjectileClient::update([[maybe_unused]] float dt)
 {
 	// visual updates could be implemented in the future
-}
-
-void ProjectileClient::draw(sf::RenderWindow &window) const
-{
-	if(m_state.isActive())
-	{
-		window.draw(m_shape);
-	}
 }

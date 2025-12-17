@@ -1,20 +1,57 @@
 #pragma once
 #include <vector>
+#include <string>
+#include <optional>
 #include <SFML/Graphics.hpp>
+#include "WallState.h"
+#include "Powerup.h"
+#include "MapData.h"
+
+struct ItemSpawnZone
+{
+	sf::Vector2f position;
+	PowerupType itemType;
+};
 
 class MapState
 {
   public:
-	explicit MapState(sf::Vector2f size);
+	explicit MapState(sf::Vector2f size = {0.f, 0.f});
 
-	void addWall(float x, float y, float w, float h);
+	void loadFromBlueprint(MapBlueprint const &bp);
+
+	void addWall(sf::Vector2f pos, sf::Vector2f dim, int health = 100);
 	void addSpawnPoint(sf::Vector2f spawn);
-	[[nodiscard]] bool isColliding(const sf::RectangleShape &r) const;
-	[[nodiscard]] const std::vector<sf::RectangleShape> &getWalls() const;
-	[[nodiscard]] const std::vector<sf::Vector2f> &getSpawns() const;
+	void addItemSpawnZone(sf::Vector2f position, PowerupType itemType);
+	void destroyWallAtGridPos(sf::Vector2i pos); // Tile Swap: Clear wall tile when destroyed
+	[[nodiscard]] bool isColliding(sf::RectangleShape const &r) const;
+	[[nodiscard]] std::vector<WallState> const &getWalls() const;
+	[[nodiscard]] std::vector<WallState> &getWalls();
+	[[nodiscard]] std::vector<sf::Vector2f> const &getSpawns() const;
+	[[nodiscard]] std::vector<ItemSpawnZone> const &getItemSpawnZones() const;
+	[[nodiscard]] sf::Vector2f getSize() const;
+
+	// Rendering Accessors (Consumed by MapClient)
+	[[nodiscard]] std::optional<RawTileset> const &getTileset() const;
+	[[nodiscard]] std::vector<RawLayer> const &getLayers() const;
+	[[nodiscard]] std::optional<RawLayer> getGroundLayer() const;
+	[[nodiscard]] std::optional<RawLayer> getWallsLayer() const;
+	[[nodiscard]] std::vector<WallState> const &getWallStates() const;
+	[[nodiscard]] WallState const *getWallAtGridPos(sf::Vector2i pos) const;
+
+	// Setters for preserving rendering data on client (when applying server snapshots)
+	void setTileset(std::optional<RawTileset> const &tileset);
+	void setGroundLayer(std::optional<RawLayer> const &layer);
+	void setWallsLayer(std::optional<RawLayer> const &layer);
+
+	static PowerupType stringToPowerupType(std::string const &str);
 
   private:
 	sf::Vector2f m_size;
-	std::vector<sf::RectangleShape> m_walls;
+	std::vector<WallState> m_walls;
 	std::vector<sf::Vector2f> m_spawns;
+	std::vector<ItemSpawnZone> m_itemSpawnZones;
+
+	std::optional<RawTileset> m_tileset;
+	std::vector<RawLayer> m_layers;
 };

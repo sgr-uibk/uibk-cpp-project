@@ -1,15 +1,34 @@
 #include <algorithm>
-#include <cmath>
 #include <utility>
+#include <cmath>
+#include "Map/MapParser.h"
 #include <spdlog/spdlog.h>
 #include "Utilities.h"
 #include "WorldState.h"
+#include "GameConfig.h"
 
 WorldState::WorldState(sf::Packet &pkt)
 	: m_map(WINDOW_DIMf),
 	  m_players(deserializePlayerStateArray<MAX_PLAYERS>(pkt, std::make_index_sequence<MAX_PLAYERS>{}))
 {
 	deserialize(pkt);
+}
+
+WorldState::WorldState(int mapIndex, std::array<PlayerState, MAX_PLAYERS> playersInit)
+	: m_map(sf::Vector2f(0, 0)), m_players(std::move(playersInit))
+{
+	std::string mapPath = Maps::getMapPath(mapIndex);
+	auto blueprint = MapParser::parse(mapPath);
+
+	if(!blueprint)
+	{
+		spdlog::error("Failed to load map from index {} (path: {})", mapIndex, mapPath);
+		m_map = MapState(WINDOW_DIMf);
+		return;
+	}
+
+	m_map.loadFromBlueprint(*blueprint);
+	spdlog::info("Loaded map from index {} (path: {})", mapIndex, mapPath);
 }
 
 WorldState::WorldState(sf::Vector2f const mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit)
@@ -55,6 +74,11 @@ PlayerState const &WorldState::getPlayerById(size_t id) const
 }
 
 MapState &WorldState::getMap()
+{
+	return m_map;
+}
+
+MapState const &WorldState::getMap() const
 {
 	return m_map;
 }
@@ -120,13 +144,25 @@ void WorldState::checkProjectileWallCollisions()
 			continue;
 
 		sf::FloatRect projBounds = proj.getBounds();
-		auto const &walls = m_map.getWalls();
+		auto &walls = m_map.getWalls();
 
-		for(auto const &wall : walls)
+		for(auto &wall : walls)
 		{
+			if(wall.isDestroyed())
+				continue;
+
 			if(projBounds.findIntersection(wall.getGlobalBounds()))
 			{
-				// hit wall -> just deactivate projectile for now
+				wall.takeDamage(proj.getDamage());
+
+				if(wall.isDestroyed())
+				{
+					auto pos = wall.getShape().getPosition();
+					sf::Vector2i grid = sf::Vector2i{pos / CARTESIAN_TILE_SIZE};
+					m_map.destroyWallAtGridPos(grid);
+					markWallDestroyed(grid);
+				}
+
 				proj.deactivate();
 				break;
 			}
@@ -259,11 +295,16 @@ void WorldState::serialize(sf::Packet &pkt) const
 	{
 		item.serialize(pkt);
 	}
+
+	// delta only
+	uint32_t numDestroyedWalls = static_cast<uint32_t>(m_destroyedWallsThisTick.size());
+	pkt << numDestroyedWalls;
+	for(auto const &grid : m_destroyedWallsThisTick)
+		pkt << grid;
 }
 void WorldState::assignExcludingInterp(WorldState const &other)
 {
 	this->m_items = other.m_items;
-	this->m_map = other.m_map;
 	this->m_nextItemId = other.m_nextItemId;
 	this->m_nextProjectileId = other.m_nextProjectileId;
 	this->m_projectiles = other.m_projectiles;
@@ -298,4 +339,33 @@ void WorldState::deserialize(sf::Packet &pkt)
 		item.deserialize(pkt);
 		m_items.push_back(item);
 	}
+
+	uint32_t numDestroyedWalls = 0;
+	pkt >> numDestroyedWalls;
+
+	m_destroyedWallsThisTick.clear();
+
+	for(uint32_t i = 0; i < numDestroyedWalls; ++i)
+	{
+		sf::Vector2i gridPos;
+		pkt >> gridPos;
+
+		m_destroyedWallsThisTick.push_back(gridPos);
+	}
+}
+
+void WorldState::clearWallDeltas()
+{
+	m_destroyedWallsThisTick.clear();
+}
+
+void WorldState::markWallDestroyed(sf::Vector2i gridPos)
+{
+	m_destroyedWallsThisTick.push_back(gridPos);
+	spdlog::debug("Marked wall at grid ({}, {}) for delta update", gridPos.x, gridPos.y);
+}
+
+std::vector<sf::Vector2i> const &WorldState::getDestroyedWallDeltas() const
+{
+	return m_destroyedWallsThisTick;
 }

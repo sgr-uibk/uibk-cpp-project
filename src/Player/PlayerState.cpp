@@ -1,7 +1,6 @@
 #include "Player/PlayerState.h"
 #include "Map/MapState.h"
 #include "Networking.h"
-#include "World/WorldState.h"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -11,18 +10,18 @@ void InterpPlayerState::overwriteBy(InterpPlayerState const auth)
 }
 sf::Packet &operator>>(sf::Packet &pkt, InterpPlayerState &obj)
 {
-	pkt >> obj.m_pos >> obj.m_rot;
+	pkt >> obj.m_pos >> obj.m_rot >> obj.m_cannonRot;
 	return pkt;
 }
 
 sf::Packet &operator<<(sf::Packet &pkt, InterpPlayerState const &obj)
 {
-	pkt << obj.m_pos << obj.m_rot;
+	pkt << obj.m_pos << obj.m_rot << obj.m_cannonRot;
 	return pkt;
 }
 
 PlayerState::PlayerState(EntityId id, sf::Vector2f pos, sf::Angle rot, int maxHealth)
-	: m_id(id), m_name(""), m_iState(pos, rot), m_maxHealth(maxHealth)
+	: m_id(id), m_name(""), m_iState(pos, rot, rot), m_maxHealth(maxHealth)
 {
 }
 PlayerState::PlayerState(EntityId id, InterpPlayerState ips, int maxHealth)
@@ -74,9 +73,11 @@ void PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 	else
 	{ // no collision, let them move there
 		m_iState.m_pos += posDelta;
-		float const angRad = std::atan2(posDelta.x, -posDelta.y);
-		sf::Angle const rot = sf::radians(angRad);
-		m_iState.m_rot = rot;
+		float lengthSq = posDelta.lengthSquared();
+		if(lengthSq > 0.0001f)
+		{
+			m_iState.m_rot = sf::Vector2f(1.f, 1.f).angleTo(posDelta);
+		}
 	}
 }
 
@@ -220,6 +221,16 @@ sf::Vector2f PlayerState::getPosition() const
 sf::Angle PlayerState::getRotation() const
 {
 	return m_iState.m_rot;
+}
+
+sf::Angle PlayerState::getCannonRotation() const
+{
+	return m_iState.m_cannonRot;
+}
+
+void PlayerState::setCannonRotation(sf::Angle angle)
+{
+	m_iState.m_cannonRot = angle;
 }
 
 int PlayerState::getHealth() const

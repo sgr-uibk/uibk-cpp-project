@@ -7,7 +7,7 @@ LobbyClient::LobbyClient(std::string const &name, Endpoint const lobbyServer)
 	if(m_lobbySock.connect(lobbyServer.ip, lobbyServer.port) != sf::Socket::Status::Done)
 	{
 		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to connect to lobby");
-		std::exit(1);
+		throw std::runtime_error("Could not reach server.");
 	}
 	m_lobbySock.setBlocking(true);
 	// Bind to the local game socket now, the server should know everything about the client as early as possible.
@@ -150,7 +150,8 @@ bool LobbyClient::pollLobbyUpdate()
 	return true;
 }
 
-std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::waitForGameStart(sf::Time const timeout)
+std::optional<std::pair<int, std::array<PlayerState, MAX_PLAYERS>>> LobbyClient::waitForGameStart(
+	sf::Time const timeout)
 {
 	sf::Packet startPkt;
 	sf::SocketSelector ss;
@@ -186,8 +187,13 @@ std::optional<std::array<PlayerState, MAX_PLAYERS>> LobbyClient::waitForGameStar
 			                    numPlayers);
 			break;
 		}
-		case uint8_t(ReliablePktType::GAME_START):
-			return deserializePlayerStateArray<MAX_PLAYERS>(startPkt, std::make_index_sequence<MAX_PLAYERS>{});
+		case uint8_t(ReliablePktType::GAME_START): {
+			int mapIndex;
+			startPkt >> mapIndex;
+			auto players = deserializePlayerStateArray<MAX_PLAYERS>(startPkt, std::make_index_sequence<MAX_PLAYERS>{});
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Received GAME_START with map index {}", mapIndex);
+			return std::make_pair(mapIndex, players);
+		}
 
 		default:
 			SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Unhandled reliable packet type: {}.", type);

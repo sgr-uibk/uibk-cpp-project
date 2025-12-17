@@ -1,9 +1,7 @@
 #pragma once
 #include "../Networking.h"
 #include <SFML/Network.hpp>
-#include <memory>
 #include <spdlog/spdlog.h>
-#include <spdlog/logger.h>
 
 #include "Player/PlayerState.h"
 
@@ -23,7 +21,7 @@ class LobbyClient
 	void connect();
 	void sendReady();
 	bool pollLobbyUpdate();
-	std::optional<std::array<PlayerState, MAX_PLAYERS>> waitForGameStart(sf::Time timeout);
+	std::optional<std::pair<int, std::array<PlayerState, MAX_PLAYERS>>> waitForGameStart(sf::Time timeout);
 
 	[[nodiscard]] bool getReadiness() const
 	{
