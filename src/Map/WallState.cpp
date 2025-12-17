@@ -3,13 +3,13 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
-WallState::WallState() : m_health(DEFAULT_WALL_HEALTH), m_maxHealth(DEFAULT_WALL_HEALTH), m_isDestroyed(false)
+WallState::WallState() : m_health(DEFAULT_WALL_HEALTH), m_maxHealth(DEFAULT_WALL_HEALTH)
 {
 	m_shape.setFillColor(sf::Color::Black);
 }
 
 WallState::WallState(sf::Vector2f pos, sf::Vector2f dim, int maxHealth)
-	: m_shape(dim), m_health(maxHealth), m_maxHealth(maxHealth), m_isDestroyed(false)
+	: m_shape(dim), m_health(maxHealth), m_maxHealth(maxHealth)
 {
 	m_shape.setPosition(pos);
 	m_shape.setFillColor(sf::Color::Black);
@@ -17,17 +17,16 @@ WallState::WallState(sf::Vector2f pos, sf::Vector2f dim, int maxHealth)
 
 void WallState::takeDamage(int amount)
 {
-	if(m_isDestroyed)
+	if(m_health == 0)
 		return;
 
 	m_health = std::max(0, m_health - amount);
-	m_isDestroyed = m_health == 0;
 	updateVisuals();
 }
 
 void WallState::repair(int amount)
 {
-	if(m_isDestroyed)
+	if(m_health == 0)
 		return;
 
 	m_health = std::min(m_maxHealth, m_health + amount);
@@ -37,23 +36,21 @@ void WallState::repair(int amount)
 void WallState::destroy()
 {
 	m_health = 0;
-	m_isDestroyed = true;
 	updateVisuals();
 }
 
 void WallState::setHealth(int health)
 {
-	if(m_isDestroyed)
+	if(m_health == 0)
 		return;
 
 	m_health = std::clamp(health, 0, m_maxHealth);
-	m_isDestroyed = m_health == 0;
 	updateVisuals();
 }
 
 bool WallState::isDestroyed() const
 {
-	return m_isDestroyed;
+	return m_health == 0;
 }
 
 int WallState::getHealth() const
@@ -90,7 +87,7 @@ sf::RectangleShape &WallState::getShape()
 
 void WallState::updateVisuals()
 {
-	if(m_isDestroyed)
+	if(m_health == 0)
 	{
 		m_shape.setFillColor(sf::Color(0, 0, 0, 0));
 	}
@@ -109,7 +106,6 @@ void WallState::serialize(sf::Packet &pkt) const
 	pkt << m_shape.getSize();
 	pkt << static_cast<int32_t>(m_health);
 	pkt << static_cast<int32_t>(m_maxHealth);
-	pkt << m_isDestroyed;
 }
 
 void WallState::deserialize(sf::Packet &pkt)
@@ -121,7 +117,6 @@ void WallState::deserialize(sf::Packet &pkt)
 	pkt >> size;
 	pkt >> health;
 	pkt >> maxHealth;
-	pkt >> m_isDestroyed;
 
 	m_shape.setPosition(position);
 	m_shape.setSize(size);
