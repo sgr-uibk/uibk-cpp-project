@@ -44,7 +44,7 @@ PlayerClient::PlayerClient(PlayerState &state, sf::Color const &color)
 	updateNameText();
 }
 
-void PlayerClient::update([[maybe_unused]] float dt)
+void PlayerClient::update(float const dt)
 {
 	float currentCooldown = m_state.m_shootCooldown.getRemaining();
 	if(m_lastShootCooldown == 0.f && currentCooldown > 0.f)
@@ -52,11 +52,7 @@ void PlayerClient::update([[maybe_unused]] float dt)
 		m_shootAnimTimer = SHOOT_ANIM_DURATION;
 	}
 	m_lastShootCooldown = currentCooldown;
-
-	if(m_shootAnimTimer > 0.f)
-	{
-		m_shootAnimTimer = std::clamp(m_shootAnimTimer - dt, 0.f, SHOOT_ANIM_DURATION);
-	}
+	m_shootAnimTimer = std::clamp(m_shootAnimTimer - dt, 0.f, SHOOT_ANIM_DURATION);
 
 	// smoothing / interpolation can be inserted here
 	syncSpriteToState();
