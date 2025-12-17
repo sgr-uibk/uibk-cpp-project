@@ -30,7 +30,6 @@ class WallState
 	sf::RectangleShape m_shape;
 	int m_health;
 	int m_maxHealth;
-	bool m_isDestroyed;
 
 	static constexpr int DEFAULT_WALL_HEALTH = 100;
 };
