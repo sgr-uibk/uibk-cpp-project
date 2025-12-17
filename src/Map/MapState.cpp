@@ -6,11 +6,6 @@ MapState::MapState(sf::Vector2f size) : m_size(size)
 {
 }
 
-void MapState::addWall(sf::Vector2f pos, sf::Vector2f dim, int health)
-{
-	m_walls.emplace_back(pos, dim, health);
-}
-
 void MapState::addSpawnPoint(sf::Vector2f spawn)
 {
 	m_spawns.push_back(spawn);
@@ -21,14 +16,23 @@ void MapState::addItemSpawnZone(sf::Vector2f position, PowerupType itemType)
 	m_itemSpawnZones.push_back({position, itemType});
 }
 
+bool MapState::isRendered(WallState const &wall, RawLayer const &layer)
+{
+	sf::Vector2i const pos = sf::Vector2i{wall.getShape().getPosition() / CARTESIAN_TILE_SIZE};
+	size_t const idx = pos.y * layer.dim.x + pos.x;
+	return layer.data[idx];
+}
+
 bool MapState::isColliding(sf::RectangleShape const &r) const
 {
+	auto wallsLayerOpt = getWallsLayer();
+	assert(wallsLayerOpt.has_value());
+
 	for(auto const &wall : m_walls)
 	{
-		if(!wall.isDestroyed() && wall.getGlobalBounds().findIntersection(r.getGlobalBounds()).has_value())
-		{
+		bool const bRenderWallExists = isRendered(wall, *wallsLayerOpt);
+		if(bRenderWallExists && wall.getGlobalBounds().findIntersection(r.getGlobalBounds()).has_value())
 			return true;
-		}
 	}
 	return false;
 }

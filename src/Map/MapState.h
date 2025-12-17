@@ -20,9 +20,9 @@ class MapState
 
 	void loadFromBlueprint(MapBlueprint const &bp);
 
-	void addWall(sf::Vector2f pos, sf::Vector2f dim, int health = 100);
 	void addSpawnPoint(sf::Vector2f spawn);
 	void addItemSpawnZone(sf::Vector2f position, PowerupType itemType);
+	static bool isRendered(WallState const &wall, RawLayer const &layer);
 	void destroyWallAtGridPos(sf::Vector2i pos); // Tile Swap: Clear wall tile when destroyed
 	[[nodiscard]] bool isColliding(sf::RectangleShape const &r) const;
 	[[nodiscard]] std::vector<WallState> const &getWalls() const;
