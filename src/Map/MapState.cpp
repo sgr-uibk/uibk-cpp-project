@@ -204,11 +204,6 @@ void MapState::setWallsLayer(std::optional<RawLayer> const &layer)
 	m_layers.push_back(*layer);
 }
 
-template <typename T> sf::Vector2<T> abs(sf::Vector2<T> vec)
-{
-	return {std::abs(vec.x), std::abs(vec.y)};
-}
-
 WallState const *MapState::getWallAtGridPos(sf::Vector2i const pos) const
 {
 	auto const cellCenter = sf::Vector2f(pos) * CARTESIAN_TILE_SIZE + sf::Vector2f{1, 1} * (CARTESIAN_TILE_SIZE / 2.0f);
@@ -217,7 +212,8 @@ WallState const *MapState::getWallAtGridPos(sf::Vector2i const pos) const
 	{
 		sf::FloatRect const bounds = wall.getGlobalBounds();
 		sf::Vector2f const wallCenter = bounds.position + bounds.size / 2.f;
-		sf::Vector2f const diff = abs(cellCenter - wallCenter);
+		sf::Vector2f diff = cellCenter - wallCenter;
+		diff = diff.componentWiseMul(diff);
 		if(diff.x < 1.f && diff.y < 1.f)
 			return &wall;
 	}
