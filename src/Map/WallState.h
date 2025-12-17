@@ -16,7 +16,7 @@ class WallState
 	[[nodiscard]] bool isDestroyed() const;
 	[[nodiscard]] int getHealth() const;
 	[[nodiscard]] int getMaxHealth() const;
-	[[nodiscard]] float getHealthPercent() const;
+	[[nodiscard]] float getHealthRelative() const;
 	[[nodiscard]] sf::FloatRect getGlobalBounds() const;
 	[[nodiscard]] sf::RectangleShape const &getShape() const;
 	[[nodiscard]] sf::RectangleShape &getShape();

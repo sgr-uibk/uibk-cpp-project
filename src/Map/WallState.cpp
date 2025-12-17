@@ -66,7 +66,7 @@ int WallState::getMaxHealth() const
 	return m_maxHealth;
 }
 
-float WallState::getHealthPercent() const
+float WallState::getHealthRelative() const
 {
 	if(m_maxHealth == 0)
 		return 0.0f;
@@ -96,10 +96,10 @@ void WallState::updateVisuals()
 	}
 	else
 	{
-		float healthPercent = getHealthPercent();
-		uint8_t alpha = static_cast<uint8_t>(100 + healthPercent * 155);
-		uint8_t brightness = static_cast<uint8_t>(healthPercent * 255);
-		m_shape.setFillColor(sf::Color(brightness / 2, brightness / 2, brightness / 2, alpha));
+		float relHealth = getHealthRelative();
+		uint8_t alpha = static_cast<uint8_t>(100 + relHealth * 155);
+		uint8_t brightness = static_cast<uint8_t>(relHealth * 255 / 2);
+		m_shape.setFillColor(sf::Color(brightness, brightness, brightness, alpha));
 	}
 }
 
