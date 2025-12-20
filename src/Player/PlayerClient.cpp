@@ -8,7 +8,7 @@ static int angleToDirection(float degrees)
 	sf::Angle angle = sf::degrees(degrees).wrapUnsigned();
 	float normalized = angle.asDegrees();
 
-	float adjusted = std::min(normalized + 22.5f, 360.f);
+	float adjusted = std::fmod(normalized + 22.5f, 360.f);
 	int section = static_cast<int>(adjusted / 45.f);
 
 	// Hardcoded sprite mapping for now
