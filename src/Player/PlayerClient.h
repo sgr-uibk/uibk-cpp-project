@@ -5,6 +5,8 @@
 #include <functional>
 #include <array>
 #include <vector>
+#include <SFML/Audio/Sound.hpp>
+#include <SFML/Audio/SoundBuffer.hpp>
 
 struct RenderObject;
 
@@ -36,6 +38,7 @@ class PlayerClient
 	void registerHealthCallback(HealthCallback cb);
 	void interp(InterpPlayerState const &s0, InterpPlayerState const &s1, float alpha);
 	void overwriteInterpState(InterpPlayerState authState);
+	void playShotSound();
 
   private:
 	void updateSprite();
@@ -54,10 +57,13 @@ class PlayerClient
 
 	sf::Font &m_font; // must be declared before m_nameText
 	sf::Text m_nameText;
+
+	sf::SoundBuffer &m_shootSoundBuf;
+	sf::Sound m_shootSound;
 	HealthCallback m_onHealthChanged;
 
-	float m_shootAnimTimer;
-	float m_lastShootCooldown;
+	float m_shootAnimTimer = 0;
+	float m_lastShootCooldown = 0;
 	static constexpr float SHOOT_ANIM_DURATION = 0.1f;
 };
 
