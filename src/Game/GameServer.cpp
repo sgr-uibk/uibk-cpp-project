@@ -8,7 +8,7 @@ GameServer::GameServer(LobbyServer &lobbyServer, uint16_t const gamePort, WorldS
 {
 	for(auto const &p : lobbyServer.m_slots)
 	{
-		assert(p.gamePort != gamePort); // No client can use our port, else get collisions on local multiplayer
+		assert(p.endpoint.port != gamePort); // No client can use our port, else get collisions on local multiplayer
 	}
 	sf::Socket::Status status = m_gameSock.bind(m_gamePort);
 	if(status != sf::Socket::Status::Done)
@@ -83,26 +83,29 @@ void GameServer::processPackets()
 	uint16_t srcPort;
 	while(checkedReceive(m_gameSock, rxPkt, srcAddrOpt, srcPort) == sf::Socket::Status::Done)
 	{
+		auto const remote = Endpoint{.ip = *srcAddrOpt, .port = srcPort};
 		uint8_t type;
 		Tick tick;
 		rxPkt >> type >> tick;
+		uint32_t clientId = m_lobby.findClient(remote);
+		if(!clientId)
+			continue;
+		if(m_lastClientTicks[clientId - 1] >= tick)
+		{ // Packet was duplicated or reordered
+			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Outdated pkt from {}, (know {}, got {})", clientId,
+			                   m_lastClientTicks[clientId - 1], tick);
+			continue;
+		}
+		m_lastClientTicks[clientId - 1] = tick;
+
 		switch(UnreliablePktType(type))
 		{
 		case UnreliablePktType::MOVE: {
-			uint32_t clientId;
 			sf::Vector2f posDelta;
 			sf::Angle cannonAngle;
-			rxPkt >> clientId >> posDelta >> cannonAngle;
-			auto const &states = m_world.getPlayers();
-			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
+			rxPkt >> posDelta >> cannonAngle;
+			if(m_lobby.m_slots[clientId - 1].bValid)
 			{
-				if(m_lastClientTicks[clientId - 1] >= tick)
-				{
-					SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Outdated pkt from {}, (know {}, got {})", clientId,
-					                   m_lastClientTicks[clientId - 1], tick);
-					break;
-				}
-				m_lastClientTicks[clientId - 1] = tick;
 				PlayerState &ps = m_world.getPlayerById(clientId);
 				ps.moveOn(m_world.getMap(), posDelta);
 				ps.setCannonRotation(cannonAngle);
@@ -112,11 +115,9 @@ void GameServer::processPackets()
 			break;
 		}
 		case UnreliablePktType::SHOOT: {
-			uint32_t clientId;
 			sf::Angle cannonAngle;
-			rxPkt >> clientId >> cannonAngle;
-			auto const &states = m_world.getPlayers();
-			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
+			rxPkt >> cannonAngle;
+			if(m_lobby.m_slots[clientId - 1].bValid)
 			{
 				PlayerState &ps = m_world.getPlayerById(clientId);
 
@@ -127,7 +128,8 @@ void GameServer::processPackets()
 
 					// spawn projectile at cannon tip
 					sf::Vector2f tankCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
-					sf::Vector2f cannonOffset = sf::Vector2f(0.f, -GameConfig::Player::CANNON_LENGTH).rotatedBy(cannonAngle);
+					sf::Vector2f cannonOffset =
+						sf::Vector2f(0.f, -GameConfig::Player::CANNON_LENGTH).rotatedBy(cannonAngle);
 					sf::Vector2f position = tankCenter + cannonOffset;
 
 					// calculate velocity from cannon angle
@@ -145,20 +147,16 @@ void GameServer::processPackets()
 			break;
 		}
 		case UnreliablePktType::USE_ITEM: {
-			uint32_t clientId;
 			size_t slot;
-			rxPkt >> clientId >> slot;
-			auto const &states = m_world.getPlayers();
-			if(clientId <= states.size() && m_lobby.m_slots[clientId - 1].bValid)
+			rxPkt >> slot;
+			if(m_lobby.m_slots[clientId - 1].bValid)
 			{
 				PlayerState &ps = m_world.getPlayerById(clientId);
 				ps.useItem(slot);
-				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} used item at t={}, slot #{}", clientId, tick,
-				                   slot);
+				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} used item t={}, slot #{}", clientId, tick, slot);
 			}
 			else
-				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping USE_ITEM packet from invalid player id {}",
-				                   clientId);
+				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping USE_ITEM packet from invalid player {}", clientId);
 			break;
 		}
 		default:
@@ -210,10 +208,10 @@ void GameServer::floodWorldState()
 	{
 		if(!p.bValid)
 			continue;
-		if(checkedSend(m_gameSock, snapPkt, p.udpAddr, p.gamePort) != sf::Socket::Status::Done)
+		if(checkedSend(m_gameSock, snapPkt, p.endpoint.ip, p.endpoint.port) != sf::Socket::Status::Done)
 		{
-			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send snapshot to {}:{}", p.udpAddr.toString(),
-			                    p.gamePort);
+			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send snapshot to {}:{}", p.endpoint.ip.toString(),
+			                    p.endpoint.port);
 		}
 	}
 }

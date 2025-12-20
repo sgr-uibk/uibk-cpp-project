@@ -78,7 +78,7 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 	if(m_itemBar.handleItemUse())
 	{
 		sf::Packet pkt = createTickedPkt(UnreliablePktType::USE_ITEM, m_clientTick);
-		pkt << m_ownPlayerId << m_itemBar.getSelection();
+		pkt << m_itemBar.getSelection();
 		return std::optional(pkt);
 	}
 
@@ -88,7 +88,7 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 	if(shoot && m_state.getPlayerById(m_ownPlayerId).canShoot())
 	{
 		sf::Packet pkt = createTickedPkt(UnreliablePktType::SHOOT, m_clientTick);
-		pkt << m_ownPlayerId << aimAngle;
+		pkt << aimAngle;
 		return std::optional(pkt);
 	}
 
@@ -100,7 +100,6 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 		if(bServerTickExpired)
 		{
 			sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
-			pkt << m_ownPlayerId;
 			pkt << m_interp.getCumulativeInputs(m_clientTick);
 			pkt << aimAngle;
 			return std::optional(pkt);

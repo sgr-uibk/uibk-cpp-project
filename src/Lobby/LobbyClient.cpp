@@ -93,8 +93,6 @@ void LobbyClient::connect()
 void LobbyClient::sendReady()
 {
 	sf::Packet readyPkt = createPkt(ReliablePktType::LOBBY_READY);
-	readyPkt << m_clientId;
-
 	if(checkedSend(m_lobbySock, readyPkt) != sf::Socket::Status::Done)
 	{
 		SPDLOG_LOGGER_ERROR(spdlog::get("Client"), "Failed to send LOBBY_READY");

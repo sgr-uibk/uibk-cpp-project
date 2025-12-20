@@ -28,7 +28,6 @@ constexpr std::array ALL_PLAYER_COLORS{sf::Color::Red, sf::Color::Green, sf::Col
 static_assert(ALL_PLAYER_COLORS.size() >= MAX_PLAYERS,
               "Using more players than defined player colors. You should add the missing ones.");
 
-// TODO: template this
 constexpr auto PLAYER_COLORS = [] {
 	std::array<sf::Color, MAX_PLAYERS> colors{};
 	for(std::size_t i = 0; i < MAX_PLAYERS; ++i)
@@ -36,21 +35,29 @@ constexpr auto PLAYER_COLORS = [] {
 	return colors;
 }();
 
-struct Endpoint // TODO, often this can be replaced by e.g. sf::TcpSocket.getRemote*()
+struct Endpoint
 {
 	sf::IpAddress ip;
 	uint16_t port;
+	friend bool operator==(Endpoint const &lhs, Endpoint const &rhs)
+	{
+		return lhs.ip == rhs.ip && lhs.port == rhs.port;
+	}
+	friend bool operator!=(Endpoint const &lhs, Endpoint const &rhs)
+	{
+		return !(lhs == rhs);
+	}
 };
+
 
 enum class ReliablePktType : uint8_t
 {
 	JOIN_REQ = 1,
 	JOIN_ACK,
 	LOBBY_READY,
-	LOBBY_UPDATE,       // srv -> clients: broadcast lobby state updates
+	LOBBY_UPDATE,
 	GAME_START,
 	GAME_END,
-	PLAYER_LEFT, // TODO
 	_size
 };
 

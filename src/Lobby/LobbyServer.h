@@ -9,8 +9,7 @@ struct LobbyPlayer
 	std::string name = "Invalid";
 	bool bValid = false;
 	bool bReady = false;
-	sf::IpAddress udpAddr = sf::IpAddress{0};
-	uint16_t gamePort = 0;
+	Endpoint endpoint = {.ip = sf::IpAddress::Any, .port = 0};
 	sf::TcpSocket tcpSocket;
 };
 
@@ -20,6 +19,7 @@ class LobbyServer
 	explicit LobbyServer(uint16_t tcpPort);
 	~LobbyServer();
 	void lobbyLoop(); // blocks until all players ready
+	uint32_t findClient(Endpoint remote) const;
 	WorldState startGame();
 	void deduplicatePlayerName(std::string &name) const;
 	void endGame(EntityId winner);
