@@ -70,7 +70,8 @@ void LobbyServer::acceptNewClient()
 	sf::TcpSocket newClientSock;
 	if(m_listener.accept(newClientSock) != sf::Socket::Status::Done)
 		return;
-	assert(newClientSock.getRemoteAddress().has_value()); // Know exists from status done.
+	auto const remoteAddrOpt = newClientSock.getRemoteAddress();
+	assert(remoteAddrOpt.has_value()); // Know exists from status done.
 
 	EntityId tentativeId = 0;
 	while(tentativeId < MAX_PLAYERS && m_slots[tentativeId].bValid)
@@ -84,8 +85,8 @@ void LobbyServer::acceptNewClient()
 		return;
 	}
 
-	sf::IpAddress const remoteAddr = newClientSock.getRemoteAddress().value();
-	LobbyPlayer p{.id = tentativeId, .udpAddr = remoteAddr, .tcpSocket = std::move(newClientSock)};
+	LobbyPlayer p{
+		.id = tentativeId, .endpoint = {.ip = *remoteAddrOpt, .port = 0}, .tcpSocket = std::move(newClientSock)};
 
 	sf::Packet joinReqPkt;
 	if(checkedReceive(p.tcpSocket, joinReqPkt) != sf::Socket::Status::Done)
@@ -108,10 +109,10 @@ void LobbyServer::acceptNewClient()
 		p.tcpSocket.disconnect();
 		return;
 	}
-	joinReqPkt >> p.name >> p.gamePort;
-	SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Client id {}, udpPort {}, requested name '{}' ", p.id, p.gamePort,
+	joinReqPkt >> p.name >> p.endpoint.port;
+	SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Client id {}, udpPort {}, requested name '{}' ", p.id, p.endpoint.port,
 	                   p.name);
-	assert(p.id && p.gamePort);
+	assert(p.id && p.endpoint.port);
 
 	deduplicatePlayerName(p.name);
 	sf::Packet joinAckPkt = createPkt(ReliablePktType::JOIN_ACK);
@@ -128,6 +129,18 @@ void LobbyServer::acceptNewClient()
 	SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} (id {}) joined lobby", p.name, p.id);
 	m_slots[p.id - 1] = std::move(p);
 	broadcastLobbyUpdate();
+}
+
+uint32_t LobbyServer::findClient(Endpoint remote) const
+{
+	uint32_t clientId = 0;
+	while(clientId < m_slots.size())
+	{
+		if(m_slots[clientId++].endpoint == remote)
+			return clientId;
+	}
+	SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Unknown client: {}:{}", remote.ip.toString(), remote.port);
+	return 0;
 }
 
 void LobbyServer::handleClient(LobbyPlayer &p)
@@ -150,11 +163,11 @@ void LobbyServer::handleClient(LobbyPlayer &p)
 		rxPkt >> type;
 		if(type == static_cast<uint8_t>(ReliablePktType::LOBBY_READY))
 		{
-			uint32_t clientId;
-			rxPkt >> clientId;
-			assert(clientId == p.id && !p.bReady);
-			p.bReady = true;
-			m_cReady++;
+			if(!p.bReady)
+			{
+				p.bReady = true;
+				m_cReady++;
+			}
 			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} (id {}) is ready", p.name, p.id);
 			broadcastLobbyUpdate();
 		}
