@@ -85,8 +85,9 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 	// TODO Can't shoot and move in the same frame like this
 	bool const shoot =
 		sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Space) || sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
-	if(shoot && m_state.getPlayerById(m_ownPlayerId).canShoot())
+	if(shoot && m_state.getPlayerById(m_ownPlayerId).tryShoot())
 	{
+		m_players[m_ownPlayerId-1].playShotSound();
 		sf::Packet pkt = createTickedPkt(UnreliablePktType::SHOOT, m_clientTick);
 		pkt << aimAngle;
 		return std::optional(pkt);

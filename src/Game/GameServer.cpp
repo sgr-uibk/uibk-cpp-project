@@ -121,9 +121,8 @@ void GameServer::processPackets()
 			{
 				PlayerState &ps = m_world.getPlayerById(clientId);
 
-				if(ps.canShoot())
+				if(ps.tryShoot())
 				{
-					ps.shoot();
 					ps.setCannonRotation(cannonAngle);
 
 					// spawn projectile at cannon tip
