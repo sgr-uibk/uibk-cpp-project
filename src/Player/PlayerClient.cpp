@@ -21,7 +21,7 @@ PlayerClient::PlayerClient(PlayerState &state, sf::Color const &color)
 	  m_hullSprite(TextureManager::inst().load("tanks/tiger/Separated/Hull/german_tiger_hull1.png")),
 	  m_turretSprite(TextureManager::inst().load("tanks/tiger/Separated/Turret/german_tiger_turret1.png")),
 	  m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_nameText(m_font, m_state.m_name, 14),
-	  m_shootAnimTimer(0.f), m_lastShootCooldown(0.f)
+	  m_shootSoundBuf(SoundBufferManager::inst().load("audio/tank_firing.ogg")), m_shootSound(m_shootSoundBuf)
 {
 	for(int i = 1; i <= 8; ++i)
 	{
@@ -108,6 +108,10 @@ void PlayerClient::interp(InterpPlayerState const &s0, InterpPlayerState const &
 void PlayerClient::overwriteInterpState(InterpPlayerState authState)
 {
 	m_state.m_iState.overwriteBy(authState);
+}
+void PlayerClient::playShotSound()
+{
+	m_shootSound.play();
 }
 
 void PlayerClient::updateSprite()

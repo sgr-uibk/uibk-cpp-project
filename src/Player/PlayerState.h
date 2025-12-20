@@ -46,8 +46,7 @@ struct PlayerState
 	void die();
 	void revive();
 
-	bool canShoot() const;
-	void shoot();
+	bool tryShoot();
 
 	void applyPowerup(PowerupType type);
 	bool hasPowerup(PowerupType type) const;
@@ -81,11 +80,10 @@ struct PlayerState
 	InterpPlayerState m_iState;
 	int m_maxHealth;
 	int m_health = m_maxHealth;
-	Cooldown m_shootCooldown{GameConfig::Player::SHOOT_COOLDOWN};
+	Cooldown m_shootCooldown{};
 
 	static constexpr int MAX_POWERUPS = 5;
 	std::array<PowerupEffect, MAX_POWERUPS> m_powerups;
-
 	std::array<PowerupType, 9> m_inventory{PowerupType::NONE};
 
 	static constexpr sf::Vector2f logicalDimensions = {32, 32};

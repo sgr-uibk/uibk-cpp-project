@@ -130,19 +130,9 @@ void PlayerState::revive()
 	m_health = m_maxHealth;
 }
 
-bool PlayerState::canShoot() const
+bool PlayerState::tryShoot()
 {
-	return m_health > 0 && m_shootCooldown.isReady();
-}
-
-void PlayerState::shoot()
-{
-	if(canShoot())
-	{
-		float cooldown = getShootCooldown();
-		m_shootCooldown = Cooldown(cooldown);
-		m_shootCooldown.trigger();
-	}
+	return m_health > 0 && m_shootCooldown.try_trigger(getShootCooldown());
 }
 
 void PlayerState::applyPowerup(PowerupType type)
