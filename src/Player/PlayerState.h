@@ -56,7 +56,7 @@ struct PlayerState
 	float getShootCooldown() const;
 
 	bool addToInventory(PowerupType type);
-	void useItem(size_t slot);
+	void useItem(size_t slotNum);
 	PowerupType getInventoryItem(int slot) const;
 	std::array<PowerupType, 9> const &getInventory() const
 	{

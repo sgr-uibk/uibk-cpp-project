@@ -1,6 +1,7 @@
 #include "GameServer.h"
-#include "Lobby/LobbyServer.h"
 #include "GameConfig.h"
+#include "Lobby/LobbyServer.h"
+#include "World/WorldClient.h"
 #include <spdlog/spdlog.h>
 
 using namespace GameConfig::ItemSpawn;
@@ -92,9 +93,9 @@ void GameServer::processPackets()
 		uint32_t clientId = m_lobby.findClient(remote);
 		if(!clientId)
 			continue;
-		if(m_lastClientTicks[clientId - 1] >= tick)
+		if(!m_lobby.m_slots[clientId - 1].bValid || m_lastClientTicks[clientId - 1] >= tick)
 		{ // Packet was duplicated or reordered
-			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Outdated pkt from {}, (know {}, got {})", clientId,
+			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Outdated pkt from {}, (know {}, got {})", clientId,
 			                   m_lastClientTicks[clientId - 1], tick);
 			continue;
 		}
@@ -102,62 +103,42 @@ void GameServer::processPackets()
 
 		switch(UnreliablePktType(type))
 		{
-		case UnreliablePktType::MOVE: {
-			sf::Vector2f posDelta;
-			sf::Angle cannonAngle;
-			rxPkt >> posDelta >> cannonAngle;
-			if(m_lobby.m_slots[clientId - 1].bValid)
+		case UnreliablePktType::INPUT: {
+			WorldUpdateData wud;
+			rxPkt >> wud;
+			PlayerState &ps = m_world.getPlayerById(clientId);
+			if(wud.posDelta != sf::Vector2f{0, 0})
 			{
-				PlayerState &ps = m_world.getPlayerById(clientId);
-				ps.moveOn(m_world.getMap(), posDelta);
-				ps.setCannonRotation(cannonAngle);
+				// m_lobby.m_slots[clientId - 1].bValid &= wud.posDelta.lengthSquared() <= 1;
+				ps.moveOn(m_world.m_map, wud.posDelta);
+				ps.setCannonRotation(wud.cannonRot);
 			}
-			else
-				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "MOVE: Dropping packet from invalid player id {}", clientId);
-			break;
-		}
-		case UnreliablePktType::SHOOT: {
-			sf::Angle cannonAngle;
-			rxPkt >> cannonAngle;
-			if(m_lobby.m_slots[clientId - 1].bValid)
+			if(wud.bShoot && ps.tryShoot())
 			{
-				PlayerState &ps = m_world.getPlayerById(clientId);
+				ps.setCannonRotation(wud.cannonRot);
 
-				if(ps.tryShoot())
-				{
-					ps.setCannonRotation(cannonAngle);
+				// spawn projectile at cannon tip
+				sf::Vector2f tankCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+				sf::Vector2f cannonOffset =
+					sf::Vector2f(0.f, -GameConfig::Player::CANNON_LENGTH).rotatedBy(wud.cannonRot);
+				sf::Vector2f position = tankCenter + cannonOffset;
 
-					// spawn projectile at cannon tip
-					sf::Vector2f tankCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
-					sf::Vector2f cannonOffset =
-						sf::Vector2f(0.f, -GameConfig::Player::CANNON_LENGTH).rotatedBy(cannonAngle);
-					sf::Vector2f position = tankCenter + cannonOffset;
+				// calculate velocity from cannon angle
+				sf::Vector2f velocity = sf::Vector2f(0.f, -GameConfig::Projectile::SPEED).rotatedBy(wud.cannonRot);
 
-					// calculate velocity from cannon angle
-					sf::Vector2f velocity = sf::Vector2f(0.f, -GameConfig::Projectile::SPEED).rotatedBy(cannonAngle);
-
-					// Apply damage multiplier from powerups
-					int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
-					m_world.addProjectile(position, velocity, clientId, damage);
-					SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} shoots at t={}, angle={} (damage={})",
-					                   clientId, tick, cannonAngle.asDegrees(), damage);
-				}
+				// Apply damage multiplier from powerups
+				int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
+				m_world.addProjectile(position, velocity, clientId, damage);
+				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} shoots at t={}, angle={} (damage={})", clientId,
+				                   tick, wud.cannonRot.asDegrees(), damage);
 			}
-			else
-				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping SHOOT packet from invalid player id {}", clientId);
-			break;
-		}
-		case UnreliablePktType::USE_ITEM: {
-			size_t slot;
-			rxPkt >> slot;
-			if(m_lobby.m_slots[clientId - 1].bValid)
+
+			if(wud.slot)
 			{
-				PlayerState &ps = m_world.getPlayerById(clientId);
-				ps.useItem(slot);
-				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} used item t={}, slot #{}", clientId, tick, slot);
+				ps.useItem(wud.slot);
+				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} used item t={}, slot #{}", clientId, tick,
+				                   wud.slot);
 			}
-			else
-				SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Dropping USE_ITEM packet from invalid player {}", clientId);
 			break;
 		}
 		default:

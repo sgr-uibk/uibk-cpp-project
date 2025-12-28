@@ -10,13 +10,39 @@
 #include "PauseMenuClient.h"
 #include "ItemBarClient.h"
 
+struct WorldUpdateData
+{
+	sf::Vector2f posDelta = {0, 0};
+	sf::Angle rot = sf::radians(0);
+	sf::Angle cannonRot = sf::radians(0);
+	uint8_t slot = 0;
+	bool bShoot = false;
+};
+
+inline sf::Packet &operator<<(sf::Packet &pkt, WorldUpdateData const &wud)
+{
+	pkt << wud.posDelta << wud.rot << wud.cannonRot << wud.slot << wud.bShoot;
+	return pkt;
+}
+
+inline sf::Packet &operator>>(sf::Packet &pkt, WorldUpdateData &wud)
+{
+	sf::Vector2f posDelta;
+	sf::Angle rot, cannonRot;
+	uint8_t slot;
+	bool bShoot;
+	pkt >> posDelta >> rot >> cannonRot >> slot >> bShoot;
+	wud = {posDelta, rot, cannonRot, slot, bShoot};
+	return pkt;
+}
+
 class WorldClient
 {
   public:
 	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, int mapIndex,
 	            std::array<PlayerState, MAX_PLAYERS> players);
 
-	std::optional<sf::Packet> update(sf::Vector2f posDelta);
+	bool update(WorldUpdateData &wud);
 	void draw(sf::RenderWindow &window) const;
 	[[nodiscard]] PlayerState getOwnPlayerState() const
 	{
@@ -42,7 +68,7 @@ class WorldClient
 	std::array<PlayerClient, MAX_PLAYERS> m_players;
 	std::vector<ProjectileClient> m_projectiles;
 	std::vector<ItemClient> m_items;
-	EntityId m_ownPlayerId;
+	EntityId const m_ownPlayerId;
 	sf::View m_worldView;
 	sf::View m_hudView;
 	float m_zoomLevel = 1.0f;
