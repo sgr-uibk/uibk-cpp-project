@@ -76,7 +76,7 @@ void PlayerClient::applyLocalMove(MapState const &map, sf::Vector2f delta)
 	syncSpriteToState();
 }
 
-void PlayerClient::setTurretRotation(sf::Angle angle)
+void PlayerClient::setCannonRotation(sf::Angle angle)
 {
 	m_state.setCannonRotation(angle);
 	syncSpriteToState();

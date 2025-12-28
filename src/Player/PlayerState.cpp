@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 
 using namespace GameConfig::Player;
+using namespace GameConfig::Powerup;
 
 void InterpPlayerState::overwriteBy(InterpPlayerState const auth)
 {
@@ -146,7 +147,7 @@ void PlayerState::applyPowerup(PowerupType type)
 			// apply instant effects
 			if(type == PowerupType::HEALTH_PACK)
 			{
-				heal(GameConfig::Powerup::HEALTH_PACK_HEAL);
+				heal(HEALTH_PACK_HEAL);
 			}
 			return;
 		}
@@ -156,7 +157,7 @@ void PlayerState::applyPowerup(PowerupType type)
 	m_powerups[0].apply(type);
 	if(type == PowerupType::HEALTH_PACK)
 	{
-		heal(GameConfig::Powerup::HEALTH_PACK_HEAL);
+		heal(HEALTH_PACK_HEAL);
 	}
 }
 
@@ -183,22 +184,22 @@ PowerupEffect const *PlayerState::getPowerup(PowerupType type) const
 float PlayerState::getSpeedMultiplier() const
 {
 	if(hasPowerup(PowerupType::SPEED_BOOST))
-		return GameConfig::Powerup::SPEED_BOOST_MULTIPLIER;
+		return SPEED_BOOST_MULTIPLIER;
 	return 1.f;
 }
 
 int PlayerState::getDamageMultiplier() const
 {
 	if(hasPowerup(PowerupType::DAMAGE_BOOST))
-		return GameConfig::Powerup::DAMAGE_BOOST_MULTIPLIER;
+		return DAMAGE_BOOST_MULTIPLIER;
 	return 1;
 }
 
 float PlayerState::getShootCooldown() const
 {
 	if(hasPowerup(PowerupType::RAPID_FIRE))
-		return GameConfig::Powerup::RAPID_FIRE_COOLDOWN;
-	return GameConfig::Player::SHOOT_COOLDOWN;
+		return RAPID_FIRE_COOLDOWN;
+	return SHOOT_COOLDOWN;
 }
 
 uint32_t PlayerState::getPlayerId() const
