@@ -14,8 +14,8 @@ class ItemBarClient
 		m_selectedSlot = slot;
 	}
 	size_t getSelection() const
-	{
-		return m_selectedSlot;
+	{ // 0 is reserved for "no item used"
+		return m_selectedSlot + 1;
 	}
 	bool handleItemUse() // clear-on-get
 	{

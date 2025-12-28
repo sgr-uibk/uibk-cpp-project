@@ -36,7 +36,7 @@ void WorldClient::propagateUpdate(float dt)
 		item.update(dt);
 }
 
-std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
+bool WorldClient::update(WorldUpdateData &wud)
 {
 	float const frameDelta = m_frameClock.restart().asSeconds();
 	m_clientTick++;
@@ -45,11 +45,8 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 		m_tickClock.restart();
 	propagateUpdate(frameDelta);
 	if(m_pauseMenu.isPaused() || !m_bAcceptInput || !m_window.hasFocus())
-	{ // skip game logic
-		return std::nullopt;
-	}
-
-	sf::Angle aimAngle;
+		return false;
+	else
 	{
 		PlayerState const &ps = m_state.getPlayerById(m_ownPlayerId);
 		sf::Vector2f playerCartCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
@@ -61,53 +58,33 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 
 		sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
 		sf::Vector2f mouseIsoPos = m_window.mapPixelToCoords(mousePixelPos, cameraView);
-
 		sf::Vector2f mouseCartPos = isoToCartesian(mouseIsoPos);
-
 		sf::Vector2f dir = mouseCartPos - playerCartCenter;
-		float angleRad = std::atan2(dir.y, dir.x);
 
-		aimAngle = (sf::radians(angleRad) + sf::degrees(90.0f)).wrapUnsigned();
+		wud.cannonRot = (dir.angle() + sf::degrees(90.0f)).wrapUnsigned();
 	}
 
-	if(m_ownPlayerId > 0 && m_ownPlayerId <= MAX_PLAYERS)
-	{
-		m_players[m_ownPlayerId - 1].setTurretRotation(aimAngle);
-	}
+	m_players[m_ownPlayerId - 1].setCannonRotation(wud.cannonRot);
 
 	if(m_itemBar.handleItemUse())
+		wud.slot = m_itemBar.getSelection();
+
+	wud.bShoot = wud.bShoot && m_state.getPlayerById(m_ownPlayerId).tryShoot();
+	if(wud.bShoot)
 	{
-		sf::Packet pkt = createTickedPkt(UnreliablePktType::USE_ITEM, m_clientTick);
-		pkt << m_itemBar.getSelection();
-		return std::optional(pkt);
+		m_players[m_ownPlayerId - 1].playShotSound();
+		assert(!m_state.getPlayerById(m_ownPlayerId).m_shootCooldown.isReady());
 	}
 
-	// TODO Can't shoot and move in the same frame like this
-	bool const shoot =
-		sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Space) || sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
-	if(shoot && m_state.getPlayerById(m_ownPlayerId).tryShoot())
-	{
-		m_players[m_ownPlayerId-1].playShotSound();
-		sf::Packet pkt = createTickedPkt(UnreliablePktType::SHOOT, m_clientTick);
-		pkt << aimAngle;
-		return std::optional(pkt);
-	}
-
-	if(posDelta != sf::Vector2f{0, 0})
+	if(wud.posDelta != sf::Vector2f{0, 0})
 	{ // now we can safely normalize
-		posDelta *= UNRELIABLE_TICK_HZ / (RENDER_TICK_HZ * posDelta.length());
-		m_interp.predictMovement(posDelta);
-
+		wud.posDelta *= UNRELIABLE_TICK_HZ / (RENDER_TICK_HZ * wud.posDelta.length());
+		m_interp.predictMovement(wud.posDelta);
 		if(bServerTickExpired)
-		{
-			sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
-			pkt << m_interp.getCumulativeInputs(m_clientTick);
-			pkt << aimAngle;
-			return std::optional(pkt);
-		}
+			wud.posDelta = m_interp.getCumulativeInputs(m_clientTick);
 	}
-
-	return std::nullopt;
+	// Movement is tick-rate-limited, others get sent immediately
+	return bServerTickExpired || wud.bShoot || wud.slot;
 }
 
 void WorldClient::draw(sf::RenderWindow &window) const
