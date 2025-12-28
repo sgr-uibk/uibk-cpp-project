@@ -3,6 +3,8 @@
 #include "GameConfig.h"
 #include <spdlog/spdlog.h>
 
+using namespace GameConfig::ItemSpawn;
+
 GameServer::GameServer(LobbyServer &lobbyServer, uint16_t const gamePort, WorldState const &wsInit)
 	: m_gamePort(gamePort), m_world(wsInit), m_lobby(lobbyServer)
 {
@@ -168,8 +170,7 @@ void GameServer::processPackets()
 
 void GameServer::spawnItems()
 {
-	if(m_itemSpawnClock.getElapsedTime().asSeconds() > GameConfig::ItemSpawn::SPAWN_INTERVAL &&
-	   m_world.getItems().size() < GameConfig::ItemSpawn::MAX_ITEMS_ON_MAP)
+	if(m_itemSpawnClock.getElapsedTime().asSeconds() > SPAWN_INTERVAL && m_world.getItems().size() < MAX_ITEMS_ON_MAP)
 	{
 		m_itemSpawnClock.restart();
 
