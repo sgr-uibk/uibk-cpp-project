@@ -80,7 +80,6 @@ void LobbyServer::acceptNewClient()
 	if(tentativeId++ == MAX_PLAYERS)
 	{
 		SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Maximum lobby size reached, rejecting player.");
-		// TODO Tell them they were rejected.
 		newClientSock.disconnect();
 		return;
 	}
@@ -145,7 +144,6 @@ uint32_t LobbyServer::findClient(Endpoint remote) const
 
 void LobbyServer::handleClient(LobbyPlayer &p)
 {
-	// TODO assuming tcpSocket is nonblocking, what do we get in case of nothing ?
 	sf::Packet rxPkt;
 	switch(auto const status = checkedReceive(p.tcpSocket, rxPkt))
 	{

@@ -185,7 +185,6 @@ WorldState &WorldClient::getState()
 	return m_state;
 }
 
-// TODO Move/keep logic out of this function, it's just a dispatcher.
 void WorldClient::pollEvents()
 {
 	while(std::optional const event = m_window.pollEvent())

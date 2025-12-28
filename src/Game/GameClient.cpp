@@ -7,7 +7,6 @@
 
 GameClient::GameClient(WorldClient &world, LobbyClient &lobby)
 	: m_world(world), m_lobby(lobby), m_gameServer({lobby.m_lobbySock.getRemoteAddress().value(), PORT_UDP})
-// TODO, the server needs to send its udp port to the clients, or take control over that away from the users
 {
 }
 
