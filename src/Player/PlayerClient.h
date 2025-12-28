@@ -28,7 +28,7 @@ class PlayerClient
 	// input / local movement (prediction)
 	void applyLocalMove(MapState const &map, sf::Vector2f delta);
 
-	void setTurretRotation(sf::Angle angle);
+	void setCannonRotation(sf::Angle angle);
 
 	PlayerState const &getState() const
 	{

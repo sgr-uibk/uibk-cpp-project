@@ -38,8 +38,8 @@ sf::Vector2f InterpClient::getCumulativeInputs(Tick clientTick)
 	m_inputAcc = {0, 0}; // now in flight
 	Tick const oldest = m_stateBuffer.get(-1).tick;
 	if(m_ackedTick < oldest)
-		SPDLOG_LOGGER_WARN(spdlog::get("Client"), "Inflight input buffer overrun: {} overrides {} (last acked {})",
-		                   clientTick, oldest, m_ackedTick);
+		SPDLOG_LOGGER_WARN(spdlog::get("Client"),
+		                   "Inflight input buffer discontinuity: {} overrides {} (last acked {})", clientTick, oldest, m_ackedTick);
 	m_inflightInputs.emplace(clientTick, acc);
 	return acc;
 }
