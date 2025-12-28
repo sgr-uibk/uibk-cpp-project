@@ -49,7 +49,6 @@ struct Endpoint
 	}
 };
 
-
 enum class ReliablePktType : uint8_t
 {
 	JOIN_REQ = 1,
@@ -63,9 +62,7 @@ enum class ReliablePktType : uint8_t
 
 enum class UnreliablePktType : uint8_t
 {
-	MOVE = 1,
-	SHOOT,
-	USE_ITEM,
+	INPUT,
 	SNAPSHOT,
 	LAST
 };

@@ -255,17 +255,17 @@ bool PlayerState::addToInventory(PowerupType type)
 	return false;
 }
 
-void PlayerState::useItem(size_t const slot)
+void PlayerState::useItem(size_t const slotNum)
 {
-	if(slot >= m_inventory.size())
+	if(slotNum > m_inventory.size())
 		return;
 
-	PowerupType itemType = m_inventory[slot];
+	PowerupType itemType = m_inventory[slotNum - 1];
 	if(itemType == PowerupType::NONE)
 		return;
 
 	applyPowerup(itemType);
-	m_inventory[slot] = PowerupType::NONE;
+	m_inventory[slotNum - 1] = PowerupType::NONE;
 }
 
 PowerupType PlayerState::getInventoryItem(int slot) const
