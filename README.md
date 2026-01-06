@@ -1,18 +1,30 @@
 # Game Specification
 
-We describe a simple 2D networked multiplayer game.
+We built a simple real-time networked multiplayer game.
 
-We have a top-down view of the world, players are tanks or similar vehicles, they have health and can shoot projectiles.
+We have an isometric view of the world, players are tanks, they have health and can shoot projectiles.
 
-There are obstacles on the map, some of them are destroyable or traversable, others not.
+There are obstacles on the map that can be damaged and destroyed. Collisions with obstackles deals damage to players.
+The maps themselves are predefined, stored as json files.
 
-At first, one player hosts a lobby, the others join, the game starts when all players are ready.
-In the match, players shoot each other until the last one survives, who is the winner.
+Game flow is a classic Lobby - Battle loop:
+There is a dedicated server hosting a lobby, where players can join, the game starts when all players are ready.
+In the match, players can move around the map and shoot each other until the last one survives, who is the winner.
 
-Maps are predefined, stored in files like explained in the metroidvania specification example.
+An emphasis was made on a proper Client-Server model that makes many forms of cheating impossible by design (e.g.
+noclip, teleport / movement speed hacks, health and damage cheats, etc.).
+The Server is always authoritative, clients do prediction and reconciliation of their local state to ensure a smooth
+experience for the player.
+In case of a discrepancy between client and server, the clients will accept the server state to ensure consistency and
+prevent the above mentioned ways of cheating.
 
-For references:
+The Server enforces UDP packet ordering - it drops reordered and duplicated packets to prevent cheating on the network
+layer.
+Passive cheats are still possible to some degree: The client does interpolation, so with intentional modification of
+their client, cheating players can exploit this system to show all interpolation data, thus see where enemies are moving
+a few frames ahead of time.
 
+:
 - Nier Automata's Hacking Minigame ![](https://www.confreaksandgeeks.com/wp-content/uploads/2017/03/NieR_Automata_20170315171011.jpg)
 - Tank 1990
 - Tank Trouble
@@ -72,13 +84,13 @@ dir build
 
 ### Build for Linux (Ubtuntu in this example)
 ```shell
-sudo apt update && sudo apt install -y libsfml-dev cmake build-essential git git-lfs
+sudo apt update && sudo apt install -y libsfml-dev cmake build-essential git git-lfs libnlohmann-json3-dev
 
 # If that fails, try explicitly specifying the dependencies for libsfml-dev
 sudo apt install -y \
   libfreetype6-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
   libudev-dev libgl1-mesa-dev libflac-dev libogg-dev libvorbis-dev \
-  libvorbisenc2 libvorbisfile3 libpthread-stubs0-dev git-lfs
+  libvorbisenc2 libvorbisfile3 libpthread-stubs0-dev git-lfs 
 ```
 
 Then, `git clone` this repository and open a shell inside its directory.
