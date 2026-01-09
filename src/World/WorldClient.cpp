@@ -15,9 +15,13 @@ std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states, std
 
 WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, int mapIndex,
                          std::array<PlayerState, MAX_PLAYERS> players)
-	: m_bAcceptInput(true), m_pauseMenu(window), m_state(mapIndex, std::move(players)),
-	  m_itemBar(m_state.getPlayerById(ownPlayerId), window), m_window(window), m_mapClient(m_state.getMap()),
-	  m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
+	: m_bAcceptInput(true), m_pauseMenu(window),
+	  m_state(mapIndex, std::move(players)),
+	  m_itemBar(m_state.getPlayerById(ownPlayerId), window),
+	  m_healthBar(sf::Vector2f(20.f, 20.f), sf::Vector2f(220.f, 28.f), m_state.getPlayerById(ownPlayerId).getMaxHealth()),
+	  m_window(window), m_mapClient(m_state.getMap()),
+	  m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)),
+	  m_ownPlayerId(ownPlayerId),
 	  m_interp(m_state.getMap(), ownPlayerId, m_players)
 {
 	m_worldView = sf::View(sf::FloatRect({0, 0}, sf::Vector2f(window.getSize())));
@@ -44,6 +48,11 @@ bool WorldClient::update(WorldUpdateData &wud)
 	if(bServerTickExpired)
 		m_tickClock.restart();
 	propagateUpdate(frameDelta);
+
+	// Update healthbar
+	PlayerState const &ownPlayerState = m_state.getPlayerById(m_ownPlayerId);
+	m_healthBar.setHealth(ownPlayerState.getHealth());
+	m_healthBar.setMaxHealth(ownPlayerState.getMaxHealth());
 	if(m_pauseMenu.isPaused() || !m_bAcceptInput || !m_window.hasFocus())
 		return false;
 	else
@@ -146,6 +155,8 @@ void WorldClient::draw(sf::RenderWindow &window) const
 		obj.draw(window);
 
 	window.setView(m_hudView);
+
+	window.draw(m_healthBar);
 	m_itemBar.draw(window);
 	m_pauseMenu.draw(window);
 }
