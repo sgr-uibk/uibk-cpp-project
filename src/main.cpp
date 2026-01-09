@@ -64,7 +64,7 @@ int main()
 	auto logger = createConsoleAndFileLogger("Client");
 	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Tank Game starting...");
 
-	sf::RenderWindow window(sf::VideoMode(WINDOW_DIM), "Tank Game", sf::Style::Titlebar | sf::Style::Close);
+	sf::RenderWindow window(sf::VideoMode(WINDOW_DIM), "Tank Game", sf::Style::Default);
 	window.setFramerateLimit(60);
 
 	Menu menu(WINDOW_DIM);

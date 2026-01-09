@@ -10,36 +10,15 @@ PauseMenuClient::PauseMenuClient(sf::RenderWindow &window)
 	: m_pauseFont(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_window(window),
 	  m_battleMusic(initMusic("audio/battle_loop.ogg"))
 {
-	sf::Vector2f windowSize(window.getSize());
-	float buttonWidth = GameConfig::UI::BUTTON_WIDTH;
-	float buttonHeight = GameConfig::UI::BUTTON_HEIGHT;
-	float centerX = windowSize.x / 2.f - buttonWidth / 2.f;
-	float startY = windowSize.y / 2.f - 100.f;
-	float spacing = GameConfig::UI::BUTTON_SPACING;
+	m_buttonLabels = {GameConfig::UI::Text::BUTTON_RESUME, GameConfig::UI::Text::BUTTON_DISCONNECT,
+	                  GameConfig::UI::Text::BUTTON_SETTINGS};
+}
 
-	const std::vector<std::string> buttonLabels = {GameConfig::UI::Text::BUTTON_RESUME,
-	                                               GameConfig::UI::Text::BUTTON_DISCONNECT,
-	                                               GameConfig::UI::Text::BUTTON_SETTINGS};
-	for(size_t i = 0; i < buttonLabels.size(); ++i)
-	{
-		sf::RectangleShape button(sf::Vector2f(buttonWidth, buttonHeight));
-		button.setPosition(sf::Vector2f(centerX, startY + i * (buttonHeight + spacing)));
-		button.setFillColor(sf::Color(80, 80, 80));
-		button.setOutlineColor(sf::Color::White);
-		button.setOutlineThickness(2.f);
-		m_pauseButtons.push_back(button);
-
-		sf::Text text(m_pauseFont);
-		text.setString(buttonLabels[i]);
-		text.setCharacterSize(24);
-		text.setFillColor(sf::Color::White);
-
-		sf::FloatRect textBounds = text.getLocalBounds();
-		text.setPosition(
-			sf::Vector2f(centerX + buttonWidth / 2.f - textBounds.size.x / 2.f,
-		                 startY + i * (buttonHeight + spacing) + buttonHeight / 2.f - textBounds.size.y / 2.f - 5.f));
-		m_pauseButtonTexts.push_back(text);
-	}
+std::string PauseMenuClient::getWindowSizeString() const
+{
+	auto const &size = GameConfig::UI::WINDOW_SIZE_PRESETS[m_currentWindowSizeIndex];
+	return std::string(GameConfig::UI::Text::WINDOW_SIZE_PREFIX) + std::to_string(size.x) + "x" +
+	       std::to_string(size.y);
 }
 
 void PauseMenuClient::draw(sf::RenderWindow &window) const
@@ -53,12 +32,19 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 
 	if(m_pauseMenuState == PauseMenuState::MAIN)
 	{
+		sf::Vector2f windowSize(window.getSize());
+		float buttonWidth = GameConfig::UI::BUTTON_WIDTH;
+		float buttonHeight = GameConfig::UI::BUTTON_HEIGHT;
+		float centerX = windowSize.x / 2.f - buttonWidth / 2.f;
+		float startY = windowSize.y / 2.f - 100.f;
+		float spacing = GameConfig::UI::BUTTON_SPACING;
+
 		sf::Text pauseTitle(m_pauseFont);
 		pauseTitle.setString(GameConfig::UI::Text::PAUSE_TITLE);
 		pauseTitle.setCharacterSize(48);
 		pauseTitle.setFillColor(sf::Color::White);
 		sf::FloatRect titleBounds = pauseTitle.getLocalBounds();
-		pauseTitle.setPosition(sf::Vector2f(window.getSize().x / 2.f - titleBounds.size.x / 2.f, 80.f));
+		pauseTitle.setPosition(sf::Vector2f(windowSize.x / 2.f - titleBounds.size.x / 2.f, 80.f));
 		window.draw(pauseTitle);
 
 		sf::Text warningText(m_pauseFont);
@@ -66,13 +52,29 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 		warningText.setCharacterSize(20);
 		warningText.setFillColor(sf::Color(255, 100, 100));
 		sf::FloatRect warningBounds = warningText.getLocalBounds();
-		warningText.setPosition(sf::Vector2f(window.getSize().x / 2.f - warningBounds.size.x / 2.f, 160.f));
+		warningText.setPosition(sf::Vector2f(windowSize.x / 2.f - warningBounds.size.x / 2.f, 160.f));
 		window.draw(warningText);
 
-		for(size_t i = 0; i < m_pauseButtons.size(); ++i)
+		for(size_t i = 0; i < m_buttonLabels.size(); ++i)
 		{
-			window.draw(m_pauseButtons[i]);
-			window.draw(m_pauseButtonTexts[i]);
+			// Draw button
+			sf::RectangleShape button(sf::Vector2f(buttonWidth, buttonHeight));
+			button.setPosition(sf::Vector2f(centerX, startY + i * (buttonHeight + spacing)));
+			button.setFillColor(sf::Color(80, 80, 80));
+			button.setOutlineColor(sf::Color::White);
+			button.setOutlineThickness(2.f);
+			window.draw(button);
+
+			// Draw button text
+			sf::Text text(m_pauseFont);
+			text.setString(m_buttonLabels[i]);
+			text.setCharacterSize(24);
+			text.setFillColor(sf::Color::White);
+			sf::FloatRect textBounds = text.getLocalBounds();
+			text.setPosition(sf::Vector2f(centerX + buttonWidth / 2.f - textBounds.size.x / 2.f,
+			                              startY + i * (buttonHeight + spacing) + buttonHeight / 2.f -
+			                                  textBounds.size.y / 2.f - 5.f));
+			window.draw(text);
 		}
 	}
 	else if(m_pauseMenuState == PauseMenuState::SETTINGS)
@@ -104,12 +106,31 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 				musicBounds.position.y));
 		window.draw(musicText);
 
+		// Window size button
+		sf::RectangleShape windowSizeButton;
+		windowSizeButton.setSize({GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT});
+		windowSizeButton.setPosition({window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 170.f});
+		windowSizeButton.setFillColor(sf::Color(80, 80, 80));
+		window.draw(windowSizeButton);
+
+		sf::Text windowSizeText(m_pauseFont);
+		windowSizeText.setString(getWindowSizeString());
+		windowSizeText.setCharacterSize(22);
+		windowSizeText.setFillColor(sf::Color::White);
+		sf::FloatRect windowSizeBounds = windowSizeText.getLocalBounds();
+		windowSizeText.setPosition(sf::Vector2f(
+			windowSizeButton.getPosition().x +
+				(GameConfig::UI::MUSIC_BUTTON_WIDTH - windowSizeBounds.size.x) / 2.f - windowSizeBounds.position.x,
+			windowSizeButton.getPosition().y +
+				(GameConfig::UI::MUSIC_BUTTON_HEIGHT - windowSizeBounds.size.y) / 2.f - windowSizeBounds.position.y));
+		window.draw(windowSizeText);
+
 		sf::Text keybindsHeader(m_pauseFont);
 		keybindsHeader.setString(GameConfig::UI::Text::KEYBINDS_HEADER);
 		keybindsHeader.setCharacterSize(28);
 		keybindsHeader.setFillColor(sf::Color(200, 200, 100));
 		sf::FloatRect headerBounds = keybindsHeader.getLocalBounds();
-		keybindsHeader.setPosition(sf::Vector2f(window.getSize().x / 2.f - headerBounds.size.x / 2.f, 190.f));
+		keybindsHeader.setPosition(sf::Vector2f(window.getSize().x / 2.f - headerBounds.size.x / 2.f, 230.f));
 		window.draw(keybindsHeader);
 
 		std::vector<std::string> keybindLabels = {
@@ -124,7 +145,7 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 			keybindText.setCharacterSize(20);
 			keybindText.setFillColor(sf::Color(200, 200, 200));
 			sf::FloatRect textBounds = keybindText.getLocalBounds();
-			keybindText.setPosition(sf::Vector2f(window.getSize().x / 2.f - textBounds.size.x / 2.f, 235.f + i * 32.f));
+			keybindText.setPosition(sf::Vector2f(window.getSize().x / 2.f - textBounds.size.x / 2.f, 275.f + i * 32.f));
 			window.draw(keybindText);
 		}
 
@@ -172,9 +193,18 @@ void PauseMenuClient::handleClick(sf::Vector2f mousePos)
 {
 	if(m_pauseMenuState == PauseMenuState::MAIN)
 	{
-		for(size_t i = 0; i < m_pauseButtons.size(); ++i)
+		sf::Vector2f windowSize(m_window.getSize());
+		float buttonWidth = GameConfig::UI::BUTTON_WIDTH;
+		float buttonHeight = GameConfig::UI::BUTTON_HEIGHT;
+		float centerX = windowSize.x / 2.f - buttonWidth / 2.f;
+		float startY = windowSize.y / 2.f - 100.f;
+		float spacing = GameConfig::UI::BUTTON_SPACING;
+
+		for(size_t i = 0; i < m_buttonLabels.size(); ++i)
 		{
-			if(m_pauseButtons[i].getGlobalBounds().contains(mousePos))
+			sf::FloatRect buttonBounds(sf::Vector2f(centerX, startY + i * (buttonHeight + spacing)),
+			                           sf::Vector2f(buttonWidth, buttonHeight));
+			if(buttonBounds.contains(mousePos))
 			{
 				if(i == 0)
 				{
@@ -213,6 +243,20 @@ void PauseMenuClient::handleClick(sf::Vector2f mousePos)
 				m_battleMusic.play();
 				spdlog::info("Battle music started");
 			}
+			return;
+		}
+
+		// Window size button
+		sf::FloatRect windowSizeButtonBounds(
+			sf::Vector2f(m_window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 170.f),
+			sf::Vector2f(GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT));
+
+		if(windowSizeButtonBounds.contains(mousePos))
+		{
+			m_currentWindowSizeIndex = (m_currentWindowSizeIndex + 1) % GameConfig::UI::WINDOW_SIZE_PRESETS.size();
+			auto const &newSize = GameConfig::UI::WINDOW_SIZE_PRESETS[m_currentWindowSizeIndex];
+			m_window.setSize(newSize);
+			spdlog::info("Window size changed to {}x{}", newSize.x, newSize.y);
 			return;
 		}
 
