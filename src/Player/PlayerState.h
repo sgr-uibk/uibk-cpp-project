@@ -88,5 +88,5 @@ struct PlayerState
 
 	std::array<PowerupType, 9> m_inventory{PowerupType::NONE};
 
-	static constexpr sf::Vector2f logicalDimensions = {32, 32};
+	static constexpr sf::Vector2f logicalDimensions = {28, 28};
 };
