@@ -2,6 +2,7 @@
 #include <string>
 #include <array>
 #include <SFML/System/Vector2.hpp>
+#include <SFML/Graphics/Color.hpp>
 
 // ============================================================================
 // Gameplay constants
@@ -76,6 +77,10 @@ namespace UI
 	// Hotbar/Inventory
 	constexpr float HOTBAR_SLOT_SIZE = 50.f;
 	constexpr float HOTBAR_SLOT_SPACING = 5.f;
+	constexpr sf::Color HOTBAR_SELECTED_OUTLINE = sf::Color(255, 215, 0); // Gold
+	constexpr float HOTBAR_SELECTED_OUTLINE_THICKNESS = 3.f;
+	constexpr sf::Color HOTBAR_UNSELECTED_OUTLINE = sf::Color(100, 100, 100);
+	constexpr float HOTBAR_UNSELECTED_OUTLINE_THICKNESS = 1.f;
 
 	// Window size presets
 	constexpr std::array<sf::Vector2u, 5> WINDOW_SIZE_PRESETS = {

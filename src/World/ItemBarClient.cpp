@@ -63,15 +63,26 @@ void ItemBarClient::draw(sf::RenderWindow &window) const
 		// selected slot highlight
 		if(i == m_selectedSlot)
 		{
-			slot.setOutlineColor(sf::Color::White);
-			slot.setOutlineThickness(3.f);
+			slot.setOutlineColor(GameConfig::UI::HOTBAR_SELECTED_OUTLINE);
+			slot.setOutlineThickness(GameConfig::UI::HOTBAR_SELECTED_OUTLINE_THICKNESS);
 		}
 		else
 		{
-			slot.setOutlineColor(sf::Color(100, 100, 100));
-			slot.setOutlineThickness(1.f);
+			slot.setOutlineColor(GameConfig::UI::HOTBAR_UNSELECTED_OUTLINE);
+			slot.setOutlineThickness(GameConfig::UI::HOTBAR_UNSELECTED_OUTLINE_THICKNESS);
 		}
 		window.draw(slot);
+
+		// inner glow for selected slot
+		if(i == m_selectedSlot)
+		{
+			sf::RectangleShape innerGlow(sf::Vector2f(slotSize - 6.f, slotSize - 6.f));
+			innerGlow.setPosition(sf::Vector2f(x + 3.f, start.y + 3.f));
+			sf::Color glowColor = GameConfig::UI::HOTBAR_SELECTED_OUTLINE;
+			glowColor.a = 50; // Semi-transparent
+			innerGlow.setFillColor(glowColor);
+			window.draw(innerGlow);
+		}
 
 		PowerupType itemType = inventory[i];
 		if(itemType != PowerupType::NONE)
