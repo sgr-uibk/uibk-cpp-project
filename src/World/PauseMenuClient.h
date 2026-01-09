@@ -28,12 +28,13 @@ class PauseMenuClient
 		MAIN,
 		SETTINGS
 	};
+	std::string getWindowSizeString() const;
 	bool m_isPaused = false;
 	bool m_shouldDisconnect = false;
 	PauseMenuState m_pauseMenuState = PauseMenuState::MAIN;
 	sf::Font &m_pauseFont;
 	sf::RenderWindow &m_window;
-	std::vector<sf::RectangleShape> m_pauseButtons;
-	std::vector<sf::Text> m_pauseButtonTexts;
+	std::vector<std::string> m_buttonLabels;
 	sf::Music &m_battleMusic;
+	size_t m_currentWindowSizeIndex = 0;
 };

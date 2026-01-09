@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <array>
+#include <SFML/System/Vector2.hpp>
 
 // ============================================================================
 // Gameplay constants
@@ -76,6 +77,15 @@ namespace UI
 	constexpr float HOTBAR_SLOT_SIZE = 50.f;
 	constexpr float HOTBAR_SLOT_SPACING = 5.f;
 
+	// Window size presets
+	constexpr std::array<sf::Vector2u, 5> WINDOW_SIZE_PRESETS = {
+		sf::Vector2u{800, 600},   // 0: Default 4:3
+		sf::Vector2u{1024, 768},  // 1: Standard 4:3
+		sf::Vector2u{1280, 720},  // 2: HD 16:9
+		sf::Vector2u{1366, 768},  // 3: WXGA 16:9
+		sf::Vector2u{1920, 1080}  // 4: Full HD 16:9
+	};
+
 	// Text labels
 	namespace Text
 	{
@@ -91,6 +101,7 @@ namespace UI
 		constexpr char const *SETTINGS_TITLE = "SETTINGS";
 		constexpr char const *MUSIC_ON = "Music: ON";
 		constexpr char const *MUSIC_OFF = "Music: OFF";
+		constexpr char const *WINDOW_SIZE_PREFIX = "Window: ";
 		constexpr char const *KEYBINDS_HEADER = "KEYBINDS";
 
 		// Keybind labels

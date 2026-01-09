@@ -215,5 +215,17 @@ void WorldClient::pollEvents()
 			if(m_window.hasFocus() && !m_pauseMenu.isPaused())
 				m_itemBar.moveSelection(scrollEvent->delta);
 		}
+		else if(auto const *resizeEvent = event->getIf<sf::Event::Resized>())
+		{
+			handleResize(resizeEvent->size);
+		}
 	}
+}
+
+void WorldClient::handleResize(sf::Vector2u newSize)
+{
+	// Update both views to match new window size
+	m_worldView.setSize(sf::Vector2f(newSize));
+	m_hudView.setSize(sf::Vector2f(newSize));
+	m_hudView.setCenter(sf::Vector2f(newSize) / 2.f);
 }

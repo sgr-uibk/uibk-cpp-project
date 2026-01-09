@@ -61,6 +61,7 @@ class WorldClient
 
   private:
 	void propagateUpdate(float dt);
+	void handleResize(sf::Vector2u newSize);
 	WorldState m_state;
 	ItemBarClient m_itemBar;
 	sf::RenderWindow &m_window;
