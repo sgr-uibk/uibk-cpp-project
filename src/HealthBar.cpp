@@ -27,11 +27,13 @@ void HealthBar::setMaxHealth(int const max)
 {
 	m_maxHealth = max;
 	m_health = std::min(m_health, m_maxHealth);
+	updateVisuals();
 }
 
 void HealthBar::setHealth(int const health)
 {
 	m_health = health;
+	updateVisuals();
 }
 
 void HealthBar::setPositionScreen(sf::Vector2f const &pos)

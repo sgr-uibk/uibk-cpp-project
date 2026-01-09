@@ -64,7 +64,7 @@ add_executable(TankGame
     src/Map/MapParser.cpp
 )
 
-add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp src/Map/MapParser.cpp)
+add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp src/Map/MapParser.cpp src/HealthBar.cpp)
 add_executable(Server ${TEST_ROOT}/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp src/Map/MapParser.cpp)
 
 add_library(common_deps INTERFACE)

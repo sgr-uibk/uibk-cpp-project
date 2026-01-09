@@ -9,6 +9,7 @@
 #include "Item/ItemClient.h"
 #include "PauseMenuClient.h"
 #include "ItemBarClient.h"
+#include "HealthBar.h"
 
 class WorldClient
 {
@@ -38,6 +39,7 @@ class WorldClient
 	void handleResize(sf::Vector2u newSize);
 	WorldState m_state;
 	ItemBarClient m_itemBar;
+	HealthBar m_healthBar;
 	sf::RenderWindow &m_window;
 	MapClient m_mapClient;
 	std::array<PlayerClient, MAX_PLAYERS> m_players;
