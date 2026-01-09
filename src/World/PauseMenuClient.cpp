@@ -57,7 +57,7 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 
 		for(size_t i = 0; i < m_buttonLabels.size(); ++i)
 		{
-			// Draw button
+
 			sf::RectangleShape button(sf::Vector2f(buttonWidth, buttonHeight));
 			button.setPosition(sf::Vector2f(centerX, startY + i * (buttonHeight + spacing)));
 			button.setFillColor(sf::Color(80, 80, 80));
@@ -65,7 +65,7 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 			button.setOutlineThickness(2.f);
 			window.draw(button);
 
-			// Draw button text
+
 			sf::Text text(m_pauseFont);
 			text.setString(m_buttonLabels[i]);
 			text.setCharacterSize(24);
@@ -106,7 +106,7 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 				musicBounds.position.y));
 		window.draw(musicText);
 
-		// Window size button
+
 		sf::RectangleShape windowSizeButton;
 		windowSizeButton.setSize({GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT});
 		windowSizeButton.setPosition({window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 170.f});
@@ -246,7 +246,6 @@ void PauseMenuClient::handleClick(sf::Vector2f mousePos)
 			return;
 		}
 
-		// Window size button
 		sf::FloatRect windowSizeButtonBounds(
 			sf::Vector2f(m_window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 170.f),
 			sf::Vector2f(GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT));
