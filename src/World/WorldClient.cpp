@@ -211,7 +211,21 @@ void WorldClient::pollEvents()
 			m_pauseMenu.handleKeyboardEvent(*keyPress);
 
 			if(m_bAcceptInput && !m_pauseMenu.isPaused())
+			{
 				m_itemBar.handleKeyboardEvent(keyPress->scancode);
+
+				// Handle camera zoom with +/- keys
+				if(keyPress->scancode == sf::Keyboard::Scancode::Equal ||
+				   keyPress->scancode == sf::Keyboard::Scancode::NumpadPlus)
+				{
+					m_zoomLevel = std::max(0.5f, m_zoomLevel - 0.1f); // Zoom in (decrease zoom value)
+				}
+				else if(keyPress->scancode == sf::Keyboard::Scancode::Hyphen ||
+				        keyPress->scancode == sf::Keyboard::Scancode::NumpadMinus)
+				{
+					m_zoomLevel = std::min(3.0f, m_zoomLevel + 0.1f); // Zoom out (increase zoom value)
+				}
+			}
 		}
 		else if(auto const *mouseEvent = event->getIf<sf::Event::MouseButtonPressed>())
 		{
