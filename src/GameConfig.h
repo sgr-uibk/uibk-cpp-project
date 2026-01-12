@@ -114,6 +114,7 @@ namespace UI
 		constexpr char const *KEYBIND_SHOOT = "Shoot: Space / Left Click";
 		constexpr char const *KEYBIND_USE_ITEM = "Use Item: Q";
 		constexpr char const *KEYBIND_SELECT_HOTBAR = "Select Hotbar: 1-9 / Mouse Wheel";
+		constexpr char const *KEYBIND_CAMERA_ZOOM = "Camera Zoom: + / -";
 		constexpr char const *KEYBIND_PAUSE = "Pause: Escape";
 	} // namespace Text
 } // namespace UI
