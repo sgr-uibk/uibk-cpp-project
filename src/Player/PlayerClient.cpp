@@ -18,25 +18,14 @@ static int angleToDirection(float degrees)
 
 PlayerClient::PlayerClient(PlayerState &state, sf::Color const &color)
 	: m_state(state), m_color(color),
-	  m_hullSprite(TextureManager::inst().load("tanks/tiger/Separated/Hull/german_tiger_hull1.png")),
-	  m_turretSprite(TextureManager::inst().load("tanks/tiger/Separated/Turret/german_tiger_turret1.png")),
+	  m_hullSprite(TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::HULL, TankSpriteManager::TankState::HEALTHY, 0)),
+	  m_turretSprite(TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::TURRET, TankSpriteManager::TankState::HEALTHY, 0)),
+	  m_currentTankState(TankSpriteManager::TankState::HEALTHY),
 	  m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_nameText(m_font, m_state.m_name, 14),
 	  m_shootSoundBuf(SoundBufferManager::inst().load("audio/tank_firing.ogg")), m_shootSound(m_shootSoundBuf)
 {
-	for(int i = 1; i <= 8; ++i)
-	{
-		std::string hullPath = "tanks/tiger/Separated/Hull/german_tiger_hull" + std::to_string(i) + ".png";
-		std::string turretPath = "tanks/tiger/Separated/Turret/german_tiger_turret" + std::to_string(i) + ".png";
-		m_hullTextures[i - 1] = &TextureManager::inst().load(hullPath);
-		m_turretTextures[i - 1] = &TextureManager::inst().load(turretPath);
-	}
-
-	sf::Vector2f hullSize = sf::Vector2f(m_hullTextures[0]->getSize());
-	m_hullSprite.setOrigin(hullSize / 2.f);
-	m_hullSprite.setPosition(m_state.getPosition());
-	sf::Vector2f turretSize = sf::Vector2f(m_turretTextures[0]->getSize());
-	m_turretSprite.setOrigin(turretSize / 2.f);
-	m_turretSprite.setPosition(m_state.getPosition());
+	// Properly initialize sprites based on current state
+	syncSpriteToState();
 
 	m_nameText.setFillColor(sf::Color::White);
 	m_nameText.setOutlineColor(sf::Color::Black);
@@ -121,22 +110,33 @@ void PlayerClient::updateSprite()
 
 void PlayerClient::syncSpriteToState()
 {
-	int hullDir = angleToDirection(m_state.getRotation().asDegrees()) - 1;                 // Convert to 0-7 index
-	int turretDir = angleToDirection(m_state.getCannonRotation().asDegrees() - 135.f) - 1; // Convert to 0-7 index
+	// Determine tank health state (50% threshold)
+	TankSpriteManager::TankState newState = (m_state.m_health > m_state.m_maxHealth / 2)
+	                                            ? TankSpriteManager::TankState::HEALTHY
+	                                            : TankSpriteManager::TankState::DAMAGED;
 
+	// Calculate direction indices (existing logic)
+	int hullDir = angleToDirection(m_state.getRotation().asDegrees()) - 1;
+	int turretDir = angleToDirection(m_state.getCannonRotation().asDegrees() - 135.f) - 1;
 	hullDir = std::clamp(hullDir, 0, 7);
 	turretDir = std::clamp(turretDir, 0, 7);
 
-	m_hullSprite.setTexture(*m_hullTextures[hullDir]);
-	sf::Vector2f hullSize = sf::Vector2f(m_hullTextures[hullDir]->getSize());
-	m_hullSprite.setOrigin(hullSize / 2.f);
+	// Update state tracking
+	m_currentTankState = newState;
 
-	m_turretSprite.setTexture(*m_turretTextures[turretDir]);
-	sf::Vector2f turretSize = sf::Vector2f(m_turretTextures[turretDir]->getSize());
-	m_turretSprite.setOrigin(turretSize / 2.f);
+	// Get sprites from manager
+	m_hullSprite = TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::HULL, m_currentTankState, hullDir);
+	m_turretSprite = TankSpriteManager::inst().getSprite(
+	    TankSpriteManager::TankPart::TURRET,
+	    TankSpriteManager::TankState::HEALTHY, // Turret always healthy (row 2)
+	    turretDir);
 
+	// Set sprite origins (150x150 sprites, origin at center)
+	m_hullSprite.setOrigin(sf::Vector2f(75.f, 75.f));
+	m_turretSprite.setOrigin(sf::Vector2f(75.f, 75.f));
+
+	// Position and color (existing logic)
 	sf::Vector2f cartCenter = m_state.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
-
 	sf::Vector2f isoCenter = cartesianToIso(cartCenter);
 	m_hullSprite.setPosition(isoCenter);
 	m_turretSprite.setPosition(isoCenter);
@@ -144,6 +144,7 @@ void PlayerClient::syncSpriteToState()
 	m_hullSprite.setColor(m_color);
 	m_turretSprite.setColor(m_color);
 
+	// Dead tank rendering (unchanged)
 	if(m_state.m_health <= 0)
 	{
 		sf::Color deadColor = m_color;

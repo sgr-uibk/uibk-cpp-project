@@ -39,6 +39,11 @@ namespace Player
 	constexpr int MAX_SIMULTANEOUS_POWERUPS = 5;
 	constexpr float COLLISION_DAMAGE = 0.15f;
 	constexpr float CANNON_LENGTH = 22.f; // distance from tank center to cannon tip
+
+	constexpr char const *TANK_SPRITESHEET_PATH = "tanks/tiger/hull_spritesheet.png";
+	constexpr int TANK_SPRITE_SIZE = 150;
+	constexpr int TANK_SPRITE_COLUMNS = 8;
+	constexpr float TANK_DAMAGED_THRESHOLD = 0.5f;
 } // namespace Player
 
 namespace Projectile
@@ -84,11 +89,11 @@ namespace UI
 
 	// Window size presets
 	constexpr std::array<sf::Vector2u, 5> WINDOW_SIZE_PRESETS = {
-		sf::Vector2u{800, 600},   // 0: Default 4:3
-		sf::Vector2u{1024, 768},  // 1: Standard 4:3
-		sf::Vector2u{1280, 720},  // 2: HD 16:9
-		sf::Vector2u{1366, 768},  // 3: WXGA 16:9
-		sf::Vector2u{1920, 1080}  // 4: Full HD 16:9
+		sf::Vector2u{800, 600},  // 0: Default 4:3
+		sf::Vector2u{1024, 768}, // 1: Standard 4:3
+		sf::Vector2u{1280, 720}, // 2: HD 16:9
+		sf::Vector2u{1366, 768}, // 3: WXGA 16:9
+		sf::Vector2u{1920, 1080} // 4: Full HD 16:9
 	};
 
 	// Text labels

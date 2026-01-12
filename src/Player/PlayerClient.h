@@ -1,5 +1,6 @@
 #pragma once
 #include "PlayerState.h"
+#include "TankSpriteManager.h"
 #include "Map/MapState.h"
 #include <SFML/Graphics.hpp>
 #include <functional>
@@ -50,10 +51,9 @@ class PlayerClient
 	// visuals
 	sf::Color m_color;
 
-	std::array<sf::Texture *, 8> m_hullTextures;
-	std::array<sf::Texture *, 8> m_turretTextures;
 	sf::Sprite m_hullSprite;
 	sf::Sprite m_turretSprite;
+	TankSpriteManager::TankState m_currentTankState;
 
 	sf::Font &m_font; // must be declared before m_nameText
 	sf::Text m_nameText;
