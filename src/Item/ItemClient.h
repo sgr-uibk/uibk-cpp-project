@@ -16,9 +16,9 @@ class ItemClient
 		return m_state.getId();
 	}
 
-	sf::RectangleShape const &getShape() const
+	sf::Sprite const &getSprite() const
 	{
-		return m_shape;
+		return m_sprite;
 	}
 
 	ItemState const &getState() const
@@ -28,11 +28,9 @@ class ItemClient
 
   private:
 	ItemState m_state;
-	sf::RectangleShape m_shape;
+	sf::Sprite m_sprite;
 
 	float m_bobPhase;
 	float m_bobSpeed;
 	float m_bobHeight;
-
-	static sf::Color getColorForType(PowerupType type);
 };

@@ -143,10 +143,10 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	{
 		if(item.getState().isActive())
 		{
-			sf::Vector2f itemPos = item.getShape().getPosition();
+			sf::Vector2f itemPos = item.getSprite().getPosition();
 			RenderObject obj;
 			obj.sortY = itemPos.y;
-			obj.drawable = &item.getShape();
+			obj.drawable = &item.getSprite();
 			renderQueue.push_back(obj);
 		}
 	}
