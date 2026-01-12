@@ -136,7 +136,7 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 		std::vector<std::string> keybindLabels = {
 			GameConfig::UI::Text::KEYBIND_MOVE, GameConfig::UI::Text::KEYBIND_SHOOT,
 			GameConfig::UI::Text::KEYBIND_USE_ITEM, GameConfig::UI::Text::KEYBIND_SELECT_HOTBAR,
-			GameConfig::UI::Text::KEYBIND_PAUSE};
+			GameConfig::UI::Text::KEYBIND_CAMERA_ZOOM, GameConfig::UI::Text::KEYBIND_PAUSE};
 
 		for(size_t i = 0; i < keybindLabels.size(); ++i)
 		{
