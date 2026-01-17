@@ -14,6 +14,7 @@ else()
 endif()
 
 include(FetchContent)
+set(FETCHCONTENT_QUIET FALSE)
 if(NOT WIN32)
     set(FETCHCONTENT_TRY_FIND_PACKAGE_MODE ALWAYS)
 endif()
