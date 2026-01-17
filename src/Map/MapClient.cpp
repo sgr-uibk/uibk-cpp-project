@@ -46,7 +46,7 @@ void MapClient::drawGroundTiles(sf::RenderWindow &window) const
 		m_state.getGroundLayer(),
 		[&](sf::Vector2i tileSprite, sf::Vector2i mapTileDim, sf::Vector2i srcPixel, sf::Vector2i screenPos) {
 			sf::Vector2f const spritePos{screenPos.x - tileSprite.x / 2.f,
-		                                 screenPos.y - tileSprite.y + mapTileDim.y / 2.f};
+		                                 float(screenPos.y) - tileSprite.y + 2 * mapTileDim.y};
 			sf::Sprite s(*m_tilesetTexture, {srcPixel, tileSprite});
 			s.setPosition(spritePos);
 			window.draw(s);
