@@ -124,7 +124,6 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	cameraView.setCenter(cartesianToIso(playerCenter));
 	cameraView.zoom(m_zoomLevel);
 	window.setView(cameraView);
-
 	window.clear(sf::Color::White);
 
 	m_mapClient.drawGroundTiles(window);
