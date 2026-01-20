@@ -64,7 +64,7 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 
 				if(layerJson.contains("data"))
 				{
-					layer.data = layerJson["data"].get<std::vector<int>>();
+					layer.data = layerJson["data"].get<std::vector<TileType>>();
 				}
 				layers.push_back(layer);
 			}

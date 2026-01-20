@@ -21,11 +21,22 @@ struct RawTileset
 	int margin = 0;
 };
 
+// Spritesheet in assets/map
+// We have only a single spritesheet,
+// so naming the sprite indices here
+enum TileType : int
+{
+	AIR = 0,
+	WALL = 1,
+	REINFORCED_WALL = 2,
+	BRICK_FLOOR = 3
+};
+
 struct RawLayer
 {
 	std::string name;
 	sf::Vector2i dim;
-	std::vector<int> data;
+	std::vector<TileType> data;
 	bool visible = true;
 };
 
