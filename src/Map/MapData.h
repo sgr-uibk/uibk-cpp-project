@@ -16,7 +16,6 @@ struct RawTileset
 	sf::Vector2i tileDim;
 	sf::Vector2i mapTileDim;
 	int columns;
-	int firstGid;
 	int spacing = 0;
 	int margin = 0;
 };

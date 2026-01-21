@@ -39,7 +39,6 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 		              .tileDim = {tsJson.value("tilewidth", 0), tsJson.value("tileheight", 0)},
 		              .mapTileDim = tileDim,
 		              .columns = tsJson.value("columns", 0),
-		              .firstGid = tsJson.value("firstgid", 1),
 		              .spacing = tsJson.value("spacing", 0),
 		              .margin = tsJson.value("margin", 0)};
 
