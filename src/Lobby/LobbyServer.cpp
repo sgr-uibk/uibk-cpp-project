@@ -219,10 +219,9 @@ std::array<PlayerState, Sz> make_player_init(std::vector<sf::Vector2f> const &sp
 	return make_player_init_impl<Sz>(spawns, rng, std::make_index_sequence<Sz>{});
 }
 
-WorldState LobbyServer::startGame()
+WorldState LobbyServer::startGame(int mapIndex)
 {
 	// Select map (for now always use default map)
-	int mapIndex = Maps::DEFAULT_MAP_INDEX;
 	std::string mapPath = Maps::getMapPath(mapIndex);
 
 	// Read only spawn points (no full map loading)

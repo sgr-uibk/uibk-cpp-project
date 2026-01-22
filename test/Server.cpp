@@ -25,6 +25,8 @@ int main(int argc, char **argv)
 
 	std::atomic<bool> running{true};
 
+	int nextMapIndex = Maps::DEFAULT_MAP_INDEX;
+
 	std::thread cmdThread([&]{
         while(running)
         {
@@ -37,6 +39,21 @@ int main(int argc, char **argv)
 			{
 				gameServer->forceEnd();
 				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "The game end was forced!");
+			}
+			else if(cmd.rfind("map ", 0) == 0)
+			{
+				std::string mapStr = cmd.substr(4); 
+				try {
+					int idx = std::stoi(mapStr);
+					if(idx < 0 || idx >= (int)Maps::MAP_PATHS.size()) {
+						SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Invalid map index {}, using default", idx);
+					} else {
+						nextMapIndex = idx;
+						SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Next game map set to {}", nextMapIndex);
+					}
+				} catch(...) {
+					SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Invalid map index: {}", mapStr);
+				}
 			}
             else
                 SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Unknown command: {}", cmd);
@@ -53,7 +70,7 @@ int main(int argc, char **argv)
             if (lobbyServer.readyToStart())
             {
 				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "All {} players ready. Starting game...", MAX_PLAYERS);
-                auto wsInit = lobbyServer.startGame();
+				auto wsInit = lobbyServer.startGame(nextMapIndex);
                 gameServer = std::make_unique<GameServer>(lobbyServer, udpPort, wsInit);
                 SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Game started. Switching to UDP loop.");
             }

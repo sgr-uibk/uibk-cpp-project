@@ -24,7 +24,7 @@ class LobbyServer
 	bool readyToStart() const;
 
 	uint32_t findClient(Endpoint remote) const;
-	WorldState startGame();
+	WorldState startGame(int mapIndex);
 	void deduplicatePlayerName(std::string &name) const;
 	void endGame(EntityId winner);
 
