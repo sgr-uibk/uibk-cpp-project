@@ -10,8 +10,8 @@ Menu::Menu(sf::Vector2u windowDimensions)
 	: m_windowDimensions(windowDimensions),
 	  m_font(g_assetPathResolver.resolveRelative("Font/LiberationSans-Regular.ttf").string()), m_title(m_font),
 	  m_playerNameLabel(m_font), m_playerNameText(m_font), m_state(State::MAIN), m_startGame(false), m_exit(false),
-	  m_shouldConnect(false), m_playerName("Player"), m_editingName(false), m_menuMusicEnabled(true),
-	  m_gameMusicEnabled(true), m_serverIp("127.0.0.1"), m_serverPort(PORT_TCP), m_serverIpText(m_font),
+	  m_shouldConnect(false), m_playerName("Player"), m_editingName(false), m_menuMusicEnabled(false),
+	  m_gameMusicEnabled(false), m_serverIp("127.0.0.1"), m_serverPort(PORT_TCP), m_serverIpText(m_font),
 	  m_serverPortText(m_font), m_editingField(EditingField::NONE), m_selectedMap("Arena"), m_selectedMode("Deathmatch")
 {
 	m_title.setString("TANK GAME");

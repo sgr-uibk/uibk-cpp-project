@@ -14,7 +14,7 @@
 #include "World/WorldClient.h"
 
 void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, int mapIndex,
-                 std::array<PlayerState, MAX_PLAYERS> const &players)
+                 std::array<PlayerState, MAX_PLAYERS> const &players, Menu const &menu)
 {
 	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting game with player ID {} on map {}", lobbyClient.m_clientId,
 	                   mapIndex);
@@ -35,6 +35,9 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, int mapInde
 	SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Starting game loop with {} valid players", validPlayerCount);
 	WorldClient worldClient(window, lobbyClient.m_clientId, mapIndex, players);
 	GameClient gameClient(worldClient, lobbyClient);
+
+	if(menu.isGameMusicEnabled())
+		worldClient.m_pauseMenu.startBattleMusic();
 
 	while(window.isOpen())
 	{
@@ -159,7 +162,7 @@ int main()
 
 					menuMusic.stop();
 					auto const &[mapIndex, players] = *gameStartResult;
-					runGameLoop(window, *lobbyClient, mapIndex, players);
+					runGameLoop(window, *lobbyClient, mapIndex, players, menu);
 					clientReady = false;
 				}
 				else

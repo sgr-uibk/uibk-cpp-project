@@ -12,6 +12,11 @@ class GameServer
 	~GameServer();
 	PlayerState *matchLoop();
 
+	bool tickStep();
+	PlayerState* m_winner = nullptr;
+	PlayerState* winner() const;
+	void forceEnd();
+
 	uint16_t m_gamePort;
 	WorldState m_world;
 	sf::Clock m_tickClock;
@@ -27,4 +32,6 @@ class GameServer
 	LobbyServer &m_lobby;
 	sf::Clock m_itemSpawnClock;
 	size_t m_nextItemSpawnIndex;
+
+	bool m_forceEnd = false;
 };

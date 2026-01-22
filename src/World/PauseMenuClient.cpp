@@ -8,7 +8,7 @@
 
 PauseMenuClient::PauseMenuClient(sf::RenderWindow &window)
 	: m_pauseFont(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_window(window),
-	  m_battleMusic(initMusic("audio/battle_loop.ogg"))
+	  m_battleMusic(initMusic("audio/battle_loop.ogg", false))
 {
 	m_buttonLabels = {GameConfig::UI::Text::BUTTON_RESUME, GameConfig::UI::Text::BUTTON_DISCONNECT,
 	                  GameConfig::UI::Text::BUTTON_SETTINGS};
