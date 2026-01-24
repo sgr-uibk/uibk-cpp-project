@@ -22,6 +22,7 @@ PlayerClient::PlayerClient(PlayerState &state, sf::Color const &color)
 	  m_turretSprite(TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::TURRET, TankSpriteManager::TankState::HEALTHY, 0)),
 	  m_currentTankState(TankSpriteManager::TankState::HEALTHY),
 	  m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_nameText(m_font, m_state.m_name, 14),
+	  m_healthBar({0, 0}, {40.f, 5.f}, m_state.m_maxHealth),
 	  m_shootAnimTimer(0.f), m_lastShootCooldown(0.f)
 {
 	// Properly initialize sprites based on current state
@@ -31,6 +32,8 @@ PlayerClient::PlayerClient(PlayerState &state, sf::Color const &color)
 	m_nameText.setOutlineColor(sf::Color::Black);
 	m_nameText.setOutlineThickness(1.f);
 	updateNameText();
+
+	m_healthBar.setTextVisible(false);
 }
 
 void PlayerClient::update(float const dt)
@@ -99,26 +102,15 @@ void PlayerClient::overwriteInterpState(InterpPlayerState authState)
 	m_state.m_iState.overwriteBy(authState);
 }
 
-void PlayerClient::updateSprite()
-{
-	syncSpriteToState();
-}
-
 void PlayerClient::syncSpriteToState()
 {
 	// Determine tank health state (50% threshold)
-	TankSpriteManager::TankState newState = (m_state.m_health > m_state.m_maxHealth / 2)
-	                                            ? TankSpriteManager::TankState::HEALTHY
-	                                            : TankSpriteManager::TankState::DAMAGED;
+	m_currentTankState = (m_state.m_health > m_state.m_maxHealth / 2) ? TankSpriteManager::TankState::HEALTHY
+	                                                                  : TankSpriteManager::TankState::DAMAGED;
 
-	// Calculate direction indices (existing logic)
-	int hullDir = angleToDirection(m_state.getRotation().asDegrees()) - 1;
-	int turretDir = angleToDirection(m_state.getCannonRotation().asDegrees() - 135.f) - 1;
-	hullDir = std::clamp(hullDir, 0, 7);
-	turretDir = std::clamp(turretDir, 0, 7);
-
-	// Update state tracking
-	m_currentTankState = newState;
+	// Calculate direction indices
+	int hullDir = std::clamp(angleToDirection(m_state.getRotation().asDegrees()) - 1, 0, 7);
+	int turretDir = std::clamp(angleToDirection(m_state.getCannonRotation().asDegrees() - 135.f) - 1, 0, 7);
 
 	// Get sprites from manager
 	m_hullSprite = TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::HULL, m_currentTankState, hullDir);
@@ -148,6 +140,12 @@ void PlayerClient::syncSpriteToState()
 		m_hullSprite.setColor(deadColor);
 		m_turretSprite.setColor(deadColor);
 	}
+
+	// Update healthbar position and values
+	m_healthBar.setMaxHealth(m_state.m_maxHealth);
+	m_healthBar.setHealth(m_state.m_health);
+	sf::Vector2f barPos(isoCenter.x - 20.f, isoCenter.y - tankDimensions.y / 2.f - 12.f);
+	m_healthBar.setPositionScreen(barPos);
 }
 
 void PlayerClient::updateNameText()
@@ -163,7 +161,7 @@ void PlayerClient::updateNameText()
 	m_nameText.setPosition(textPos);
 }
 
-void PlayerClient::collectRenderObjects(std::vector<RenderObject> &queue) const
+void PlayerClient::collectRenderObjects(std::vector<RenderObject> &queue, EntityId ownPlayerId) const
 {
 	// Use front corner (bottom-right in cartesian) of tank's hitbox for z-ordering
 	sf::Vector2f cartFrontCorner = m_state.getPosition() + PlayerState::logicalDimensions;
@@ -183,6 +181,15 @@ void PlayerClient::collectRenderObjects(std::vector<RenderObject> &queue) const
 	textObj.sortY = depthY + 1.0f;
 	textObj.drawable = &m_nameText;
 	queue.push_back(textObj);
+
+	// Only show healthbar for enemies (not own player)
+	if(m_state.m_id != ownPlayerId)
+	{
+		RenderObject healthBarObj;
+		healthBarObj.sortY = depthY + 1.1f;
+		healthBarObj.drawable = &m_healthBar;
+		queue.push_back(healthBarObj);
+	}
 }
 
 void PlayerClient::drawSilhouette(sf::RenderWindow &window, std::uint8_t alpha) const

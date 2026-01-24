@@ -192,7 +192,7 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	{
 		if(pc.getState().m_id != 0 && pc.getState().isAlive())
 		{
-			pc.collectRenderObjects(renderQueue);
+			pc.collectRenderObjects(renderQueue, m_ownPlayerId);
 		}
 	}
 

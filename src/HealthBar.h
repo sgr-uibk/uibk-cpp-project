@@ -38,6 +38,6 @@ class HealthBar : public sf::Drawable, public sf::Transformable
 	sf::Vector2f m_size;
 	sf::RectangleShape m_bg;
 	sf::RectangleShape m_fill;
+	sf::Font m_font; // must be declared before m_text
 	sf::Text m_text;
-	sf::Font m_font;
 };
