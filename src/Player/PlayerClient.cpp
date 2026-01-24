@@ -165,8 +165,9 @@ void PlayerClient::updateNameText()
 
 void PlayerClient::collectRenderObjects(std::vector<RenderObject> &queue) const
 {
-	sf::Vector2f isoPos = m_hullSprite.getPosition();
-	float depthY = isoPos.y;
+	// Use front corner (bottom-right in cartesian) of tank's hitbox for z-ordering
+	sf::Vector2f cartFrontCorner = m_state.getPosition() + PlayerState::logicalDimensions;
+	float depthY = cartesianToIso(cartFrontCorner).y;
 
 	RenderObject hullObj;
 	hullObj.sortY = depthY;
@@ -182,4 +183,19 @@ void PlayerClient::collectRenderObjects(std::vector<RenderObject> &queue) const
 	textObj.sortY = depthY + 1.0f;
 	textObj.drawable = &m_nameText;
 	queue.push_back(textObj);
+}
+
+void PlayerClient::drawSilhouette(sf::RenderWindow &window, std::uint8_t alpha) const
+{
+	sf::Sprite hullSilhouette = m_hullSprite;
+	sf::Sprite turretSilhouette = m_turretSprite;
+
+	sf::Color silhouetteColor = m_color;
+	silhouetteColor.a = alpha;
+
+	hullSilhouette.setColor(silhouetteColor);
+	turretSilhouette.setColor(silhouetteColor);
+
+	window.draw(hullSilhouette);
+	window.draw(turretSilhouette);
 }

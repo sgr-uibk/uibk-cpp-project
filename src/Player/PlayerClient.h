@@ -21,6 +21,7 @@ class PlayerClient
 
 	void update(float dt);
 	void collectRenderObjects(std::vector<RenderObject> &queue) const;
+	void drawSilhouette(sf::RenderWindow &window, std::uint8_t alpha = 100) const;
 
 	// apply authoritative server state (reconciliation)
 	void applyServerState(PlayerState const &serverState);

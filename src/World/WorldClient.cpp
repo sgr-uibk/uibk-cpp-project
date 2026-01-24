@@ -201,6 +201,14 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	for(auto const &obj : renderQueue)
 		obj.draw(window);
 
+	// Draw own player silhouette on top so they're always visible behind walls
+	if(m_ownPlayerId > 0 && m_ownPlayerId <= MAX_PLAYERS)
+	{
+		auto const &ownPlayerClient = m_players[m_ownPlayerId - 1];
+		if(ownPlayerClient.getState().isAlive())
+			ownPlayerClient.drawSilhouette(window, 100);
+	}
+
 	window.setView(m_hudView);
 
 	window.draw(m_healthBar);
