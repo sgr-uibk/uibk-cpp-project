@@ -11,6 +11,7 @@ diagrams:
       namespaces:
         - std
         - sf
+        - nlohmann
       relationships:
         - dependency
       elements:
@@ -19,6 +20,7 @@ diagrams:
         - ReliablePktType
         - UnreliablePktType
         - Endpoint
+        - RingQueue
 
   TankGame_StatesClients:
     type: class
@@ -28,6 +30,7 @@ diagrams:
       namespaces:
         - std
         - sf
+        - nlohmann
       relationships:
         - dependency
       elements:
@@ -36,6 +39,7 @@ diagrams:
         - ReliablePktType
         - UnreliablePktType
         - Endpoint
+        - RingQueue
 
   TankGamePackets:
     type: class
@@ -47,12 +51,13 @@ diagrams:
       namespaces:
         - std
         - sf
+        - nlohmann
       relationships:
         - dependency
+    include:
       elements:
-        - AssetPathResolver
-        - ResourceManager
-        - Endpoint
+        - UnreliablePktType
+        - ReliablePktType
 
   TankGameClassesAll:
     type: class
@@ -62,5 +67,6 @@ diagrams:
       namespaces:
         - std
         - sf
+        - nlohmann
       relationships:
         - dependency
