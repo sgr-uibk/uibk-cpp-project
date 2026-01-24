@@ -114,9 +114,16 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 		sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Space) || sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
 	if(shoot && m_state.getPlayerById(m_ownPlayerId).canShoot())
 	{
-		sf::Packet pkt = createTickedPkt(UnreliablePktType::SHOOT, m_clientTick);
-		pkt << aimAngle;
-		return std::optional(pkt);
+		if(m_ammoDisplay.hasAmmo())
+		{
+			sf::Packet pkt = createTickedPkt(UnreliablePktType::SHOOT, m_clientTick);
+			pkt << aimAngle;
+			return std::optional(pkt);
+		}
+		else
+		{
+			m_ammoDisplay.triggerEmptyFlash();
+		}
 	}
 
 	if(posDelta != sf::Vector2f{0, 0})

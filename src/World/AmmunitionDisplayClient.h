@@ -11,6 +11,8 @@ class AmmunitionDisplay
 	void update(float dt);
 	void draw(sf::RenderWindow &window) const;
 	void onShoot();
+	[[nodiscard]] bool hasAmmo() const;
+	void triggerEmptyFlash();
 
   private:
 	struct BulletSlot
@@ -42,6 +44,7 @@ class AmmunitionDisplay
 	int m_currentReloadBullet = -1;
 
 	float m_prevCooldownRemaining = 0.f;
+	float m_flashTimer = 0.f;
 
 	static constexpr float BULLET_WIDTH = GameConfig::UI::AMMO_BULLET_WIDTH;
 	static constexpr float BULLET_HEIGHT = GameConfig::UI::AMMO_BULLET_HEIGHT;
@@ -50,4 +53,5 @@ class AmmunitionDisplay
 	static constexpr int BULLET_COUNT = GameConfig::UI::AMMO_BULLET_COUNT;
 	static constexpr float PANEL_PADDING = 12.f;
 	static constexpr float DEPLETING_ANIM_DURATION = 0.1f;
+	static constexpr float FLASH_DURATION = 0.5f;
 };

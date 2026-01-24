@@ -1,5 +1,6 @@
 #include "AmmunitionDisplayClient.h"
 #include <algorithm>
+#include <cmath>
 
 AmmunitionDisplay::AmmunitionDisplay(PlayerState const &playerState, sf::RenderWindow const &window)
 	: m_playerState(playerState), m_window(window)
@@ -20,6 +21,13 @@ void AmmunitionDisplay::update(float dt)
 	}
 	m_prevCooldownRemaining = currentCooldown;
 
+	if(m_flashTimer > 0.f)
+	{
+		m_flashTimer -= dt;
+		if(m_flashTimer < 0.f)
+			m_flashTimer = 0.f;
+	}
+
 	for(auto &bullet : m_bullets)
 	{
 		if(bullet.state == BulletSlot::State::DEPLETING)
@@ -33,29 +41,43 @@ void AmmunitionDisplay::update(float dt)
 		}
 	}
 
-	int bulletToReload = -1;
-	for(size_t i = 0; i < m_bullets.size(); ++i)
+	// If no bullet is targeted for reload, find the first EMPTY one
+	if(m_currentReloadBullet == -1)
 	{
-		if(m_bullets[i].state == BulletSlot::State::EMPTY || m_bullets[i].state == BulletSlot::State::REFILLING)
+		for(size_t i = 0; i < m_bullets.size(); ++i)
 		{
-			bulletToReload = static_cast<int>(i);
-			break;
+			if(m_bullets[i].state == BulletSlot::State::EMPTY)
+			{
+				m_currentReloadBullet = static_cast<int>(i);
+				break;
+			}
 		}
 	}
 
-	if(bulletToReload != -1)
+	if(m_currentReloadBullet != -1)
 	{
-		float reloadDuration = m_playerState.getShootCooldown() * 4.0f;
-		m_reloadProgress += dt / reloadDuration;
+		auto &bullet = m_bullets[m_currentReloadBullet];
 
-		m_bullets[bulletToReload].state = BulletSlot::State::REFILLING;
-		m_bullets[bulletToReload].animProgress = m_reloadProgress;
-
-		if(m_reloadProgress >= 1.f)
+		if(bullet.state == BulletSlot::State::FILLED)
 		{
-			m_bullets[bulletToReload].state = BulletSlot::State::FILLED;
-			m_bullets[bulletToReload].animProgress = 0.f;
+			m_currentReloadBullet = -1;
 			m_reloadProgress = 0.f;
+		}
+		else if(bullet.state == BulletSlot::State::EMPTY || bullet.state == BulletSlot::State::REFILLING)
+		{
+			float reloadDuration = m_playerState.getShootCooldown() * 4.0f;
+			m_reloadProgress += dt / reloadDuration;
+
+			bullet.state = BulletSlot::State::REFILLING;
+			bullet.animProgress = m_reloadProgress;
+
+			if(m_reloadProgress >= 1.f)
+			{
+				bullet.state = BulletSlot::State::FILLED;
+				bullet.animProgress = 0.f;
+				m_reloadProgress = 0.f;
+				m_currentReloadBullet = -1;
+			}
 		}
 	}
 	else
@@ -72,6 +94,16 @@ void AmmunitionDisplay::onShoot()
 		{
 			m_bullets[i].state = BulletSlot::State::DEPLETING;
 			m_bullets[i].animProgress = 0.f;
+
+			// Reset any currently reloading bullet to EMPTY
+			if(m_currentReloadBullet != -1 && m_currentReloadBullet != i)
+			{
+				m_bullets[m_currentReloadBullet].state = BulletSlot::State::EMPTY;
+				m_bullets[m_currentReloadBullet].animProgress = 0.f;
+			}
+
+			// Transfer reload progress to the newly shot bullet
+			m_currentReloadBullet = i;
 			break;
 		}
 	}
@@ -172,11 +204,27 @@ void AmmunitionDisplay::drawBullet(sf::RenderWindow &window, size_t index, sf::V
 	case BulletSlot::State::REFILLING: {
 		float fillHeight = (BULLET_HEIGHT - 6.f) * bullet.animProgress;
 
+		bool isFlashing = m_flashTimer > 0.f && static_cast<int>(index) == m_currentReloadBullet;
+		float flashIntensity = 0.f;
+		if(isFlashing)
+		{
+			float pulsePhase = m_flashTimer * 8.f;
+			flashIntensity = std::abs(std::sin(pulsePhase * 3.14159f)) * 0.8f;
+		}
+
+		sf::Color refillingColor = brassColor;
+		if(flashIntensity > 0.f)
+		{
+			refillingColor.r = static_cast<uint8_t>(std::min(255.f, brassColor.r + 55.f * flashIntensity));
+			refillingColor.g = static_cast<uint8_t>(brassColor.g * (1.f - flashIntensity * 0.6f));
+			refillingColor.b = static_cast<uint8_t>(brassColor.b * (1.f - flashIntensity * 0.6f));
+		}
+
 		if(fillHeight > 0.f)
 		{
 			sf::RectangleShape casing({BULLET_WIDTH, fillHeight});
 			casing.setPosition({pos.x, pos.y + BULLET_HEIGHT - fillHeight});
-			casing.setFillColor(brassColor);
+			casing.setFillColor(refillingColor);
 			window.draw(casing);
 		}
 
@@ -185,6 +233,12 @@ void AmmunitionDisplay::drawBullet(sf::RenderWindow &window, size_t index, sf::V
 			float tipProgress = (bullet.animProgress - 0.85f) / 0.15f;
 			sf::Color partialTip = tipColor;
 			partialTip.a = static_cast<uint8_t>(255 * tipProgress);
+			if(flashIntensity > 0.f)
+			{
+				partialTip.r = static_cast<uint8_t>(std::min(255.f, tipColor.r + 75.f * flashIntensity));
+				partialTip.g = static_cast<uint8_t>(tipColor.g * (1.f - flashIntensity * 0.6f));
+				partialTip.b = static_cast<uint8_t>(tipColor.b * (1.f - flashIntensity * 0.6f));
+			}
 
 			sf::ConvexShape tip(3);
 			tip.setPoint(0, {pos.x, pos.y + 6.f});
@@ -226,4 +280,19 @@ sf::Vector2f AmmunitionDisplay::calculatePanelSize() const
 	float height = PANEL_PADDING * 2.f + BULLET_HEIGHT;
 
 	return {width, height};
+}
+
+bool AmmunitionDisplay::hasAmmo() const
+{
+	for(auto const &bullet : m_bullets)
+	{
+		if(bullet.state == BulletSlot::State::FILLED)
+			return true;
+	}
+	return false;
+}
+
+void AmmunitionDisplay::triggerEmptyFlash()
+{
+	m_flashTimer = FLASH_DURATION;
 }
