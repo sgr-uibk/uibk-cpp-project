@@ -21,12 +21,7 @@ void AmmunitionDisplay::update(float dt)
 	}
 	m_prevCooldownRemaining = currentCooldown;
 
-	if(m_flashTimer > 0.f)
-	{
-		m_flashTimer -= dt;
-		if(m_flashTimer < 0.f)
-			m_flashTimer = 0.f;
-	}
+	m_flashTimer = std::max(0.f, m_flashTimer - dt);
 
 	for(auto &bullet : m_bullets)
 	{
@@ -160,22 +155,26 @@ void AmmunitionDisplay::drawBullet(sf::RenderWindow &window, size_t index, sf::V
 	sf::Color brassColor(200, 160, 80);
 	sf::Color tipColor(180, 140, 60);
 
-	switch(bullet.state)
-	{
-	case BulletSlot::State::FILLED: {
+	// helper lambda to draw a full bullet (casing + tip)
+	auto drawFullBullet = [&](sf::Color casingColor, sf::Color bulletTipColor) {
 		sf::RectangleShape casing({BULLET_WIDTH, BULLET_HEIGHT - 6.f});
 		casing.setPosition({pos.x, pos.y + 6.f});
-		casing.setFillColor(brassColor);
+		casing.setFillColor(casingColor);
 		window.draw(casing);
 
 		sf::ConvexShape tip(3);
 		tip.setPoint(0, {pos.x, pos.y + 6.f});
 		tip.setPoint(1, {pos.x + BULLET_WIDTH, pos.y + 6.f});
 		tip.setPoint(2, {pos.x + BULLET_WIDTH / 2.f, pos.y});
-		tip.setFillColor(tipColor);
+		tip.setFillColor(bulletTipColor);
 		window.draw(tip);
+	};
+
+	switch(bullet.state)
+	{
+	case BulletSlot::State::FILLED:
+		drawFullBullet(brassColor, tipColor);
 		break;
-	}
 
 	case BulletSlot::State::EMPTY:
 		break;
@@ -186,18 +185,7 @@ void AmmunitionDisplay::drawBullet(sf::RenderWindow &window, size_t index, sf::V
 		fadingBrass.a = alpha;
 		sf::Color fadingTip = tipColor;
 		fadingTip.a = alpha;
-
-		sf::RectangleShape casing({BULLET_WIDTH, BULLET_HEIGHT - 6.f});
-		casing.setPosition({pos.x, pos.y + 6.f});
-		casing.setFillColor(fadingBrass);
-		window.draw(casing);
-
-		sf::ConvexShape tip(3);
-		tip.setPoint(0, {pos.x, pos.y + 6.f});
-		tip.setPoint(1, {pos.x + BULLET_WIDTH, pos.y + 6.f});
-		tip.setPoint(2, {pos.x + BULLET_WIDTH / 2.f, pos.y});
-		tip.setFillColor(fadingTip);
-		window.draw(tip);
+		drawFullBullet(fadingBrass, fadingTip);
 		break;
 	}
 
@@ -284,12 +272,8 @@ sf::Vector2f AmmunitionDisplay::calculatePanelSize() const
 
 bool AmmunitionDisplay::hasAmmo() const
 {
-	for(auto const &bullet : m_bullets)
-	{
-		if(bullet.state == BulletSlot::State::FILLED)
-			return true;
-	}
-	return false;
+	return std::any_of(m_bullets.begin(), m_bullets.end(),
+	                   [](auto const &b) { return b.state == BulletSlot::State::FILLED; });
 }
 
 void AmmunitionDisplay::triggerEmptyFlash()

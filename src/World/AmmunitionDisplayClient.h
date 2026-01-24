@@ -39,7 +39,6 @@ class AmmunitionDisplay
 	sf::RenderWindow const &m_window;
 
 	std::array<BulletSlot, GameConfig::UI::AMMO_BULLET_COUNT> m_bullets;
-	bool m_isReloading = false;
 	float m_reloadProgress = 0.f;
 	int m_currentReloadBullet = -1;
 

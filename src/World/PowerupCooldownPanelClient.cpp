@@ -45,12 +45,7 @@ void PowerupCooldownPanel::update(float dt)
 			slot.phase = TypeSlotState::Phase::INACTIVE;
 		}
 
-		if(slot.flashTimer > 0.f)
-		{
-			slot.flashTimer -= dt;
-			if(slot.flashTimer < 0.f)
-				slot.flashTimer = 0.f;
-		}
+		slot.flashTimer = std::max(0.f, slot.flashTimer - dt);
 	}
 }
 
@@ -231,11 +226,6 @@ sf::Vector2f PowerupCooldownPanel::calculatePanelSize() const
 
 int PowerupCooldownPanel::countActiveSlots() const
 {
-	int count = 0;
-	for(int i = 1; i < PlayerState::NUM_POWERUP_TYPES; ++i)
-	{
-		if(m_typeSlots[i].phase != TypeSlotState::Phase::INACTIVE)
-			++count;
-	}
-	return count;
+	return static_cast<int>(std::count_if(m_typeSlots.begin() + 1, m_typeSlots.end(),
+	                                      [](auto const &s) { return s.phase != TypeSlotState::Phase::INACTIVE; }));
 }

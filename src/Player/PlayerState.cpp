@@ -229,22 +229,15 @@ void PlayerState::applyPowerup(PowerupType type)
 
 bool PlayerState::hasPowerup(PowerupType type) const
 {
-	for(auto const &powerup : m_powerups)
-	{
-		if(powerup.type == type && powerup.isActive())
-			return true;
-	}
-	return false;
+	return std::any_of(m_powerups.begin(), m_powerups.end(),
+	                   [type](auto const &p) { return p.type == type && p.isActive(); });
 }
 
 PowerupEffect const *PlayerState::getPowerup(PowerupType type) const
 {
-	for(auto const &powerup : m_powerups)
-	{
-		if(powerup.type == type && powerup.isActive())
-			return &powerup;
-	}
-	return nullptr;
+	auto it = std::find_if(m_powerups.begin(), m_powerups.end(),
+	                       [type](auto const &p) { return p.type == type && p.isActive(); });
+	return it != m_powerups.end() ? &(*it) : nullptr;
 }
 
 float PlayerState::getSpeedMultiplier() const
