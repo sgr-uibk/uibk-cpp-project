@@ -20,7 +20,9 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, i
 	  m_healthBar(sf::Vector2f(20.f, 20.f), sf::Vector2f(220.f, 28.f),
                   m_state.getPlayerById(ownPlayerId).getMaxHealth()),
 	  m_powerupPanel(m_state.getPlayerById(ownPlayerId), window),
-	  m_ammoDisplay(m_state.getPlayerById(ownPlayerId), window), m_window(window), m_mapClient(m_state.getMap()),
+	  m_ammoDisplay(m_state.getPlayerById(ownPlayerId), window),
+	  m_minimap(m_state.getMap().getSize(), sf::Vector2f(window.getSize())),
+	  m_window(window), m_mapClient(m_state.getMap()),
 	  m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
 	  m_interp(m_state.getMap(), ownPlayerId, m_players)
 {
@@ -176,6 +178,8 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	m_itemBar.draw(window);
 	m_powerupPanel.draw(window);
 	m_ammoDisplay.draw(window);
+	m_minimap.updatePlayers(m_state.m_players, m_ownPlayerId);
+	window.draw(m_minimap);
 	m_pauseMenu.draw(window);
 }
 
