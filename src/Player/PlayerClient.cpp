@@ -144,19 +144,23 @@ void PlayerClient::syncSpriteToState()
 	// Update healthbar position and values
 	m_healthBar.setMaxHealth(m_state.m_maxHealth);
 	m_healthBar.setHealth(m_state.m_health);
-	sf::Vector2f barPos(isoCenter.x - 20.f, isoCenter.y - tankDimensions.y / 2.f - 12.f);
+	sf::Vector2f barPos(isoCenter.x - 20.f, isoCenter.y - tankDimensions.y / 2.f - 6.f);
 	m_healthBar.setPositionScreen(barPos);
 }
 
 void PlayerClient::updateNameText()
 {
+	// update text string in case name was set after construction
+	if(m_nameText.getString() != m_state.m_name)
+		m_nameText.setString(m_state.m_name);
+
 	sf::FloatRect textBounds = m_nameText.getLocalBounds();
 	sf::Vector2f cartTankCenter = m_state.m_iState.m_pos + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 
 	sf::Vector2f isoTankCenter = cartesianToIso(cartTankCenter);
 
 	sf::Vector2f textPos(isoTankCenter.x - textBounds.size.x / 2.f - textBounds.position.x,
-	                     isoTankCenter.y - tankDimensions.y / 2.f - 18.f // 18 pixels above tank
+	                     isoTankCenter.y - tankDimensions.y / 2.f - 26.f
 	);
 	m_nameText.setPosition(textPos);
 }

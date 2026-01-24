@@ -340,7 +340,7 @@ PowerupType PlayerState::getInventoryItem(int slot) const
 
 void PlayerState::serialize(sf::Packet &pkt) const
 {
-	pkt << m_iState << m_health << m_maxHealth;
+	pkt << m_name << m_iState << m_health << m_maxHealth;
 	pkt << m_shootCooldown.getRemaining();
 
 	for(auto const &powerup : m_powerups)
@@ -361,7 +361,7 @@ void PlayerState::serialize(sf::Packet &pkt) const
 
 void PlayerState::deserialize(sf::Packet &pkt)
 {
-	pkt >> m_iState >> m_health >> m_maxHealth;
+	pkt >> m_name >> m_iState >> m_health >> m_maxHealth;
 
 	float cooldownRemaining;
 	pkt >> cooldownRemaining;
