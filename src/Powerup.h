@@ -43,9 +43,13 @@ struct PowerupEffect
 		switch(type)
 		{
 		case PowerupType::SHIELD:
+			duration = GameConfig::Powerup::EFFECT_DURATION;
+			value = GameConfig::Powerup::SHIELD_HP;
+			break;
+
 		case PowerupType::HEALTH_PACK:
 			duration = 0.f;
-			value = GameConfig::Powerup::SHIELD_HP; // amount
+			value = 0;
 			break;
 
 		case PowerupType::SPEED_BOOST:

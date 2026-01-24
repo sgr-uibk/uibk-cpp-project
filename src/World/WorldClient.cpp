@@ -19,6 +19,8 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, i
 	  m_state(mapIndex, std::move(players)),
 	  m_itemBar(m_state.getPlayerById(ownPlayerId), window),
 	  m_healthBar(sf::Vector2f(20.f, 20.f), sf::Vector2f(220.f, 28.f), m_state.getPlayerById(ownPlayerId).getMaxHealth()),
+	  m_powerupPanel(m_state.getPlayerById(ownPlayerId), window),
+	  m_ammoDisplay(m_state.getPlayerById(ownPlayerId), window),
 	  m_window(window), m_mapClient(m_state.getMap()),
 	  m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)),
 	  m_ownPlayerId(ownPlayerId),
@@ -38,6 +40,8 @@ void WorldClient::propagateUpdate(float dt)
 		proj.update(dt);
 	for(auto &item : m_items)
 		item.update(dt);
+	m_powerupPanel.update(dt);
+	m_ammoDisplay.update(dt);
 }
 
 std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
@@ -86,9 +90,23 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 
 	if(m_itemBar.handleItemUse())
 	{
-		sf::Packet pkt = createTickedPkt(UnreliablePktType::USE_ITEM, m_clientTick);
-		pkt << m_itemBar.getSelection();
-		return std::optional(pkt);
+		size_t slot = m_itemBar.getSelection();
+		PlayerState const &ps = m_state.getPlayerById(m_ownPlayerId);
+		PowerupType itemType = ps.getInventoryItem(static_cast<int>(slot));
+
+		// Check if this powerup type is on cooldown
+		if(itemType != PowerupType::NONE && !ps.canUsePowerup(itemType))
+		{
+			// Can't use - trigger red flash feedback
+			m_powerupPanel.triggerCooldownFlash(itemType);
+			// Don't send packet to server
+		}
+		else
+		{
+			sf::Packet pkt = createTickedPkt(UnreliablePktType::USE_ITEM, m_clientTick);
+			pkt << slot;
+			return std::optional(pkt);
+		}
 	}
 
 	// TODO Can't shoot and move in the same frame like this
@@ -180,6 +198,8 @@ void WorldClient::draw(sf::RenderWindow &window) const
 
 	window.draw(m_healthBar);
 	m_itemBar.draw(window);
+	m_powerupPanel.draw(window);
+	m_ammoDisplay.draw(window);
 	m_pauseMenu.draw(window);
 }
 

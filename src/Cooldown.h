@@ -5,7 +5,9 @@
 class Cooldown
 {
   public:
-	Cooldown() = default;
+	Cooldown() : m_duration(0), m_remaining(0)
+	{
+	}
 
 	explicit Cooldown(float const seconds) : m_duration(seconds), m_remaining(0)
 	{
