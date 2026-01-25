@@ -4,6 +4,7 @@
 #include "Player/PlayerState.h"
 #include "Map/MapState.h"
 #include "Networking.h"
+#include "SafeZone.h"
 
 class MinimapClient : public sf::Drawable
 {
@@ -11,6 +12,7 @@ class MinimapClient : public sf::Drawable
 	MinimapClient(sf::Vector2f mapSize, sf::Vector2f screenSize);
 
 	void updatePlayers(std::array<PlayerState, MAX_PLAYERS> const &players, EntityId ownPlayerId);
+	void updateSafeZone(SafeZone const &zone);
 	void setPosition(sf::Vector2f pos);
 	void setSize(sf::Vector2f size);
 
@@ -25,5 +27,6 @@ class MinimapClient : public sf::Drawable
 	sf::RectangleShape m_background;
 	sf::RectangleShape m_border;
 	std::array<sf::CircleShape, MAX_PLAYERS> m_playerDots;
+	sf::CircleShape m_safeZoneCircle;
 	EntityId m_ownPlayerId = 0;
 };

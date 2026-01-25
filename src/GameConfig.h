@@ -52,6 +52,14 @@ namespace ItemSpawn
 	constexpr int MAX_ITEMS_ON_MAP = 5;   // max concurrent items
 } // namespace ItemSpawn
 
+namespace SafeZone
+{
+	constexpr float INITIAL_DELAY = 30.f;
+	constexpr float SHRINK_SPEED = 10.f;
+	constexpr float DAMAGE_PER_SECOND = 10.f;
+	constexpr float MIN_RADIUS = 50.f;
+} // namespace SafeZone
+
 namespace Powerup
 {
 	constexpr float SPEED_BOOST_MULTIPLIER = 1.5f;

@@ -42,6 +42,7 @@ void WorldClient::propagateUpdate(float const dt)
 		item.update(dt);
 	m_powerupPanel.update(dt);
 	m_ammoDisplay.update(dt);
+	m_healthBar.update(dt);
 }
 
 bool WorldClient::update(WorldUpdateData &wud)
@@ -128,6 +129,9 @@ void WorldClient::draw(sf::RenderWindow &window) const
 
 	m_mapClient.drawGroundTiles(window);
 
+	m_safeZoneClient.update(m_state.m_safeZone, playerCenter);
+	window.draw(m_safeZoneClient);
+
 	std::vector<RenderObject> renderQueue;
 	renderQueue.reserve(2000);
 
@@ -179,7 +183,9 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	m_powerupPanel.draw(window);
 	m_ammoDisplay.draw(window);
 	m_minimap.updatePlayers(m_state.m_players, m_ownPlayerId);
+	m_minimap.updateSafeZone(m_state.m_safeZone);
 	window.draw(m_minimap);
+	m_safeZoneClient.drawDangerOverlay(window, sf::Vector2f(window.getSize()));
 	m_pauseMenu.draw(window);
 }
 

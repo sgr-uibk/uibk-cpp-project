@@ -34,6 +34,11 @@ MinimapClient::MinimapClient(sf::Vector2f mapSize, sf::Vector2f screenSize)
 		m_playerDots[i].setOutlineColor(sf::Color::White);
 		m_playerDots[i].setOutlineThickness(1.f);
 	}
+
+	m_safeZoneCircle.setPointCount(64);
+	m_safeZoneCircle.setFillColor(sf::Color::Transparent);
+	m_safeZoneCircle.setOutlineColor(sf::Color(255, 50, 50, 200));
+	m_safeZoneCircle.setOutlineThickness(2.f);
 }
 
 void MinimapClient::updatePlayers(std::array<PlayerState, MAX_PLAYERS> const &players, EntityId ownPlayerId)
@@ -85,10 +90,28 @@ void MinimapClient::setSize(sf::Vector2f size)
 	m_border.setSize(m_minimapSize);
 }
 
+void MinimapClient::updateSafeZone(SafeZone const &zone)
+{
+	if(!zone.isActive)
+	{
+		m_safeZoneCircle.setRadius(0.f);
+		return;
+	}
+
+	sf::Vector2f const rotatedCenter(m_mapSize.y - zone.center.y, zone.center.x);
+	sf::Vector2f const minimapCenter = m_position + rotatedCenter * m_scale;
+	float const scaledRadius = zone.currentRadius * m_scale;
+
+	m_safeZoneCircle.setRadius(scaledRadius);
+	m_safeZoneCircle.setOrigin({scaledRadius, scaledRadius});
+	m_safeZoneCircle.setPosition(minimapCenter);
+}
+
 void MinimapClient::draw(sf::RenderTarget &target, sf::RenderStates states) const
 {
 	target.draw(m_background, states);
 	target.draw(m_border, states);
+	target.draw(m_safeZoneCircle, states);
 
 	for(size_t i = 0; i < MAX_PLAYERS; ++i)
 	{

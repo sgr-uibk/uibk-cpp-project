@@ -5,6 +5,7 @@
 #include "Player/PlayerState.h"
 #include "Projectile/ProjectileState.h"
 #include "Item/ItemState.h"
+#include "SafeZone.h"
 #include "Networking.h"
 
 struct WorldState
@@ -68,6 +69,7 @@ struct WorldState
 	uint32_t m_nextProjectileId{1};
 	uint32_t m_nextItemId{1};
 	std::vector<sf::Vector2i> m_destroyedWallsThisTick;
+	SafeZone m_safeZone;
 
   private:
 	void deserialize(sf::Packet &pkt);
