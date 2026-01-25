@@ -14,11 +14,9 @@ Menu::Menu(sf::Vector2u windowDimensions)
 	  m_gameMusicEnabled(true), m_serverIp("127.0.0.1"), m_serverPort(PORT_TCP), m_serverIpText(m_font),
 	  m_serverPortText(m_font), m_editingField(EditingField::NONE), m_selectedMap("Arena"), m_selectedMode("Deathmatch")
 {
-	m_title.setString("TANK GAME");
 	m_title.setCharacterSize(50);
 	m_title.setFillColor(sf::Color::White);
-	sf::FloatRect titleBounds = m_title.getLocalBounds();
-	m_title.setPosition({(windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
+	setTitle("TANK GAME");
 
 	m_playerNameLabel.setString("Player Name:");
 	m_playerNameLabel.setCharacterSize(18);
@@ -53,11 +51,7 @@ void Menu::reset()
 	m_exit = false;
 	m_shouldConnect = false;
 	m_state = State::MAIN;
-
-	m_title.setString("TANK GAME");
-	sf::FloatRect titleBounds = m_title.getLocalBounds();
-	m_title.setPosition({(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-
+	setTitle("TANK GAME");
 	setupMainMenu();
 }
 
@@ -68,50 +62,75 @@ void Menu::setTitle(std::string const &title)
 	m_title.setPosition({(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
 }
 
-void Menu::setupMainMenu()
+void Menu::clearMenuState()
 {
 	m_buttonShapes.clear();
 	m_buttonTexts.clear();
 	m_buttonEnabled.clear();
 	m_lobbyTexts.clear();
+}
+
+void Menu::centerTextInButton(sf::Text &text, sf::RectangleShape const &button)
+{
+	sf::FloatRect textBounds = text.getLocalBounds();
+	sf::Vector2f buttonSize = button.getSize();
+	sf::Vector2f buttonPos = button.getPosition();
+	text.setPosition({buttonPos.x + (buttonSize.x - textBounds.size.x) / 2.f - textBounds.position.x,
+	                  buttonPos.y + (buttonSize.y - textBounds.size.y) / 2.f - textBounds.position.y});
+}
+
+void Menu::addButton(sf::Vector2f position, sf::Vector2f size, std::string const &label, unsigned int fontSize,
+                     sf::Color fillColor)
+{
+	sf::RectangleShape shape;
+	shape.setSize(size);
+	shape.setPosition(position);
+	shape.setFillColor(fillColor);
+	m_buttonShapes.push_back(shape);
+
+	sf::Text text(m_font);
+	text.setString(label);
+	text.setCharacterSize(fontSize);
+	text.setFillColor(sf::Color::White);
+	centerTextInButton(text, shape);
+	m_buttonTexts.push_back(text);
+	m_buttonEnabled.push_back(true);
+}
+
+void Menu::goToMainMenu()
+{
+	m_state = State::MAIN;
+	setTitle("TANK GAME");
+	setupMainMenu();
+}
+
+void Menu::setupMainMenu()
+{
+	clearMenuState();
 
 	float const buttonWidth = 280.f;
 	float const buttonHeight = 45.f;
 	float const spacing = 15.f;
 	float const startY = 200.f;
+	float const centerX = (m_windowDimensions.x - buttonWidth) / 2.f;
 
-	std::vector<std::string> labels = {"Host Lobby", "Join Lobby", "Settings", "Exit"};
+	std::vector<std::string> labels = {"Join Lobby", "Settings", "Exit"};
 
 	for(size_t i = 0; i < labels.size(); ++i)
 	{
-		sf::RectangleShape shape;
-		shape.setSize({buttonWidth, buttonHeight});
-		shape.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f, startY + i * (buttonHeight + spacing)});
-		shape.setFillColor(sf::Color(80, 80, 80));
-
-		sf::Text text(m_font);
-		text.setString(labels[i]);
-		text.setCharacterSize(20);
-		text.setFillColor(sf::Color::White);
-		sf::FloatRect textBounds = text.getLocalBounds();
-		text.setPosition({shape.getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-		                  shape.getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
-
-		m_buttonShapes.push_back(shape);
-		m_buttonTexts.push_back(text);
-		m_buttonEnabled.push_back(true);
+		addButton({centerX, startY + i * (buttonHeight + spacing)}, {buttonWidth, buttonHeight}, labels[i], 20);
 	}
 }
 
 void Menu::setupLobbyHost()
 {
-	m_buttonShapes.clear();
-	m_buttonTexts.clear();
-	m_buttonEnabled.clear();
-	m_lobbyTexts.clear();
+	clearMenuState();
 
 	float const buttonWidth = 200.f;
 	float const buttonHeight = 50.f;
+	float const smallButtonWidth = 180.f;
+	float const smallButtonHeight = 35.f;
+	float const centerX = (m_windowDimensions.x - buttonWidth) / 2.f;
 
 	sf::Text lobbyInfo(m_font);
 	lobbyInfo.setString("Server running on port " + std::to_string(PORT_TCP));
@@ -145,10 +164,6 @@ void Menu::setupLobbyHost()
 		m_lobbyTexts.push_back(playerSlot);
 	}
 
-	// map selection
-	float const smallButtonWidth = 180.f;
-	float const smallButtonHeight = 35.f;
-
 	sf::Text mapLabel(m_font);
 	mapLabel.setString("Map:");
 	mapLabel.setCharacterSize(18);
@@ -156,24 +171,8 @@ void Menu::setupLobbyHost()
 	mapLabel.setPosition({50.f, 410.f});
 	m_lobbyTexts.push_back(mapLabel);
 
-	sf::RectangleShape mapButton;
-	mapButton.setSize({smallButtonWidth, smallButtonHeight});
-	mapButton.setPosition({120.f, 405.f});
-	mapButton.setFillColor(sf::Color(60, 60, 100));
-	m_buttonShapes.push_back(mapButton);
+	addButton({120.f, 405.f}, {smallButtonWidth, smallButtonHeight}, m_selectedMap, 16, sf::Color(60, 60, 100));
 
-	sf::Text mapText(m_font);
-	mapText.setString(m_selectedMap);
-	mapText.setCharacterSize(16);
-	mapText.setFillColor(sf::Color::White);
-	sf::FloatRect mapBounds = mapText.getLocalBounds();
-	mapText.setPosition(
-		{mapButton.getPosition().x + (smallButtonWidth - mapBounds.size.x) / 2.f - mapBounds.position.x,
-	     mapButton.getPosition().y + (smallButtonHeight - mapBounds.size.y) / 2.f - mapBounds.position.y});
-	m_buttonTexts.push_back(mapText);
-	m_buttonEnabled.push_back(true);
-
-	// mode selection
 	sf::Text modeLabel(m_font);
 	modeLabel.setString("Mode:");
 	modeLabel.setCharacterSize(18);
@@ -181,68 +180,19 @@ void Menu::setupLobbyHost()
 	modeLabel.setPosition({320.f, 410.f});
 	m_lobbyTexts.push_back(modeLabel);
 
-	sf::RectangleShape modeButton;
-	modeButton.setSize({smallButtonWidth, smallButtonHeight});
-	modeButton.setPosition({390.f, 405.f});
-	modeButton.setFillColor(sf::Color(60, 100, 60));
-	m_buttonShapes.push_back(modeButton);
+	addButton({390.f, 405.f}, {smallButtonWidth, smallButtonHeight}, m_selectedMode, 16, sf::Color(60, 100, 60));
 
-	sf::Text modeText(m_font);
-	modeText.setString(m_selectedMode);
-	modeText.setCharacterSize(16);
-	modeText.setFillColor(sf::Color::White);
-	sf::FloatRect modeBounds = modeText.getLocalBounds();
-	modeText.setPosition(
-		{modeButton.getPosition().x + (smallButtonWidth - modeBounds.size.x) / 2.f - modeBounds.position.x,
-	     modeButton.getPosition().y + (smallButtonHeight - modeBounds.size.y) / 2.f - modeBounds.position.y});
-	m_buttonTexts.push_back(modeText);
-	m_buttonEnabled.push_back(true);
-
-	// start game and back buttons
-	sf::RectangleShape startButton;
-	startButton.setSize({buttonWidth, buttonHeight});
-	startButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f - 110.f, 450.f});
-	startButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(startButton);
-
-	sf::Text startText(m_font);
-	startText.setString("Start Game");
-	startText.setCharacterSize(24);
-	startText.setFillColor(sf::Color::White);
-	sf::FloatRect startBounds = startText.getLocalBounds();
-	startText.setPosition(
-		{startButton.getPosition().x + (buttonWidth - startBounds.size.x) / 2.f - startBounds.position.x,
-	     startButton.getPosition().y + (buttonHeight - startBounds.size.y) / 2.f - startBounds.position.y});
-	m_buttonTexts.push_back(startText);
-	m_buttonEnabled.push_back(true);
-
-	sf::RectangleShape backButton;
-	backButton.setSize({buttonWidth, buttonHeight});
-	backButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f + 110.f, 450.f});
-	backButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(backButton);
-
-	sf::Text backText(m_font);
-	backText.setString("Back");
-	backText.setCharacterSize(24);
-	backText.setFillColor(sf::Color::White);
-	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition(
-		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
-	m_buttonTexts.push_back(backText);
-	m_buttonEnabled.push_back(true);
+	addButton({centerX - 110.f, 450.f}, {buttonWidth, buttonHeight}, "Start Game", 24);
+	addButton({centerX + 110.f, 450.f}, {buttonWidth, buttonHeight}, "Back", 24);
 }
 
 void Menu::setupLobbyClient()
 {
-	m_buttonShapes.clear();
-	m_buttonTexts.clear();
-	m_buttonEnabled.clear();
-	m_lobbyTexts.clear();
+	clearMenuState();
 
 	float const buttonWidth = 200.f;
 	float const buttonHeight = 50.f;
+	float const centerX = (m_windowDimensions.x - buttonWidth) / 2.f;
 
 	sf::Text lobbyInfo(m_font);
 	lobbyInfo.setString("Waiting in lobby...");
@@ -276,50 +226,17 @@ void Menu::setupLobbyClient()
 		m_lobbyTexts.push_back(playerSlot);
 	}
 
-	sf::RectangleShape readyButton;
-	readyButton.setSize({buttonWidth, buttonHeight});
-	readyButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f - 110.f, 450.f});
-	readyButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(readyButton);
-
-	sf::Text readyText(m_font);
-	readyText.setString("Ready");
-	readyText.setCharacterSize(24);
-	readyText.setFillColor(sf::Color::White);
-	sf::FloatRect readyBounds = readyText.getLocalBounds();
-	readyText.setPosition(
-		{readyButton.getPosition().x + (buttonWidth - readyBounds.size.x) / 2.f - readyBounds.position.x,
-	     readyButton.getPosition().y + (buttonHeight - readyBounds.size.y) / 2.f - readyBounds.position.y});
-	m_buttonTexts.push_back(readyText);
-	m_buttonEnabled.push_back(true);
-
-	sf::RectangleShape backButton;
-	backButton.setSize({buttonWidth, buttonHeight});
-	backButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f + 110.f, 450.f});
-	backButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(backButton);
-
-	sf::Text backText(m_font);
-	backText.setString("Leave");
-	backText.setCharacterSize(24);
-	backText.setFillColor(sf::Color::White);
-	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition(
-		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
-	m_buttonTexts.push_back(backText);
-	m_buttonEnabled.push_back(true);
+	addButton({centerX - 110.f, 450.f}, {buttonWidth, buttonHeight}, "Ready", 24);
+	addButton({centerX + 110.f, 450.f}, {buttonWidth, buttonHeight}, "Leave", 24);
 }
 
 void Menu::setupJoinLobby()
 {
-	m_buttonShapes.clear();
-	m_buttonTexts.clear();
-	m_buttonEnabled.clear();
-	m_lobbyTexts.clear();
+	clearMenuState();
 
 	float const buttonWidth = 200.f;
 	float const buttonHeight = 50.f;
+	float const centerX = (m_windowDimensions.x - buttonWidth) / 2.f;
 
 	sf::Text ipLabel(m_font);
 	ipLabel.setString("Server IP:");
@@ -357,51 +274,18 @@ void Menu::setupJoinLobby()
 	m_serverPortText.setPosition({325.f, 270.f});
 	m_serverPortText.setString(std::to_string(m_serverPort));
 
-	sf::RectangleShape connectButton;
-	connectButton.setSize({buttonWidth, buttonHeight});
-	connectButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f - 110.f, 350.f});
-	connectButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(connectButton);
-
-	sf::Text connectText(m_font);
-	connectText.setString("Connect");
-	connectText.setCharacterSize(24);
-	connectText.setFillColor(sf::Color::White);
-	sf::FloatRect connectBounds = connectText.getLocalBounds();
-	connectText.setPosition(
-		{connectButton.getPosition().x + (buttonWidth - connectBounds.size.x) / 2.f - connectBounds.position.x,
-	     connectButton.getPosition().y + (buttonHeight - connectBounds.size.y) / 2.f - connectBounds.position.y});
-	m_buttonTexts.push_back(connectText);
-	m_buttonEnabled.push_back(true);
-
-	sf::RectangleShape backButton;
-	backButton.setSize({buttonWidth, buttonHeight});
-	backButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f + 110.f, 350.f});
-	backButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(backButton);
-
-	sf::Text backText(m_font);
-	backText.setString("Back");
-	backText.setCharacterSize(24);
-	backText.setFillColor(sf::Color::White);
-	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition(
-		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
-	m_buttonTexts.push_back(backText);
-	m_buttonEnabled.push_back(true);
+	addButton({centerX - 110.f, 350.f}, {buttonWidth, buttonHeight}, "Connect", 24);
+	addButton({centerX + 110.f, 350.f}, {buttonWidth, buttonHeight}, "Back", 24);
 }
 
 void Menu::setupSettings()
 {
-	m_buttonShapes.clear();
-	m_buttonTexts.clear();
-	m_buttonEnabled.clear();
-	m_lobbyTexts.clear();
+	clearMenuState();
 
 	float const buttonWidth = 280.f;
 	float const buttonHeight = 42.f;
 	float const startY = 180.f;
+	float const centerX = (m_windowDimensions.x - buttonWidth) / 2.f;
 
 	sf::Text audioHeader(m_font);
 	audioHeader.setString("AUDIO SETTINGS");
@@ -410,41 +294,11 @@ void Menu::setupSettings()
 	audioHeader.setPosition({(m_windowDimensions.x - 180.f) / 2.f, startY});
 	m_lobbyTexts.push_back(audioHeader);
 
-	sf::RectangleShape menuMusicButton;
-	menuMusicButton.setSize({buttonWidth, buttonHeight});
-	menuMusicButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f, startY + 35.f});
-	menuMusicButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(menuMusicButton);
-
-	sf::Text menuMusicText(m_font);
 	std::string menuMusicStr = m_menuMusicEnabled ? "Menu Music: ON" : "Menu Music: OFF";
-	menuMusicText.setString(menuMusicStr);
-	menuMusicText.setCharacterSize(18);
-	menuMusicText.setFillColor(sf::Color::White);
-	sf::FloatRect menuBounds = menuMusicText.getLocalBounds();
-	menuMusicText.setPosition(
-		{menuMusicButton.getPosition().x + (buttonWidth - menuBounds.size.x) / 2.f - menuBounds.position.x,
-	     menuMusicButton.getPosition().y + (buttonHeight - menuBounds.size.y) / 2.f - menuBounds.position.y});
-	m_buttonTexts.push_back(menuMusicText);
-	m_buttonEnabled.push_back(true);
+	addButton({centerX, startY + 35.f}, {buttonWidth, buttonHeight}, menuMusicStr, 18);
 
-	sf::RectangleShape gameMusicButton;
-	gameMusicButton.setSize({buttonWidth, buttonHeight});
-	gameMusicButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f, startY + 85.f});
-	gameMusicButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(gameMusicButton);
-
-	sf::Text gameMusicText(m_font);
 	std::string gameMusicStr = m_gameMusicEnabled ? "Game Music: ON" : "Game Music: OFF";
-	gameMusicText.setString(gameMusicStr);
-	gameMusicText.setCharacterSize(18);
-	gameMusicText.setFillColor(sf::Color::White);
-	sf::FloatRect gameBounds = gameMusicText.getLocalBounds();
-	gameMusicText.setPosition(
-		{gameMusicButton.getPosition().x + (buttonWidth - gameBounds.size.x) / 2.f - gameBounds.position.x,
-	     gameMusicButton.getPosition().y + (buttonHeight - gameBounds.size.y) / 2.f - gameBounds.position.y});
-	m_buttonTexts.push_back(gameMusicText);
-	m_buttonEnabled.push_back(true);
+	addButton({centerX, startY + 85.f}, {buttonWidth, buttonHeight}, gameMusicStr, 18);
 
 	sf::Text keybindsHeader(m_font);
 	keybindsHeader.setString("KEYBINDS");
@@ -468,147 +322,53 @@ void Menu::setupSettings()
 		keybindText.setCharacterSize(15);
 		keybindText.setFillColor(sf::Color(180, 180, 180));
 
-		if(i < 3)
-		{
-			keybindText.setPosition({leftColX, keybindStartY + i * keybindSpacing});
-		}
-		else
-		{
-			keybindText.setPosition({rightColX, keybindStartY + (i - 3) * keybindSpacing});
-		}
+		float xPos = (i < 3) ? leftColX : rightColX;
+		float yOffset = (i < 3) ? i : (i - 3);
+		keybindText.setPosition({xPos, keybindStartY + yOffset * keybindSpacing});
 		m_lobbyTexts.push_back(keybindText);
 	}
 
-	sf::RectangleShape backButton;
-	backButton.setSize({buttonWidth, buttonHeight});
-	backButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f, startY + 255.f});
-	backButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(backButton);
-
-	sf::Text backText(m_font);
-	backText.setString("Back");
-	backText.setCharacterSize(20);
-	backText.setFillColor(sf::Color::White);
-	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition(
-		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
-	m_buttonTexts.push_back(backText);
-	m_buttonEnabled.push_back(true);
+	addButton({centerX, startY + 255.f}, {buttonWidth, buttonHeight}, "Back", 20);
 }
 
 void Menu::setupMapSelection()
 {
-	m_buttonShapes.clear();
-	m_buttonTexts.clear();
-	m_buttonEnabled.clear();
-	m_lobbyTexts.clear();
+	clearMenuState();
 
 	float const buttonWidth = 250.f;
 	float const buttonHeight = 50.f;
 	float const startY = 180.f;
+	float const centerX = (m_windowDimensions.x - buttonWidth) / 2.f;
 
 	std::vector<std::string> const maps = {"Test1", "Test2", "Test3", "Test4"};
 
 	for(size_t i = 0; i < maps.size(); ++i)
 	{
-		sf::RectangleShape mapButton;
-		mapButton.setSize({buttonWidth, buttonHeight});
-		mapButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f, startY + i * (buttonHeight + 15.f)});
-
-		if(maps[i] == m_selectedMap)
-			mapButton.setFillColor(sf::Color(60, 120, 60));
-		else
-			mapButton.setFillColor(sf::Color(80, 80, 80));
-
-		m_buttonShapes.push_back(mapButton);
-
-		sf::Text mapText(m_font);
-		mapText.setString(maps[i]);
-		mapText.setCharacterSize(22);
-		mapText.setFillColor(sf::Color::White);
-		sf::FloatRect textBounds = mapText.getLocalBounds();
-		mapText.setPosition(
-			{mapButton.getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-		     mapButton.getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
-		m_buttonTexts.push_back(mapText);
-		m_buttonEnabled.push_back(true);
+		sf::Color fillColor = (maps[i] == m_selectedMap) ? sf::Color(60, 120, 60) : sf::Color(80, 80, 80);
+		addButton({centerX, startY + i * (buttonHeight + 15.f)}, {buttonWidth, buttonHeight}, maps[i], 22, fillColor);
 	}
 
-	sf::RectangleShape backButton;
-	backButton.setSize({buttonWidth, buttonHeight});
-	backButton.setPosition(
-		{(m_windowDimensions.x - buttonWidth) / 2.f, startY + maps.size() * (buttonHeight + 15.f) + 30.f});
-	backButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(backButton);
-
-	sf::Text backText(m_font);
-	backText.setString("Back");
-	backText.setCharacterSize(24);
-	backText.setFillColor(sf::Color::White);
-	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition(
-		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
-	m_buttonTexts.push_back(backText);
-	m_buttonEnabled.push_back(true);
+	addButton({centerX, startY + maps.size() * (buttonHeight + 15.f) + 30.f}, {buttonWidth, buttonHeight}, "Back", 24);
 }
 
 void Menu::setupModeSelection()
 {
-	m_buttonShapes.clear();
-	m_buttonTexts.clear();
-	m_buttonEnabled.clear();
-	m_lobbyTexts.clear();
+	clearMenuState();
 
 	float const buttonWidth = 250.f;
 	float const buttonHeight = 50.f;
 	float const startY = 180.f;
+	float const centerX = (m_windowDimensions.x - buttonWidth) / 2.f;
 
 	std::vector<std::string> const modes = {"Deathmatch", "TestMode2", "TestMode3", "TestMode4"};
 
 	for(size_t i = 0; i < modes.size(); ++i)
 	{
-		sf::RectangleShape modeButton;
-		modeButton.setSize({buttonWidth, buttonHeight});
-		modeButton.setPosition({(m_windowDimensions.x - buttonWidth) / 2.f, startY + i * (buttonHeight + 15.f)});
-
-		if(modes[i] == m_selectedMode)
-			modeButton.setFillColor(sf::Color(60, 120, 60));
-		else
-			modeButton.setFillColor(sf::Color(80, 80, 80));
-
-		m_buttonShapes.push_back(modeButton);
-
-		sf::Text modeText(m_font);
-		modeText.setString(modes[i]);
-		modeText.setCharacterSize(22);
-		modeText.setFillColor(sf::Color::White);
-		sf::FloatRect textBounds = modeText.getLocalBounds();
-		modeText.setPosition(
-			{modeButton.getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-		     modeButton.getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
-		m_buttonTexts.push_back(modeText);
-		m_buttonEnabled.push_back(true);
+		sf::Color fillColor = (modes[i] == m_selectedMode) ? sf::Color(60, 120, 60) : sf::Color(80, 80, 80);
+		addButton({centerX, startY + i * (buttonHeight + 15.f)}, {buttonWidth, buttonHeight}, modes[i], 22, fillColor);
 	}
 
-	sf::RectangleShape backButton;
-	backButton.setSize({buttonWidth, buttonHeight});
-	backButton.setPosition(
-		{(m_windowDimensions.x - buttonWidth) / 2.f, startY + modes.size() * (buttonHeight + 15.f) + 30.f});
-	backButton.setFillColor(sf::Color(80, 80, 80));
-	m_buttonShapes.push_back(backButton);
-
-	sf::Text backText(m_font);
-	backText.setString("Back");
-	backText.setCharacterSize(24);
-	backText.setFillColor(sf::Color::White);
-	sf::FloatRect backBounds = backText.getLocalBounds();
-	backText.setPosition(
-		{backButton.getPosition().x + (buttonWidth - backBounds.size.x) / 2.f - backBounds.position.x,
-	     backButton.getPosition().y + (buttonHeight - backBounds.size.y) / 2.f - backBounds.position.y});
-	m_buttonTexts.push_back(backText);
-	m_buttonEnabled.push_back(true);
+	addButton({centerX, startY + modes.size() * (buttonHeight + 15.f) + 30.f}, {buttonWidth, buttonHeight}, "Back", 24);
 }
 
 bool Menu::isMouseOver(sf::RectangleShape const &shape, sf::Vector2f mousePos) const
@@ -753,130 +513,93 @@ void Menu::handleClick(sf::Vector2f mousePos)
 
 	for(size_t i = 0; i < m_buttonShapes.size(); ++i)
 	{
-		if(m_buttonEnabled[i] && isMouseOver(m_buttonShapes[i], mousePos))
+		if(!m_buttonEnabled[i] || !isMouseOver(m_buttonShapes[i], mousePos))
+			continue;
+
+		switch(m_state)
 		{
-			if(m_state == State::MAIN)
+		case State::MAIN:
+			if(i == 0)
 			{
-				if(i == 0)
-				{ // host game button
-					m_title.setString("WAITING FOR PLAYERS");
-				}
-				else if(i == 1)
-				{
-					spdlog::info("Join Lobby button clicked, player name is: '{}'", m_playerName);
-					m_state = State::JOIN_LOBBY;
-					m_title.setString("CONNECT TO SERVER");
-					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition(
-						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-					setupJoinLobby();
-				}
-				else if(i == 2)
-				{
-					m_state = State::SETTINGS;
-					m_title.setString("SETTINGS");
-					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition(
-						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-					setupSettings();
-				}
-				else if(i == 3)
-				{
-					m_exit = true;
-				}
+				spdlog::info("Join Lobby button clicked, player name is: '{}'", m_playerName);
+				m_state = State::JOIN_LOBBY;
+				setTitle("CONNECT TO SERVER");
+				setupJoinLobby();
 			}
-			else if(m_state == State::JOIN_LOBBY)
+			else if(i == 1)
 			{
-				if(i == 0)
-				{
-					m_shouldConnect = true;
-				}
-				else if(i == 1)
-				{
-					m_state = State::MAIN;
-					m_title.setString("TANK GAME");
-					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition(
-						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-					setupMainMenu();
-				}
+				m_state = State::SETTINGS;
+				setTitle("SETTINGS");
+				setupSettings();
 			}
-			else if(m_state == State::LOBBY_CLIENT)
+			else if(i == 2)
 			{
-				if(i == 0)
-				{
-					m_startGame = true;
-				}
-				else if(i == 1)
-				{
-					m_state = State::MAIN;
-					m_title.setString("TANK GAME");
-					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition(
-						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-					setupMainMenu();
-				}
+				m_exit = true;
 			}
-			else if(m_state == State::SETTINGS)
+			break;
+
+		case State::JOIN_LOBBY:
+			if(i == 0)
+				m_shouldConnect = true;
+			else if(i == 1)
+				goToMainMenu();
+			break;
+
+		case State::LOBBY_CLIENT:
+			if(i == 0)
+				m_startGame = true;
+			else if(i == 1)
+				goToMainMenu();
+			break;
+
+		case State::SETTINGS:
+			if(i == 0)
 			{
-				if(i == 0)
-				{
-					m_menuMusicEnabled = !m_menuMusicEnabled;
-					setupSettings();
-				}
-				else if(i == 1)
-				{
-					m_gameMusicEnabled = !m_gameMusicEnabled;
-					setupSettings();
-				}
-				else if(i == 2)
-				{
-					m_state = State::MAIN;
-					m_title.setString("TANK GAME");
-					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition(
-						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-					setupMainMenu();
-				}
+				m_menuMusicEnabled = !m_menuMusicEnabled;
+				setupSettings();
 			}
-			else if(m_state == State::MAP_SELECT)
+			else if(i == 1)
 			{
-				std::vector<std::string> const maps = {"Test1", "Test2", "Test3", "Test4"};
-				if(i < maps.size())
-				{
-					m_selectedMap = maps[i];
-					setupMapSelection();
-				}
-				else
-				{
-					m_state = State::MAIN;
-					m_title.setString("TANK GAME");
-					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition(
-						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-					setupMainMenu();
-				}
+				m_gameMusicEnabled = !m_gameMusicEnabled;
+				setupSettings();
 			}
-			else if(m_state == State::MODE_SELECT)
+			else if(i == 2)
 			{
-				std::vector<std::string> const modes = {"Deathmatch", "TestMode2", "TestMode3", "TestMode4"};
-				if(i < modes.size())
-				{
-					m_selectedMode = modes[i];
-					setupModeSelection();
-				}
-				else
-				{
-					m_state = State::MAIN;
-					m_title.setString("TANK GAME");
-					sf::FloatRect titleBounds = m_title.getLocalBounds();
-					m_title.setPosition(
-						{(m_windowDimensions.x - titleBounds.size.x) / 2.f - titleBounds.position.x, 80.f});
-					setupMainMenu();
-				}
+				goToMainMenu();
 			}
-			return;
+			break;
+
+		case State::MAP_SELECT:
+		{
+			std::vector<std::string> const maps = {"Test1", "Test2", "Test3", "Test4"};
+			if(i < maps.size())
+			{
+				m_selectedMap = maps[i];
+				setupMapSelection();
+			}
+			else
+			{
+				goToMainMenu();
+			}
+			break;
 		}
+
+		case State::MODE_SELECT:
+		{
+			std::vector<std::string> const modes = {"Deathmatch", "TestMode2", "TestMode3", "TestMode4"};
+			if(i < modes.size())
+			{
+				m_selectedMode = modes[i];
+				setupModeSelection();
+			}
+			else
+			{
+				goToMainMenu();
+			}
+			break;
+		}
+		}
+		return;
 	}
 }
 
@@ -956,60 +679,41 @@ void Menu::updateLobbyDisplay(std::vector<LobbyPlayerInfo> const &players)
 
 void Menu::updateHostButton(bool canStartGame, bool hasEnoughPlayers, bool hostReady)
 {
-	(void)hasEnoughPlayers; // Unused parameter
+	(void)hasEnoughPlayers;
 	if(m_buttonTexts.size() < 3)
 		return;
 
 	int const buttonIdx = 2;
-	float const buttonWidth = 200.f;
-	float const buttonHeight = 50.f;
 
+	std::string label;
 	if(!hostReady)
-	{
-		m_buttonTexts[buttonIdx].setString("Ready");
-		m_buttonEnabled[buttonIdx] = true;
-	}
+		label = "Ready";
 	else if(!canStartGame)
-	{
-		m_buttonTexts[buttonIdx].setString("Unready");
-		m_buttonEnabled[buttonIdx] = true;
-	}
+		label = "Unready";
 	else
-	{
-		m_buttonTexts[buttonIdx].setString("Start Game");
-		m_buttonEnabled[buttonIdx] = true;
-	}
+		label = "Start Game";
 
-	sf::FloatRect textBounds = m_buttonTexts[buttonIdx].getLocalBounds();
-	m_buttonTexts[buttonIdx].setPosition(
-		{m_buttonShapes[buttonIdx].getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-	     m_buttonShapes[buttonIdx].getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
+	m_buttonTexts[buttonIdx].setString(label);
+	m_buttonEnabled[buttonIdx] = true;
+	centerTextInButton(m_buttonTexts[buttonIdx], m_buttonShapes[buttonIdx]);
 
-	m_buttonShapes[buttonIdx].setFillColor(m_buttonEnabled[buttonIdx] ? sf::Color(80, 80, 80) : sf::Color(50, 50, 50));
-	m_buttonTexts[buttonIdx].setFillColor(m_buttonEnabled[buttonIdx] ? sf::Color::White : sf::Color(120, 120, 120));
+	m_buttonShapes[buttonIdx].setFillColor(sf::Color(80, 80, 80));
+	m_buttonTexts[buttonIdx].setFillColor(sf::Color::White);
 }
 
 void Menu::updateClientButton(bool clientReady)
 {
-	if(m_state != State::LOBBY_CLIENT || m_buttonTexts.size() < 1)
+	if(m_state != State::LOBBY_CLIENT || m_buttonTexts.empty())
 		return;
 
-	// ready button
 	int const buttonIdx = 0;
-	float const buttonWidth = 200.f;
-	float const buttonHeight = 50.f;
+	m_buttonTexts[buttonIdx].setString("Ready");
+	m_buttonEnabled[buttonIdx] = !clientReady;
 
-	if(!clientReady)
-	{
-		m_buttonTexts[buttonIdx].setString("Ready");
-	}
-	else
-	{
-		m_buttonTexts[buttonIdx].setString("Unready");
-	}
+	sf::Color fillColor = clientReady ? sf::Color(50, 50, 50) : sf::Color(80, 80, 80);
+	sf::Color textColor = clientReady ? sf::Color(120, 120, 120) : sf::Color::White;
 
-	sf::FloatRect textBounds = m_buttonTexts[buttonIdx].getLocalBounds();
-	m_buttonTexts[buttonIdx].setPosition(
-		{m_buttonShapes[buttonIdx].getPosition().x + (buttonWidth - textBounds.size.x) / 2.f - textBounds.position.x,
-	     m_buttonShapes[buttonIdx].getPosition().y + (buttonHeight - textBounds.size.y) / 2.f - textBounds.position.y});
+	m_buttonShapes[buttonIdx].setFillColor(fillColor);
+	m_buttonTexts[buttonIdx].setFillColor(textColor);
+	centerTextInButton(m_buttonTexts[buttonIdx], m_buttonShapes[buttonIdx]);
 }

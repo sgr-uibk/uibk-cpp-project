@@ -139,4 +139,10 @@ class Menu
 	void setupModeSelection();
 	void updatePlayerNameDisplay();
 	bool isMouseOver(const sf::RectangleShape &shape, sf::Vector2f mousePos) const;
+
+	void clearMenuState();
+	void centerTextInButton(sf::Text &text, sf::RectangleShape const &button);
+	void addButton(sf::Vector2f position, sf::Vector2f size, std::string const &label, unsigned int fontSize,
+	               sf::Color fillColor = sf::Color(80, 80, 80));
+	void goToMainMenu();
 };
