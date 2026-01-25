@@ -130,7 +130,7 @@ void WorldClient::draw(sf::RenderWindow &window) const
 		{
 			sf::Vector2f itemPos = item.getSprite().getPosition();
 			RenderObject obj;
-			obj.sortY = itemPos.y;
+			obj.sortY = itemPos.y + 40.f;
 			obj.drawable = &item.getSprite();
 			renderQueue.push_back(obj);
 		}
