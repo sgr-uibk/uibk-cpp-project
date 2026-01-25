@@ -6,9 +6,9 @@
 #include <SFML/Graphics/Text.hpp>
 #include <spdlog/spdlog.h>
 
-PauseMenuClient::PauseMenuClient(sf::RenderWindow &window)
+PauseMenuClient::PauseMenuClient(sf::RenderWindow &window, bool gameMusicEnabled)
 	: m_pauseFont(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_window(window),
-	  m_battleMusic(initMusic("audio/battle_loop.ogg"))
+	  m_battleMusic(initMusic("audio/battle_loop.ogg", gameMusicEnabled))
 {
 	m_buttonLabels = {GameConfig::UI::Text::BUTTON_RESUME, GameConfig::UI::Text::BUTTON_DISCONNECT,
 	                  GameConfig::UI::Text::BUTTON_SETTINGS};

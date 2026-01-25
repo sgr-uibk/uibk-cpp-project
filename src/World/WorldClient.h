@@ -43,7 +43,7 @@ class WorldClient
 {
   public:
 	WorldClient(sf::RenderWindow &window, EntityId ownPlayerId, int mapIndex,
-	            std::array<PlayerState, MAX_PLAYERS> players);
+	            std::array<PlayerState, MAX_PLAYERS> players, bool gameMusicEnabled = true);
 
 	bool update(WorldUpdateData &wud);
 	void draw(sf::RenderWindow &window) const;

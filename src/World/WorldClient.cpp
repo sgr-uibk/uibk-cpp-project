@@ -14,8 +14,8 @@ std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states, std
 }
 
 WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, int mapIndex,
-                         std::array<PlayerState, MAX_PLAYERS> players)
-	: m_bAcceptInput(true), m_pauseMenu(window),
+                         std::array<PlayerState, MAX_PLAYERS> players, bool gameMusicEnabled)
+	: m_bAcceptInput(true), m_pauseMenu(window, gameMusicEnabled),
 	  m_state(mapIndex, std::move(players)),
 	  m_itemBar(m_state.getPlayerById(ownPlayerId), window),
 	  m_healthBar(sf::Vector2f(20.f, 20.f), sf::Vector2f(220.f, 28.f), m_state.getPlayerById(ownPlayerId).getMaxHealth()),
