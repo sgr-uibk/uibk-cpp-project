@@ -79,6 +79,63 @@ PlayerState *GameServer::matchLoop()
 	}
 }
 
+bool GameServer::tickStep()
+{
+	if (m_forceEnd)
+        return true;
+
+    m_world.clearWallDeltas();
+
+    processPackets();
+
+    float dt = m_tickClock.getElapsedTime().asSeconds();
+    if (dt < UNRELIABLE_TICK_TIME)
+        sf::sleep(sf::seconds(UNRELIABLE_TICK_TIME - dt));
+    m_tickClock.restart();
+    ++m_authTick;
+
+    m_world.update(UNRELIABLE_TICK_TIME);
+
+    spawnItems();
+
+    m_world.checkProjectilePlayerCollisions();
+    m_world.checkProjectileWallCollisions();
+    m_world.checkPlayerItemCollisions();
+    m_world.checkPlayerPlayerCollisions();
+    m_world.removeInactiveProjectiles();
+    m_world.removeInactiveItems();
+
+    size_t cAlive = 0;
+    PlayerState* lastAlive = nullptr;
+    for(auto &p : m_world.getPlayers())
+    {
+        if(p.isAlive())
+        {
+            ++cAlive;
+            lastAlive = &p;
+        }
+    }
+
+    if(cAlive <= 1)
+    {
+        m_winner = lastAlive;
+        return true;
+    }
+
+    floodWorldState();
+    return false;
+}
+
+PlayerState* GameServer::winner() const 
+{ 
+	return m_winner; 
+}
+
+void GameServer::forceEnd() 
+{
+	m_forceEnd = true;
+}
+
 void GameServer::processPackets()
 {
 	sf::Packet rxPkt;

@@ -569,8 +569,7 @@ void Menu::handleClick(sf::Vector2f mousePos)
 			}
 			break;
 
-		case State::MAP_SELECT:
-		{
+		case State::MAP_SELECT: {
 			std::vector<std::string> const maps = {"Test1", "Test2", "Test3", "Test4"};
 			if(i < maps.size())
 			{
@@ -584,8 +583,7 @@ void Menu::handleClick(sf::Vector2f mousePos)
 			break;
 		}
 
-		case State::MODE_SELECT:
-		{
+		case State::MODE_SELECT: {
 			std::vector<std::string> const modes = {"Deathmatch", "TestMode2", "TestMode3", "TestMode4"};
 			if(i < modes.size())
 			{
