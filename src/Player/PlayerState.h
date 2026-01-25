@@ -46,6 +46,7 @@ struct PlayerState
 	void die();
 	void revive();
 
+	bool canShoot() const;
 	bool tryShoot();
 
 	bool canUsePowerup(PowerupType type) const;

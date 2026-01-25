@@ -165,6 +165,11 @@ void PlayerState::revive()
 	m_health = m_maxHealth;
 }
 
+bool PlayerState::canShoot() const
+{
+	return m_health > 0 && m_shootCooldown.isReady();
+}
+
 bool PlayerState::tryShoot()
 {
 	return m_health > 0 && m_shootCooldown.try_trigger(getShootCooldown());

@@ -80,11 +80,18 @@ bool WorldClient::update(WorldUpdateData &wud)
 	if(m_itemBar.handleItemUse())
 		wud.slot = m_itemBar.getSelection();
 
-	wud.bShoot = wud.bShoot && m_state.getPlayerById(m_ownPlayerId).tryShoot();
 	if(wud.bShoot)
 	{
-		m_players[m_ownPlayerId - 1].playShotSound();
-		assert(!m_state.getPlayerById(m_ownPlayerId).m_shootCooldown.isReady());
+		if(!m_ammoDisplay.hasAmmo())
+		{
+			m_ammoDisplay.triggerEmptyFlash();
+			wud.bShoot = false;
+		}
+		else if(!m_state.getPlayerById(m_ownPlayerId).canShoot())
+		{
+			wud.bShoot = false;
+		}
+		// sound and ammo deduction handled via cooldown detection in PlayerClient and AmmunitionDisplay
 	}
 
 	if(wud.posDelta != sf::Vector2f{0, 0})

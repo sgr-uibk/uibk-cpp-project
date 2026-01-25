@@ -42,6 +42,7 @@ void PlayerClient::update(float const dt)
 	if(m_lastShootCooldown == 0.f && currentCooldown > 0.f)
 	{
 		m_shootAnimTimer = SHOOT_ANIM_DURATION;
+		playShotSound();
 	}
 	m_lastShootCooldown = currentCooldown;
 	m_shootAnimTimer = std::clamp(m_shootAnimTimer - dt, 0.f, SHOOT_ANIM_DURATION);
