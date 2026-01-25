@@ -19,6 +19,8 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, i
 	  m_state(mapIndex, std::move(players)),
 	  m_itemBar(m_state.getPlayerById(ownPlayerId), window),
 	  m_healthBar(sf::Vector2f(20.f, 20.f), sf::Vector2f(220.f, 28.f), m_state.getPlayerById(ownPlayerId).getMaxHealth()),
+	  m_powerupPanel(m_state.getPlayerById(ownPlayerId), window),
+	  m_ammoDisplay(m_state.getPlayerById(ownPlayerId), window),
 	  m_window(window), m_mapClient(m_state.getMap()),
 	  m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)),
 	  m_ownPlayerId(ownPlayerId),
@@ -30,7 +32,7 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, i
 	m_tickClock.start();
 }
 
-void WorldClient::propagateUpdate(float dt)
+void WorldClient::propagateUpdate(float const dt)
 {
 	for(auto &pc : m_players)
 		pc.update(dt);
@@ -38,6 +40,8 @@ void WorldClient::propagateUpdate(float dt)
 		proj.update(dt);
 	for(auto &item : m_items)
 		item.update(dt);
+	m_powerupPanel.update(dt);
+	m_ammoDisplay.update(dt);
 }
 
 bool WorldClient::update(WorldUpdateData &wud)
@@ -53,25 +57,23 @@ bool WorldClient::update(WorldUpdateData &wud)
 	PlayerState const &ownPlayerState = m_state.getPlayerById(m_ownPlayerId);
 	m_healthBar.setHealth(ownPlayerState.getHealth());
 	m_healthBar.setMaxHealth(ownPlayerState.getMaxHealth());
+
 	if(m_pauseMenu.isPaused() || !m_bAcceptInput || !m_window.hasFocus())
 		return false;
-	else
-	{
-		PlayerState const &ps = m_state.getPlayerById(m_ownPlayerId);
-		sf::Vector2f playerCartCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 
-		sf::View cameraView = m_worldView;
-		sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
-		cameraView.setCenter(isoPlayerPos);
-		cameraView.zoom(m_zoomLevel);
+	PlayerState const &ps = m_state.getPlayerById(m_ownPlayerId);
+	sf::Vector2f playerCartCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
 
-		sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
-		sf::Vector2f mouseIsoPos = m_window.mapPixelToCoords(mousePixelPos, cameraView);
-		sf::Vector2f mouseCartPos = isoToCartesian(mouseIsoPos);
-		sf::Vector2f dir = mouseCartPos - playerCartCenter;
+	sf::View cameraView = m_worldView;
+	cameraView.setCenter(cartesianToIso(playerCartCenter));
+	cameraView.zoom(m_zoomLevel);
 
-		wud.cannonRot = (dir.angle() + sf::degrees(90.0f)).wrapUnsigned();
-	}
+	sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
+	sf::Vector2f mouseIsoPos = m_window.mapPixelToCoords(mousePixelPos, cameraView);
+	sf::Vector2f mouseCartPos = isoToCartesian(mouseIsoPos);
+	sf::Vector2f dir = mouseCartPos - playerCartCenter;
+
+	wud.cannonRot = (dir.angle() + sf::degrees(90.0f)).wrapUnsigned();
 
 	m_players[m_ownPlayerId - 1].setCannonRotation(wud.cannonRot);
 
@@ -99,11 +101,10 @@ bool WorldClient::update(WorldUpdateData &wud)
 void WorldClient::draw(sf::RenderWindow &window) const
 {
 	PlayerState const &ownPlayer = m_players[m_ownPlayerId - 1].getState();
-	sf::Vector2f playerCartCenter = ownPlayer.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
-	sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
+	sf::Vector2f const playerCenter = ownPlayer.getPosition() + PlayerState::logicalDimensions / 2.f;
 
 	sf::View cameraView = m_worldView;
-	cameraView.setCenter(isoPlayerPos);
+	cameraView.setCenter(cartesianToIso(playerCenter));
 	cameraView.zoom(m_zoomLevel);
 	window.setView(cameraView);
 
@@ -111,7 +112,6 @@ void WorldClient::draw(sf::RenderWindow &window) const
 
 	m_mapClient.drawGroundTiles(window);
 
-	// y-sorting
 	std::vector<RenderObject> renderQueue;
 	renderQueue.reserve(2000);
 
@@ -131,22 +131,17 @@ void WorldClient::draw(sf::RenderWindow &window) const
 
 	for(auto const &proj : m_projectiles)
 	{
-		if(proj.getState().isActive())
-		{
-			sf::Vector2f projPos = proj.getShape().getPosition();
-			RenderObject obj;
-			obj.sortY = projPos.y;
-			obj.drawable = &proj.getShape();
-			renderQueue.push_back(obj);
-		}
+		if(!proj.getState().isActive())
+			continue;
+		sf::Vector2f const projPos = proj.getShape().getPosition();
+		renderQueue.push_back({.sortY = projPos.y, .drawable = &proj.getShape()});
 	}
 
 	for(auto const &pc : m_players)
 	{
-		if(pc.getState().m_id != 0 && pc.getState().isAlive())
-		{
-			pc.collectRenderObjects(renderQueue);
-		}
+		if(pc.getState().m_id == 0 || !pc.getState().isAlive())
+			continue;
+		pc.collectRenderObjects(renderQueue, m_ownPlayerId);
 	}
 
 	std::sort(renderQueue.begin(), renderQueue.end());
@@ -154,14 +149,22 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	for(auto const &obj : renderQueue)
 		obj.draw(window);
 
+	if(m_ownPlayerId > 0 && m_ownPlayerId <= MAX_PLAYERS)
+	{
+		auto const &ownPlayerClient = m_players[m_ownPlayerId - 1];
+		if(ownPlayerClient.getState().isAlive())
+			ownPlayerClient.drawSilhouette(window, 100);
+	}
+
 	window.setView(m_hudView);
 
 	window.draw(m_healthBar);
 	m_itemBar.draw(window);
+	m_powerupPanel.draw(window);
+	m_ammoDisplay.draw(window);
 	m_pauseMenu.draw(window);
 }
 
-// Applies server state that does not get interpolated, such as player inventory, items, etc.
 void WorldClient::applyNonInterpState(WorldState const &snapshot)
 {
 	m_state.assignSnappedState(snapshot);
@@ -184,11 +187,8 @@ void WorldClient::applyNonInterpState(WorldState const &snapshot)
 			m_items.emplace_back(itemState);
 	}
 
-	auto const &destroyedWalls = snapshot.getDestroyedWallDeltas();
-	for(auto const &gridPos : destroyedWalls)
-	{
+	for(auto const &gridPos : snapshot.getDestroyedWallDeltas())
 		m_state.getMap().destroyWallAtGridPos(gridPos);
-	}
 }
 
 WorldState &WorldClient::getState()

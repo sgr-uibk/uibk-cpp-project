@@ -10,6 +10,8 @@
 #include "PauseMenuClient.h"
 #include "ItemBarClient.h"
 #include "HealthBar.h"
+#include "PowerupCooldownPanelClient.h"
+#include "AmmunitionDisplayClient.h"
 
 struct WorldUpdateData
 {
@@ -66,6 +68,8 @@ class WorldClient
 	WorldState m_state;
 	ItemBarClient m_itemBar;
 	HealthBar m_healthBar;
+	PowerupCooldownPanel m_powerupPanel;
+	AmmunitionDisplay m_ammoDisplay;
 	sf::RenderWindow &m_window;
 	MapClient m_mapClient;
 	std::array<PlayerClient, MAX_PLAYERS> m_players;

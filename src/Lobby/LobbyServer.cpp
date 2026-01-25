@@ -224,6 +224,11 @@ WorldState LobbyServer::startGame()
 
 	auto playerInit = make_player_init<MAX_PLAYERS>(spawns, rng);
 
+	for(size_t i = 0; i < MAX_PLAYERS; ++i)
+	{
+		playerInit[i].m_name = m_slots[i].bValid ? m_slots[i].name : "";
+	}
+
 	sf::Packet startPkt = createPkt(ReliablePktType::GAME_START);
 	startPkt << mapIndex; // Send map index to clients
 	serializeFromArray(startPkt, playerInit, std::make_index_sequence<MAX_PLAYERS>{});

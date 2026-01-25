@@ -48,15 +48,18 @@ struct PlayerState
 
 	bool tryShoot();
 
+	bool canUsePowerup(PowerupType type) const;
 	void applyPowerup(PowerupType type);
+	void startReuseCooldown(PowerupType type);
 	bool hasPowerup(PowerupType type) const;
 	PowerupEffect const *getPowerup(PowerupType type) const;
+	float getPowerupReuseCooldown(PowerupType type) const;
 	float getSpeedMultiplier() const;
 	int getDamageMultiplier() const;
 	float getShootCooldown() const;
 
 	bool addToInventory(PowerupType type);
-	void useItem(size_t slotNum);
+	bool useItem(size_t slot);
 	PowerupType getInventoryItem(int slot) const;
 	std::array<PowerupType, 9> const &getInventory() const
 	{
@@ -84,6 +87,10 @@ struct PlayerState
 
 	static constexpr int MAX_POWERUPS = 5;
 	std::array<PowerupEffect, MAX_POWERUPS> m_powerups;
+
+	static constexpr int NUM_POWERUP_TYPES = 6;
+	std::array<Cooldown, NUM_POWERUP_TYPES> m_powerupReuseCooldowns;
+
 	std::array<PowerupType, 9> m_inventory{PowerupType::NONE};
 
 	static constexpr sf::Vector2f logicalDimensions = {28, 28};

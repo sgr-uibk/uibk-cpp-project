@@ -1,12 +1,11 @@
 #include "HealthBar.h"
 #include <algorithm>
-#include <cmath>
 #include "ResourceManager.h"
 
 HealthBar::HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth)
 	: m_maxHealth(maxHealth), m_health(maxHealth), m_midThreshold(3 * maxHealth / 4), m_lowThreshold(maxHealth / 4),
-	  m_highColor(80, 200, 60), m_midColor(240, 200, 64), m_lowColor(220, 60, 60), m_size(size), m_text(m_font),
-	  m_font(ResourceManager<sf::Font>::inst().load("Font/LiberationSans-Regular.ttf"))
+	  m_highColor(80, 200, 60), m_midColor(240, 200, 64), m_lowColor(220, 60, 60), m_size(size),
+	  m_font(ResourceManager<sf::Font>::inst().load("Font/LiberationSans-Regular.ttf")), m_text(m_font)
 {
 	// Appearance inherited from Shape
 	m_bg.setSize(m_size);
@@ -39,10 +38,10 @@ void HealthBar::setHealth(int const health)
 void HealthBar::setPositionScreen(sf::Vector2f const &pos)
 {
 	setPosition(pos);
-	m_bg.setPosition(pos);
-	m_fill.setPosition(pos);
+	m_bg.setPosition({0.f, 0.f});
+	m_fill.setPosition({0.f, 0.f});
 	// move it inwards a few pixels
-	m_text.setPosition({pos.x + 6.f, pos.y + (m_size.y - m_text.getCharacterSize()) / 2.f - 2.f});
+	m_text.setPosition({6.f, (m_size.y - m_text.getCharacterSize()) / 2.f - 2.f});
 }
 
 void HealthBar::setFont(sf::Font const &font)
@@ -109,7 +108,5 @@ void HealthBar::updateVisuals()
 	else
 		m_fill.setFillColor(m_lowColor);
 
-	int const shownHealth = static_cast<int>(std::round(m_health));
-	int const shownMaxHealth = static_cast<int>(std::round(m_maxHealth));
-	m_text.setString(std::to_string(shownHealth) + " / " + std::to_string(shownMaxHealth));
+	m_text.setString(std::to_string(m_health) + " / " + std::to_string(m_maxHealth));
 }
