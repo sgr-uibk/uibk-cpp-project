@@ -109,9 +109,13 @@ void PlayerClient::playShotSound()
 
 void PlayerClient::syncSpriteToState()
 {
-	// Determine tank health state (50% threshold)
-	m_currentTankState = (m_state.m_health > m_state.m_maxHealth / 2) ? TankSpriteManager::TankState::HEALTHY
-	                                                                  : TankSpriteManager::TankState::DAMAGED;
+	// Determine tank health state
+	if(m_state.m_health <= 0)
+		m_currentTankState = TankSpriteManager::TankState::DEAD;
+	else if(m_state.m_health > m_state.m_maxHealth / 2)
+		m_currentTankState = TankSpriteManager::TankState::HEALTHY;
+	else
+		m_currentTankState = TankSpriteManager::TankState::DAMAGED;
 
 	// Calculate direction indices
 	int hullDir = std::clamp(angleToDirection(m_state.getRotation().asDegrees()) - 1, 0, 7);
@@ -136,15 +140,6 @@ void PlayerClient::syncSpriteToState()
 
 	m_hullSprite.setColor(m_color);
 	m_turretSprite.setColor(m_color);
-
-	// Dead tank rendering (unchanged)
-	if(m_state.m_health <= 0)
-	{
-		sf::Color deadColor = m_color;
-		deadColor.a = 128;
-		m_hullSprite.setColor(deadColor);
-		m_turretSprite.setColor(deadColor);
-	}
 
 	// Update healthbar position and values
 	m_healthBar.setMaxHealth(m_state.m_maxHealth);
@@ -181,10 +176,14 @@ void PlayerClient::collectRenderObjects(std::vector<RenderObject> &queue, Entity
 	hullObj.drawable = &m_hullSprite;
 	queue.push_back(hullObj);
 
-	RenderObject turretObj;
-	turretObj.sortY = depthY + 0.1f;
-	turretObj.drawable = &m_turretSprite;
-	queue.push_back(turretObj);
+	// Don't draw turret when tank is dead
+	if(m_currentTankState != TankSpriteManager::TankState::DEAD)
+	{
+		RenderObject turretObj;
+		turretObj.sortY = depthY + 0.1f;
+		turretObj.drawable = &m_turretSprite;
+		queue.push_back(turretObj);
+	}
 
 	RenderObject textObj;
 	textObj.sortY = depthY + 1.0f;

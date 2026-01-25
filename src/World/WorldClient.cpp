@@ -155,7 +155,7 @@ void WorldClient::draw(sf::RenderWindow &window) const
 
 	for(auto const &pc : m_players)
 	{
-		if(pc.getState().m_id == 0 || !pc.getState().isAlive())
+		if(pc.getState().m_id == 0)
 			continue;
 		pc.collectRenderObjects(renderQueue, m_ownPlayerId);
 	}
