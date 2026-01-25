@@ -78,7 +78,16 @@ bool WorldClient::update(WorldUpdateData &wud)
 	m_players[m_ownPlayerId - 1].setCannonRotation(wud.cannonRot);
 
 	if(m_itemBar.handleItemUse())
-		wud.slot = m_itemBar.getSelection();
+	{
+		size_t const slot = m_itemBar.getSelection();
+		PlayerState const &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
+		PowerupType const itemType = ownPlayer.getInventoryItem(static_cast<int>(slot - 1));
+
+		if(itemType != PowerupType::NONE && !ownPlayer.canUsePowerup(itemType))
+			m_powerupPanel.triggerCooldownFlash(itemType);
+		else
+			wud.slot = slot;
+	}
 
 	if(wud.bShoot)
 	{

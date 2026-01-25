@@ -312,10 +312,11 @@ bool PlayerState::addToInventory(PowerupType type)
 
 bool PlayerState::useItem(size_t const slot)
 {
-	if(slot >= m_inventory.size())
+	if(slot == 0 || slot > m_inventory.size())
 		return false;
 
-	PowerupType itemType = m_inventory[slot];
+	size_t const idx = slot - 1;
+	PowerupType itemType = m_inventory[idx];
 	if(itemType == PowerupType::NONE)
 		return false;
 
@@ -323,7 +324,7 @@ bool PlayerState::useItem(size_t const slot)
 		return false;
 
 	applyPowerup(itemType);
-	m_inventory[slot] = PowerupType::NONE;
+	m_inventory[idx] = PowerupType::NONE;
 	return true;
 }
 
