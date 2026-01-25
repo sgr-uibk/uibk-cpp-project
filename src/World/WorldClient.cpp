@@ -32,7 +32,7 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, i
 	m_tickClock.start();
 }
 
-void WorldClient::propagateUpdate(float dt)
+void WorldClient::propagateUpdate(float const dt)
 {
 	for(auto &pc : m_players)
 		pc.update(dt);
@@ -53,104 +53,77 @@ std::optional<sf::Packet> WorldClient::update(sf::Vector2f posDelta)
 		m_tickClock.restart();
 	propagateUpdate(frameDelta);
 
-	// Update healthbar
-	PlayerState const &ownPlayerState = m_state.getPlayerById(m_ownPlayerId);
-	m_healthBar.setHealth(ownPlayerState.getHealth());
-	m_healthBar.setMaxHealth(ownPlayerState.getMaxHealth());
+	PlayerState const &ownPlayer = m_state.getPlayerById(m_ownPlayerId);
+	m_healthBar.setHealth(ownPlayer.getHealth());
+	m_healthBar.setMaxHealth(ownPlayer.getMaxHealth());
+
 	if(m_pauseMenu.isPaused() || !m_bAcceptInput || !m_window.hasFocus())
-	{ // skip game logic
 		return std::nullopt;
-	}
 
-	sf::Angle aimAngle;
-	{
-		PlayerState const &ps = m_state.getPlayerById(m_ownPlayerId);
-		sf::Vector2f playerCartCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+	sf::Vector2f const playerCenter = ownPlayer.getPosition() + PlayerState::logicalDimensions / 2.f;
 
-		sf::View cameraView = m_worldView;
-		sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
-		cameraView.setCenter(isoPlayerPos);
-		cameraView.zoom(m_zoomLevel);
+	sf::View cameraView = m_worldView;
+	cameraView.setCenter(cartesianToIso(playerCenter));
+	cameraView.zoom(m_zoomLevel);
 
-		sf::Vector2i mousePixelPos = sf::Mouse::getPosition(m_window);
-		sf::Vector2f mouseIsoPos = m_window.mapPixelToCoords(mousePixelPos, cameraView);
-
-		sf::Vector2f mouseCartPos = isoToCartesian(mouseIsoPos);
-
-		sf::Vector2f dir = mouseCartPos - playerCartCenter;
-		float angleRad = std::atan2(dir.y, dir.x);
-
-		aimAngle = (sf::radians(angleRad) + sf::degrees(90.0f)).wrapUnsigned();
-	}
+	sf::Vector2i const mousePixelPos = sf::Mouse::getPosition(m_window);
+	sf::Vector2f const mouseCartPos = isoToCartesian(m_window.mapPixelToCoords(mousePixelPos, cameraView));
+	sf::Vector2f const dir = mouseCartPos - playerCenter;
+	sf::Angle const aimAngle = (sf::radians(std::atan2(dir.y, dir.x)) + sf::degrees(90.f)).wrapUnsigned();
 
 	if(m_ownPlayerId > 0 && m_ownPlayerId <= MAX_PLAYERS)
-	{
 		m_players[m_ownPlayerId - 1].setTurretRotation(aimAngle);
-	}
 
 	if(m_itemBar.handleItemUse())
 	{
-		size_t slot = m_itemBar.getSelection();
-		PlayerState const &ps = m_state.getPlayerById(m_ownPlayerId);
-		PowerupType itemType = ps.getInventoryItem(static_cast<int>(slot));
+		size_t const slot = m_itemBar.getSelection();
+		PowerupType const itemType = ownPlayer.getInventoryItem(static_cast<int>(slot));
 
-		// Check if this powerup type is on cooldown
-		if(itemType != PowerupType::NONE && !ps.canUsePowerup(itemType))
-		{
-			// Can't use - trigger red flash feedback
+		if(itemType != PowerupType::NONE && !ownPlayer.canUsePowerup(itemType))
 			m_powerupPanel.triggerCooldownFlash(itemType);
-			// Don't send packet to server
-		}
 		else
 		{
 			sf::Packet pkt = createTickedPkt(UnreliablePktType::USE_ITEM, m_clientTick);
 			pkt << slot;
-			return std::optional(pkt);
+			return pkt;
 		}
 	}
 
-	// TODO Can't shoot and move in the same frame like this
-	bool const shoot =
+	bool const wantsToShoot =
 		sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Space) || sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
-	if(shoot && m_state.getPlayerById(m_ownPlayerId).canShoot())
+	if(wantsToShoot && ownPlayer.canShoot())
 	{
 		if(m_ammoDisplay.hasAmmo())
 		{
 			sf::Packet pkt = createTickedPkt(UnreliablePktType::SHOOT, m_clientTick);
 			pkt << aimAngle;
-			return std::optional(pkt);
+			return pkt;
 		}
-		else
-		{
-			m_ammoDisplay.triggerEmptyFlash();
-		}
+		m_ammoDisplay.triggerEmptyFlash();
 	}
 
-	if(posDelta != sf::Vector2f{0, 0})
-	{ // now we can safely normalize
-		posDelta *= UNRELIABLE_TICK_HZ / (RENDER_TICK_HZ * posDelta.length());
-		m_interp.predictMovement(posDelta);
+	if(posDelta == sf::Vector2f{0, 0})
+		return std::nullopt;
 
-		if(bServerTickExpired)
-		{
-			sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
-			pkt << m_interp.getCumulativeInputs(m_clientTick);
-			pkt << aimAngle;
-			return std::optional(pkt);
-		}
-	}
+	posDelta *= UNRELIABLE_TICK_HZ / (RENDER_TICK_HZ * posDelta.length());
+	m_interp.predictMovement(posDelta);
 
-	return std::nullopt;
+	if(!bServerTickExpired)
+		return std::nullopt;
+
+	sf::Packet pkt = createTickedPkt(UnreliablePktType::MOVE, m_clientTick);
+	pkt << m_interp.getCumulativeInputs(m_clientTick);
+	pkt << aimAngle;
+	return pkt;
 }
 
 void WorldClient::draw(sf::RenderWindow &window) const
 {
 	PlayerState const &ownPlayer = m_players[m_ownPlayerId - 1].getState();
-	sf::Vector2f playerCartCenter = ownPlayer.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
-	sf::Vector2f isoPlayerPos = cartesianToIso(playerCartCenter);
+	sf::Vector2f const playerCenter = ownPlayer.getPosition() + PlayerState::logicalDimensions / 2.f;
 
 	sf::View cameraView = m_worldView;
-	cameraView.setCenter(isoPlayerPos);
+	cameraView.setCenter(cartesianToIso(playerCenter));
 	cameraView.zoom(m_zoomLevel);
 	window.setView(cameraView);
 
@@ -158,7 +131,6 @@ void WorldClient::draw(sf::RenderWindow &window) const
 
 	m_mapClient.drawGroundTiles(window);
 
-	// y-sorting
 	std::vector<RenderObject> renderQueue;
 	renderQueue.reserve(2000);
 
@@ -166,34 +138,25 @@ void WorldClient::draw(sf::RenderWindow &window) const
 
 	for(auto const &item : m_items)
 	{
-		if(item.getState().isActive())
-		{
-			sf::Vector2f itemPos = item.getSprite().getPosition();
-			RenderObject obj;
-			obj.sortY = itemPos.y;
-			obj.drawable = &item.getSprite();
-			renderQueue.push_back(obj);
-		}
+		if(!item.getState().isActive())
+			continue;
+		sf::Vector2f const itemPos = item.getSprite().getPosition();
+		renderQueue.push_back({.sortY = itemPos.y, .drawable = &item.getSprite()});
 	}
 
 	for(auto const &proj : m_projectiles)
 	{
-		if(proj.getState().isActive())
-		{
-			sf::Vector2f projPos = proj.getShape().getPosition();
-			RenderObject obj;
-			obj.sortY = projPos.y;
-			obj.drawable = &proj.getShape();
-			renderQueue.push_back(obj);
-		}
+		if(!proj.getState().isActive())
+			continue;
+		sf::Vector2f const projPos = proj.getShape().getPosition();
+		renderQueue.push_back({.sortY = projPos.y, .drawable = &proj.getShape()});
 	}
 
 	for(auto const &pc : m_players)
 	{
-		if(pc.getState().m_id != 0 && pc.getState().isAlive())
-		{
-			pc.collectRenderObjects(renderQueue, m_ownPlayerId);
-		}
+		if(pc.getState().m_id == 0 || !pc.getState().isAlive())
+			continue;
+		pc.collectRenderObjects(renderQueue, m_ownPlayerId);
 	}
 
 	std::sort(renderQueue.begin(), renderQueue.end());
@@ -201,7 +164,6 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	for(auto const &obj : renderQueue)
 		obj.draw(window);
 
-	// Draw own player silhouette on top so they're always visible behind walls
 	if(m_ownPlayerId > 0 && m_ownPlayerId <= MAX_PLAYERS)
 	{
 		auto const &ownPlayerClient = m_players[m_ownPlayerId - 1];
@@ -218,7 +180,6 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	m_pauseMenu.draw(window);
 }
 
-// Applies server state that does not get interpolated, such as player inventory, items, etc.
 void WorldClient::applyNonInterpState(WorldState const &snapshot)
 {
 	m_state.assignSnappedState(snapshot);
@@ -241,11 +202,8 @@ void WorldClient::applyNonInterpState(WorldState const &snapshot)
 			m_items.emplace_back(itemState);
 	}
 
-	auto const &destroyedWalls = snapshot.getDestroyedWallDeltas();
-	for(auto const &gridPos : destroyedWalls)
-	{
+	for(auto const &gridPos : snapshot.getDestroyedWallDeltas())
 		m_state.getMap().destroyWallAtGridPos(gridPos);
-	}
 }
 
 WorldState &WorldClient::getState()
@@ -253,7 +211,6 @@ WorldState &WorldClient::getState()
 	return m_state;
 }
 
-// TODO Move/keep logic out of this function, it's just a dispatcher.
 void WorldClient::pollEvents()
 {
 	while(std::optional const event = m_window.pollEvent())
@@ -272,16 +229,15 @@ void WorldClient::pollEvents()
 			{
 				m_itemBar.handleKeyboardEvent(keyPress->scancode);
 
-				// Handle camera zoom with +/- keys
 				if(keyPress->scancode == sf::Keyboard::Scancode::Equal ||
 				   keyPress->scancode == sf::Keyboard::Scancode::NumpadPlus)
 				{
-					m_zoomLevel = std::max(0.5f, m_zoomLevel - 0.1f); // Zoom in (decrease zoom value)
+					m_zoomLevel = std::max(0.5f, m_zoomLevel - 0.1f);
 				}
 				else if(keyPress->scancode == sf::Keyboard::Scancode::Hyphen ||
 				        keyPress->scancode == sf::Keyboard::Scancode::NumpadMinus)
 				{
-					m_zoomLevel = std::min(3.0f, m_zoomLevel + 0.1f); // Zoom out (increase zoom value)
+					m_zoomLevel = std::min(3.0f, m_zoomLevel + 0.1f);
 				}
 			}
 		}
@@ -305,10 +261,10 @@ void WorldClient::pollEvents()
 	}
 }
 
-void WorldClient::handleResize(sf::Vector2u newSize)
+void WorldClient::handleResize(sf::Vector2u const newSize)
 {
-	// Update both views to match new window size
-	m_worldView.setSize(sf::Vector2f(newSize));
-	m_hudView.setSize(sf::Vector2f(newSize));
-	m_hudView.setCenter(sf::Vector2f(newSize) / 2.f);
+	sf::Vector2f const size(newSize);
+	m_worldView.setSize(size);
+	m_hudView.setSize(size);
+	m_hudView.setCenter(size / 2.f);
 }
