@@ -256,6 +256,32 @@ WorldState LobbyServer::startGame(int mapIndex)
 	return WorldState{mapIndex, std::move(playerInit)};
 }
 
+bool LobbyServer::hasAnyClients() const
+{
+    for(const auto &p : m_slots)
+        if(p.bValid)
+            return true;
+    return false;
+}
+
+void LobbyServer::reset()
+{
+    SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Resetting lobby state");
+
+    for(auto &p : m_slots)
+    {
+        if(p.bValid)
+        {
+            m_multiSock.remove(p.tcpSocket);
+            p.tcpSocket.disconnect();
+        }
+
+        p = LobbyPlayer{};
+    }
+
+    m_cReady = 0;
+}
+
 void LobbyServer::endGame(EntityId winner)
 {
 	m_cReady = 0;
@@ -299,4 +325,13 @@ void LobbyServer::broadcastLobbyUpdate()
 			}
 		}
 	}
+}
+
+void LobbyServer::removeClient(LobbyPlayer &p) {
+	if (p.bValid) {
+            m_multiSock.remove(p.tcpSocket);
+            p.tcpSocket.disconnect();
+            p = LobbyPlayer{};
+            m_cReady = 0;
+        }
 }

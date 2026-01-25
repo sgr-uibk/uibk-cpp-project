@@ -27,6 +27,17 @@ int main(int argc, char **argv)
 
 	int nextMapIndex = Maps::DEFAULT_MAP_INDEX;
 
+	auto resetServer = [&](){
+        SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Server reset initiated");
+
+        gameServer.reset();
+        lobbyServer.reset();
+        nextMapIndex = Maps::DEFAULT_MAP_INDEX;
+
+        SPDLOG_LOGGER_INFO(spdlog::get("Server"),
+            "Server reset complete. Waiting for players.");
+    };
+
 	std::thread cmdThread([&]{
         while(running)
         {
@@ -78,6 +89,14 @@ int main(int argc, char **argv)
 
 		if (gameServer)
         {
+
+			if(!lobbyServer.hasAnyClients())
+			{
+				SPDLOG_LOGGER_WARN(spdlog::get("Server"),
+					"All clients disconnected during game. Resetting server.");
+				resetServer();
+			}
+
             bool gameEnded = gameServer->tickStep();
             if (gameEnded)
             {

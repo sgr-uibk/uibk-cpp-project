@@ -2,6 +2,7 @@
 #include "Map/MapState.h"
 #include "Utilities.h"
 #include <SFML/Graphics.hpp>
+#include <SFML/System/Vector2.hpp>
 #include <optional>
 #include <vector>
 
@@ -14,13 +15,13 @@ class MapClient
 	void collectWallSprites(std::vector<RenderObject> &queue) const;
 
   private:
-	void drawWallTiles(sf::RenderWindow &window) const;
 	static sf::Vector2i isoToScreen(sf::Vector2i tilePos, sf::Vector2i tileDim);
 	template <typename SkipPolicy, typename Fn>
 	void forEachTileInLayer(std::optional<RawLayer> const &layerOpt, Fn fn) const;
 
 	MapState &m_state;
-	std::optional<sf::Texture> m_tilesetTexture;
+	sf::Texture const &m_tilesetTexture;
+	sf::Sprite m_tilesetSprite;
 };
 
 struct SkipDestroyedWallsTag
@@ -29,11 +30,12 @@ struct SkipDestroyedWallsTag
 struct IgnoreDestroyedWallsTag
 {
 };
+
 template <typename SkipPolicy, typename Fn>
 void MapClient::forEachTileInLayer(std::optional<RawLayer> const &layerOpt, Fn fn) const
 {
 	auto const tilesetOpt = m_state.getTileset();
-	if(!m_tilesetTexture.has_value() || !layerOpt.has_value() || !tilesetOpt.has_value())
+	if(!layerOpt.has_value() || !tilesetOpt.has_value())
 		return;
 
 	auto const &layer = *layerOpt;
@@ -44,9 +46,8 @@ void MapClient::forEachTileInLayer(std::optional<RawLayer> const &layerOpt, Fn f
 	{
 		for(gridPos.x = 0; gridPos.x < layer.dim.x; ++gridPos.x)
 		{
-			int const tileId = layer.data[gridPos.y * layer.dim.x + gridPos.x];
-			int const tileIndex = tileId - tileset.firstGid;
-			if(tileId == 0 || tileIndex < 0)
+			TileType const tileType = layer.data[gridPos.y * layer.dim.x + gridPos.x];
+			if(tileType == AIR)
 				continue;
 
 			if constexpr(std::is_same_v<SkipPolicy, SkipDestroyedWallsTag>)
@@ -55,10 +56,13 @@ void MapClient::forEachTileInLayer(std::optional<RawLayer> const &layerOpt, Fn f
 					continue;
 			}
 
-			sf::Vector2i const srcCell{tileIndex % tileset.columns, tileIndex / tileset.columns};
-			auto const screenPos = isoToScreen(gridPos, tileset.mapTileDim);
-
-			fn(tileset.tileDim, tileset.mapTileDim, srcCell, screenPos);
+			sf::Vector2i const screenPos = isoToScreen(gridPos, tileset.mapTileDim);
+			sf::Vector2i const spritesheetPos =
+				sf::Vector2i{tileType % tileset.columns, tileType / tileset.columns}.componentWiseMul(tileset.tileDim);
+			sf::IntRect const spriteRect{spritesheetPos, tileset.tileDim};
+			sf::Vector2i const spritePos{screenPos.x - tileset.tileDim.x / 2,
+			                             screenPos.y - tileset.tileDim.y + tileset.mapTileDim.y};
+			fn(spriteRect, sf::Vector2f(spritePos));
 		}
 	}
 }

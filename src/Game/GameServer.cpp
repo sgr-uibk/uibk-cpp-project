@@ -9,6 +9,8 @@ using namespace GameConfig::ItemSpawn;
 GameServer::GameServer(LobbyServer &lobbyServer, uint16_t const gamePort, WorldState const &wsInit)
 	: m_gamePort(gamePort), m_world(wsInit), m_lobby(lobbyServer)
 {
+	m_lastPacketTime.resize(MAX_PLAYERS, std::chrono::steady_clock::now());
+
 	for(auto const &p : lobbyServer.m_slots)
 	{
 		assert(p.endpoint.port != gamePort); // No client can use our port, else get collisions on local multiplayer
@@ -81,6 +83,20 @@ PlayerState *GameServer::matchLoop()
 
 bool GameServer::tickStep()
 {
+	auto now = std::chrono::steady_clock::now();
+	for(size_t i=0; i<m_lobby.m_slots.size(); ++i)
+	{
+		auto &p = m_lobby.m_slots[i];
+		if(!p.bValid) continue;
+
+		auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - m_lastPacketTime[i]).count();
+		if(elapsed > 5)
+		{
+			SPDLOG_WARN("Client {} timed out, removing", p.id);
+    		m_lobby.removeClient(p);
+		}
+	}
+
 	if (m_forceEnd)
         return true;
 
@@ -109,7 +125,7 @@ bool GameServer::tickStep()
     PlayerState* lastAlive = nullptr;
     for(auto &p : m_world.getPlayers())
     {
-        if(p.isAlive())
+        if(p.isAlive() && m_lobby.m_slots[p.m_id - 1].bValid)
         {
             ++cAlive;
             lastAlive = &p;
@@ -150,6 +166,7 @@ void GameServer::processPackets()
 		uint32_t clientId = m_lobby.findClient(remote);
 		if(!clientId)
 			continue;
+		m_lastPacketTime[clientId - 1] = std::chrono::steady_clock::now();
 		if(!m_lobby.m_slots[clientId - 1].bValid || m_lastClientTicks[clientId - 1] >= tick)
 		{ // Packet was duplicated or reordered
 			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Outdated pkt from {}, (know {}, got {})", clientId,
@@ -198,6 +215,51 @@ void GameServer::processPackets()
 			}
 			break;
 		}
+		case UnreliablePktType::HEARTBEAT: 
+    {
+        m_lastPacketTime[clientId - 1] = std::chrono::steady_clock::now();
+
+        if(type == uint8_t(UnreliablePktType::INPUT))
+        {
+            WorldUpdateData wud;
+            rxPkt >> wud;
+            PlayerState &ps = m_world.getPlayerById(clientId);
+
+            if(wud.posDelta != sf::Vector2f{0, 0})
+			{
+				// m_lobby.m_slots[clientId - 1].bValid &= wud.posDelta.lengthSquared() <= 1;
+				ps.moveOn(m_world.m_map, wud.posDelta);
+				ps.setCannonRotation(wud.cannonRot);
+			}
+			if(wud.bShoot && ps.tryShoot())
+			{
+				ps.setCannonRotation(wud.cannonRot);
+
+				// spawn projectile at cannon tip
+				sf::Vector2f tankCenter = ps.getPosition() + sf::Vector2f(PlayerState::logicalDimensions / 2.f);
+				sf::Vector2f cannonOffset =
+					sf::Vector2f(0.f, -GameConfig::Player::CANNON_LENGTH).rotatedBy(wud.cannonRot);
+				sf::Vector2f position = tankCenter + cannonOffset;
+
+				// calculate velocity from cannon angle
+				sf::Vector2f velocity = sf::Vector2f(0.f, -GameConfig::Projectile::SPEED).rotatedBy(wud.cannonRot);
+
+				// Apply damage multiplier from powerups
+				int damage = GameConfig::Projectile::BASE_DAMAGE * ps.getDamageMultiplier();
+				m_world.addProjectile(position, velocity, clientId, damage);
+				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} shoots at t={}, angle={} (damage={})", clientId,
+				                   tick, wud.cannonRot.asDegrees(), damage);
+			}
+
+			if(wud.slot)
+			{
+				ps.useItem(wud.slot);
+				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Player {} used item t={}, slot #{}", clientId, tick,
+				                   wud.slot);
+			}
+        }
+        break;
+    }
 		default:
 			std::string srcAddr = srcAddrOpt.has_value() ? srcAddrOpt.value().toString() : std::string("?");
 			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr,

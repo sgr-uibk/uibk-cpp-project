@@ -10,7 +10,7 @@ class GameClient
   public:
 	GameClient(WorldClient &world, LobbyClient &lobby);
 	~GameClient();
-	void update(sf::RenderWindow &window) const;
+	void update(sf::RenderWindow &window);
 	void processUnreliablePackets();
 	bool processReliablePackets(sf::TcpSocket &lobbySock) const;
 
@@ -18,4 +18,6 @@ class GameClient
 	WorldClient &m_world;
 	LobbyClient &m_lobby;
 	Endpoint m_gameServer;
+
+	sf::Clock m_heartbeatClock;
 };

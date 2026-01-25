@@ -16,6 +16,7 @@ class GameServer
 	PlayerState* m_winner = nullptr;
 	PlayerState* winner() const;
 	void forceEnd();
+	std::vector<std::chrono::steady_clock::time_point> m_lastPacketTime;
 
 	uint16_t m_gamePort;
 	WorldState m_world;

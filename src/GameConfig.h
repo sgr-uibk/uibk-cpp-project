@@ -18,7 +18,7 @@ constexpr float CARTESIAN_TILE_SIZE = TILE_HEIGHT;
 
 namespace Maps
 {
-constexpr std::array<char const *, 1> MAP_PATHS = {"map/arena.json"};
+constexpr std::array<char const *, 2> MAP_PATHS = {"map/arena.json", "map/maze.json"};
 
 constexpr int DEFAULT_MAP_INDEX = 0;
 

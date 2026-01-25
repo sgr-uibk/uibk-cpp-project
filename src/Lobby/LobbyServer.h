@@ -30,6 +30,10 @@ class LobbyServer
 
 	std::array<LobbyPlayer, MAX_PLAYERS> m_slots;
 
+	bool hasAnyClients() const;
+	void reset();
+	void removeClient(LobbyPlayer &p);
+
   private:
 	void acceptNewClient();
 	void handleClient(LobbyPlayer &);

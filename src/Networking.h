@@ -64,6 +64,7 @@ enum class UnreliablePktType : uint8_t
 {
 	INPUT,
 	SNAPSHOT,
+	HEARTBEAT,
 	LAST
 };
 
@@ -151,8 +152,8 @@ inline sf::Socket::Status checkedReceive(sf::UdpSocket &sock, sf::Packet &pkt,
                                          std::optional<sf::IpAddress> &destAddrOpt, uint16_t &port)
 {
 	sf::Socket::Status st = sock.receive(pkt, destAddrOpt, port);
-	if(st != sf::Socket::Status::NotReady && pkt.getDataSize() == 0)
-		SPDLOG_WARN("Received empty packet (status {})", (int)st);
+	/*if(st != sf::Socket::Status::NotReady && pkt.getDataSize() == 0)
+		SPDLOG_WARN("Received empty packet (status {})", (int)st);*/
 	return st;
 }
 

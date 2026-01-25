@@ -1,35 +1,13 @@
 #include "MapClient.h"
 #include "ResourceManager.h"
 #include "Utilities.h"
+#include <SFML/Graphics/Sprite.hpp>
 #include <vector>
-#include <spdlog/spdlog.h>
-#include <filesystem>
 
-MapClient::MapClient(MapState &state) : m_state(state)
+MapClient::MapClient(MapState &state)
+	: m_state(state), m_tilesetTexture(TextureManager::inst().load("map/" + m_state.getTileset()->imagePath)),
+	  m_tilesetSprite(sf::Sprite(m_tilesetTexture))
 {
-	if(auto const &tileset = m_state.getTileset())
-	{
-		try
-		{
-			std::string tilesetRelPath = "map/" + tileset->imagePath;
-			auto fullPath = g_assetPathResolver.resolveRelative(tilesetRelPath);
-
-			sf::Texture texture;
-			if(texture.loadFromFile(fullPath.string()))
-			{
-				m_tilesetTexture = std::move(texture);
-				spdlog::info("Loaded tileset texture: {}", fullPath.string());
-			}
-			else
-			{
-				spdlog::error("Failed to load tileset texture: {}", fullPath.string());
-			}
-		}
-		catch(std::exception const &e)
-		{
-			spdlog::error("Failed to resolve tileset path: {} - {}", tileset->imagePath, e.what());
-		}
-	}
 }
 
 sf::Vector2i MapClient::isoToScreen(sf::Vector2i tilePos, sf::Vector2i tileDim)
@@ -43,39 +21,21 @@ sf::Vector2i MapClient::isoToScreen(sf::Vector2i tilePos, sf::Vector2i tileDim)
 void MapClient::drawGroundTiles(sf::RenderWindow &window) const
 {
 	forEachTileInLayer<IgnoreDestroyedWallsTag>(
-		m_state.getGroundLayer(),
-		[&](sf::Vector2i tileSprite, sf::Vector2i mapTileDim, sf::Vector2i srcPixel, sf::Vector2i screenPos) {
-			sf::Vector2f const spritePos{screenPos.x - tileSprite.x / 2.f,
-		                                 float(screenPos.y) - tileSprite.y + 2 * mapTileDim.y};
-			sf::Sprite s(*m_tilesetTexture, {srcPixel, tileSprite});
-			s.setPosition(spritePos);
-			window.draw(s);
-		});
-}
-
-void MapClient::drawWallTiles(sf::RenderWindow &window) const
-{
-	forEachTileInLayer<SkipDestroyedWallsTag>(
-		m_state.getWallsLayer(),
-		[&](sf::Vector2i tileSprite, sf::Vector2i mapTileDim, sf::Vector2i srcPixel, sf::Vector2i screenPos) {
-			sf::Vector2f const spritePos{screenPos.x - tileSprite.x / 2.f,
-		                                 float(screenPos.y) - tileSprite.y + mapTileDim.y};
-			sf::Sprite s(*m_tilesetTexture, {srcPixel, tileSprite});
-			s.setPosition(spritePos);
+		m_state.getGroundLayer(), [&](sf::IntRect const &spriteRect, sf::Vector2f const screenPos) {
+			sf::Sprite s = m_tilesetSprite;
+			s.setTextureRect(spriteRect);
+			s.setPosition(screenPos);
 			window.draw(s);
 		});
 }
 
 void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
 {
-	forEachTileInLayer<SkipDestroyedWallsTag>(
-		m_state.getWallsLayer(),
-		[&](sf::Vector2i tileSprite, sf::Vector2i mapTileDim, sf::Vector2i srcPixel, sf::Vector2i screenPos) {
-			sf::Vector2f const spritePos{screenPos.x - tileSprite.x / 2.f,
-		                                 float(screenPos.y) - tileSprite.y + mapTileDim.y};
-			sf::Sprite s(*m_tilesetTexture, {srcPixel, tileSprite});
-			s.setPosition(spritePos);
-			RenderObject const obj{.sortY = spritePos.y + tileSprite.y, .tempSprite = std::move(s)};
-			queue.push_back(obj);
-		});
+	forEachTileInLayer<SkipDestroyedWallsTag>(m_state.getWallsLayer(), [&](sf::IntRect const &spriteRect, sf::Vector2f const screenPos) {
+		sf::Sprite s = m_tilesetSprite;
+		s.setTextureRect(spriteRect);
+		s.setPosition(screenPos);
+		RenderObject const obj{.sortY = screenPos.y + spriteRect.size.y, .tempSprite = std::move(s)};
+		queue.push_back(obj);
+	});
 }

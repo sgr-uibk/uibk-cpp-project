@@ -83,13 +83,22 @@ void MapState::loadFromBlueprint(MapBlueprint const &bp)
 		{
 			for(pos.x = 0; pos.x < layer.dim.x; ++pos.x)
 			{
-				int idx = pos.y * layer.dim.x + pos.x;
-				int tileId = layer.data[idx];
+				int const idx = pos.y * layer.dim.x + pos.x;
+				TileType const tileType = layer.data[idx];
 
-				if(tileId != 0)
+				int health = 100;
+				switch(tileType)
 				{
+				default:
+				case AIR:
+					break;
+				case REINFORCED_WALL:
+					health *= 50;
+					[[fallthrough]];
+				case WALL:
 					sf::Vector2f world = sf::Vector2f(pos) * CARTESIAN_TILE_SIZE;
-					m_walls.emplace_back(world, sf::Vector2f{CARTESIAN_TILE_SIZE, CARTESIAN_TILE_SIZE}, 100);
+					m_walls.emplace_back(world, sf::Vector2f{CARTESIAN_TILE_SIZE, CARTESIAN_TILE_SIZE}, health);
+					break;
 				}
 			}
 		}
@@ -234,7 +243,7 @@ void MapState::destroyWallAtGridPos(sf::Vector2i pos)
 			size_t const idx = pos.y * layer.dim.x + pos.x;
 			if(idx < layer.data.size())
 			{
-				layer.data[idx] = 0; // Set to empty tile
+				layer.data[idx] = AIR;
 				spdlog::debug("Tile swap: Cleared wall tile at grid ({}, {})", pos.x, pos.y);
 			}
 			break;
