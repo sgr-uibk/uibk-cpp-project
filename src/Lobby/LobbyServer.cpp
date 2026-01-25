@@ -203,9 +203,9 @@ std::array<PlayerState, Sz> make_player_init(std::vector<sf::Vector2f> const &sp
 
 WorldState LobbyServer::startGame()
 {
-	// Select map (for now always use default map)
-	int mapIndex = Maps::DEFAULT_MAP_INDEX;
-	std::string mapPath = Maps::getMapPath(mapIndex);
+	static std::mt19937_64 rng{}; // deterministic spawn points
+	int const mapIndex = rng() % Maps::MAP_PATHS.size();
+	std::string mapPath = Maps::MAP_PATHS[mapIndex];
 
 	// Read only spawn points (no full map loading)
 	auto spawns = MapParser::parseSpawnsOnly(mapPath);
@@ -220,7 +220,6 @@ WorldState LobbyServer::startGame()
 			spawns.push_back(sf::Vector2f(100.f + i * 100.f, 100.f + i * 100.f));
 	}
 
-	static std::mt19937_64 rng{}; // deterministic spawn points
 	std::ranges::shuffle(spawns, rng);
 
 	auto playerInit = make_player_init<MAX_PLAYERS>(spawns, rng);

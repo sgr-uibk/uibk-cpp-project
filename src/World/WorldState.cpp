@@ -17,7 +17,7 @@ WorldState::WorldState(sf::Packet &pkt)
 WorldState::WorldState(int mapIndex, std::array<PlayerState, MAX_PLAYERS> playersInit)
 	: m_map(sf::Vector2f(0, 0)), m_players(std::move(playersInit))
 {
-	std::string mapPath = Maps::getMapPath(mapIndex);
+	std::string mapPath = Maps::MAP_PATHS[mapIndex];
 	auto blueprint = MapParser::parse(mapPath);
 
 	if(!blueprint)
