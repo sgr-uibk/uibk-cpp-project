@@ -1,13 +1,9 @@
 #include <iostream>
 #include <string>
 #include <SFML/Network.hpp>
-#include <SFML/System.hpp>
-#include <vector>
 #include <thread>
 #include <cstdlib>
 #include <spdlog/spdlog.h>
-#include <atomic>
-
 #include "Networking.h"
 #include "Utilities.h"
 #include "Lobby/LobbyServer.h"
@@ -21,23 +17,20 @@ int main(int argc, char **argv)
 	SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Starting Server. TCP port {}, UDP port {}", tcpPort, udpPort);
 
 	LobbyServer lobbyServer(tcpPort);
-	std::unique_ptr<GameServer> gameServer;
-
-	std::atomic<bool> running{true};
-
-	int nextMapIndex = Maps::DEFAULT_MAP_INDEX;
+	std::atomic<bool> bForceEndGame{false};
+	int nextMapIndex = -1;
 
 	std::thread cmdThread([&] {
-		while(running)
+		while(true)
 		{
 			std::string cmd;
 			std::getline(std::cin, cmd);
 
 			if(cmd == "quit")
-				running = false;
-			else if(cmd == "end" && gameServer)
+				exit(EXIT_SUCCESS);
+			if(cmd == "end")
 			{
-				gameServer->forceEnd();
+				bForceEndGame = true;
 				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "The game end was forced!");
 			}
 			else if(cmd.rfind("map ", 0) == 0)
@@ -66,39 +59,25 @@ int main(int argc, char **argv)
 		}
 	});
 
-	while(running)
+	while(cmdThread.joinable())
 	{
+		lobbyServer.lobbyLoop();
 
-		if(!gameServer)
+		SPDLOG_LOGGER_INFO(spdlog::get("Server"), "All {} players ready. Starting game...", MAX_PLAYERS);
+		auto wsInit = lobbyServer.startGame(nextMapIndex);
+		nextMapIndex = -1; // next map will be random again
+		GameServer gameServer(lobbyServer, udpPort, wsInit);
+		SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Game started. Switching to UDP loop.");
+		if(PlayerState *winningPlayer = gameServer.matchLoop(bForceEndGame))
 		{
-			lobbyServer.tickStep();
-
-			if(lobbyServer.readyToStart())
-			{
-				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "All {} players ready. Starting game...", MAX_PLAYERS);
-				auto wsInit = lobbyServer.startGame(nextMapIndex);
-				gameServer = std::make_unique<GameServer>(lobbyServer, udpPort, wsInit);
-				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Game started. Switching to UDP loop.");
-			}
+			lobbyServer.endGame(winningPlayer->m_id);
+			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Game Ended, winner {}. returning to lobby", winningPlayer->m_id);
 		}
-
-		if(gameServer)
-		{
-			bool gameEnded = gameServer->tickStep();
-			if(gameEnded)
-			{
-				auto winner = gameServer->winner();
-				lobbyServer.endGame(winner ? winner->m_id : 0);
-				gameServer.reset();
-				SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Game Ended, winner {}. returning to lobby",
-				                   winner ? winner->m_id : 0);
-			}
-		}
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		else
+			lobbyServer.endGame(0);
+		bForceEndGame = false;
 	}
 
-	cmdThread.join();
 	SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Server shutting down.");
 	return 0;
 }

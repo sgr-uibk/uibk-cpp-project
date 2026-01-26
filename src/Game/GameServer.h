@@ -10,13 +10,7 @@ class GameServer
   public:
 	GameServer(LobbyServer &lobbyServer, uint16_t gamePort, WorldState const &wsInit);
 	~GameServer();
-	PlayerState *matchLoop();
-
-	bool tickStep();
-	PlayerState *m_winner = nullptr;
-	PlayerState *winner() const;
-	void forceEnd();
-
+	PlayerState *matchLoop(std::atomic<bool> const &bForceEnd);
 	uint16_t m_gamePort;
 	WorldState m_world;
 	sf::Clock m_tickClock;
@@ -32,6 +26,4 @@ class GameServer
 	LobbyServer &m_lobby;
 	sf::Clock m_itemSpawnClock;
 	size_t m_nextItemSpawnIndex;
-
-	bool m_forceEnd = false;
 };
