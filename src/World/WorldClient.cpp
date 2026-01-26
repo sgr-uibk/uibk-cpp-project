@@ -15,15 +15,13 @@ std::array<PlayerClient, N> make_players(std::array<PlayerState, N> &states, std
 
 WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, int mapIndex,
                          std::array<PlayerState, MAX_PLAYERS> players, bool gameMusicEnabled)
-	: m_bAcceptInput(true), m_pauseMenu(window, gameMusicEnabled),
-	  m_state(mapIndex, std::move(players)),
+	: m_bAcceptInput(true), m_pauseMenu(window, gameMusicEnabled), m_state(mapIndex, std::move(players)),
 	  m_itemBar(m_state.getPlayerById(ownPlayerId), window),
-	  m_healthBar(sf::Vector2f(20.f, 20.f), sf::Vector2f(220.f, 28.f), m_state.getPlayerById(ownPlayerId).getMaxHealth()),
+	  m_healthBar(sf::Vector2f(20.f, 20.f), sf::Vector2f(220.f, 28.f),
+                  m_state.getPlayerById(ownPlayerId).getMaxHealth()),
 	  m_powerupPanel(m_state.getPlayerById(ownPlayerId), window),
-	  m_ammoDisplay(m_state.getPlayerById(ownPlayerId), window),
-	  m_window(window), m_mapClient(m_state.getMap()),
-	  m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)),
-	  m_ownPlayerId(ownPlayerId),
+	  m_ammoDisplay(m_state.getPlayerById(ownPlayerId), window), m_window(window), m_mapClient(m_state.getMap()),
+	  m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
 	  m_interp(m_state.getMap(), ownPlayerId, m_players)
 {
 	m_worldView = sf::View(sf::FloatRect({0, 0}, sf::Vector2f(window.getSize())));

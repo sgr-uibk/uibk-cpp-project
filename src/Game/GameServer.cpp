@@ -81,57 +81,57 @@ PlayerState *GameServer::matchLoop()
 
 bool GameServer::tickStep()
 {
-	if (m_forceEnd)
-        return true;
+	if(m_forceEnd)
+		return true;
 
-    m_world.clearWallDeltas();
+	m_world.clearWallDeltas();
 
-    processPackets();
+	processPackets();
 
-    float dt = m_tickClock.getElapsedTime().asSeconds();
-    if (dt < UNRELIABLE_TICK_TIME)
-        sf::sleep(sf::seconds(UNRELIABLE_TICK_TIME - dt));
-    m_tickClock.restart();
-    ++m_authTick;
+	float dt = m_tickClock.getElapsedTime().asSeconds();
+	if(dt < UNRELIABLE_TICK_TIME)
+		sf::sleep(sf::seconds(UNRELIABLE_TICK_TIME - dt));
+	m_tickClock.restart();
+	++m_authTick;
 
-    m_world.update(UNRELIABLE_TICK_TIME);
+	m_world.update(UNRELIABLE_TICK_TIME);
 
-    spawnItems();
+	spawnItems();
 
-    m_world.checkProjectilePlayerCollisions();
-    m_world.checkProjectileWallCollisions();
-    m_world.checkPlayerItemCollisions();
-    m_world.checkPlayerPlayerCollisions();
-    m_world.removeInactiveProjectiles();
-    m_world.removeInactiveItems();
+	m_world.checkProjectilePlayerCollisions();
+	m_world.checkProjectileWallCollisions();
+	m_world.checkPlayerItemCollisions();
+	m_world.checkPlayerPlayerCollisions();
+	m_world.removeInactiveProjectiles();
+	m_world.removeInactiveItems();
 
-    size_t cAlive = 0;
-    PlayerState* lastAlive = nullptr;
-    for(auto &p : m_world.getPlayers())
-    {
-        if(p.isAlive())
-        {
-            ++cAlive;
-            lastAlive = &p;
-        }
-    }
+	size_t cAlive = 0;
+	PlayerState *lastAlive = nullptr;
+	for(auto &p : m_world.getPlayers())
+	{
+		if(p.isAlive())
+		{
+			++cAlive;
+			lastAlive = &p;
+		}
+	}
 
-    if(cAlive <= 1)
-    {
-        m_winner = lastAlive;
-        return true;
-    }
+	if(cAlive <= 1)
+	{
+		m_winner = lastAlive;
+		return true;
+	}
 
-    floodWorldState();
-    return false;
+	floodWorldState();
+	return false;
 }
 
-PlayerState* GameServer::winner() const 
-{ 
-	return m_winner; 
+PlayerState *GameServer::winner() const
+{
+	return m_winner;
 }
 
-void GameServer::forceEnd() 
+void GameServer::forceEnd()
 {
 	m_forceEnd = true;
 }

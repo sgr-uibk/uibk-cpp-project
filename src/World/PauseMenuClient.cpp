@@ -65,7 +65,6 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 			button.setOutlineThickness(2.f);
 			window.draw(button);
 
-
 			sf::Text text(m_pauseFont);
 			text.setString(m_buttonLabels[i]);
 			text.setCharacterSize(24);
@@ -106,7 +105,6 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 				musicBounds.position.y));
 		window.draw(musicText);
 
-
 		sf::RectangleShape windowSizeButton;
 		windowSizeButton.setSize({GameConfig::UI::MUSIC_BUTTON_WIDTH, GameConfig::UI::MUSIC_BUTTON_HEIGHT});
 		windowSizeButton.setPosition({window.getSize().x / 2.f - GameConfig::UI::MUSIC_BUTTON_WIDTH / 2.f, 170.f});
@@ -119,10 +117,10 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 		windowSizeText.setFillColor(sf::Color::White);
 		sf::FloatRect windowSizeBounds = windowSizeText.getLocalBounds();
 		windowSizeText.setPosition(sf::Vector2f(
-			windowSizeButton.getPosition().x +
-				(GameConfig::UI::MUSIC_BUTTON_WIDTH - windowSizeBounds.size.x) / 2.f - windowSizeBounds.position.x,
-			windowSizeButton.getPosition().y +
-				(GameConfig::UI::MUSIC_BUTTON_HEIGHT - windowSizeBounds.size.y) / 2.f - windowSizeBounds.position.y));
+			windowSizeButton.getPosition().x + (GameConfig::UI::MUSIC_BUTTON_WIDTH - windowSizeBounds.size.x) / 2.f -
+				windowSizeBounds.position.x,
+			windowSizeButton.getPosition().y + (GameConfig::UI::MUSIC_BUTTON_HEIGHT - windowSizeBounds.size.y) / 2.f -
+				windowSizeBounds.position.y));
 		window.draw(windowSizeText);
 
 		sf::Text keybindsHeader(m_pauseFont);
@@ -134,8 +132,8 @@ void PauseMenuClient::draw(sf::RenderWindow &window) const
 		window.draw(keybindsHeader);
 
 		std::vector<std::string> keybindLabels = {
-			GameConfig::UI::Text::KEYBIND_MOVE, GameConfig::UI::Text::KEYBIND_SHOOT,
-			GameConfig::UI::Text::KEYBIND_USE_ITEM, GameConfig::UI::Text::KEYBIND_SELECT_HOTBAR,
+			GameConfig::UI::Text::KEYBIND_MOVE,        GameConfig::UI::Text::KEYBIND_SHOOT,
+			GameConfig::UI::Text::KEYBIND_USE_ITEM,    GameConfig::UI::Text::KEYBIND_SELECT_HOTBAR,
 			GameConfig::UI::Text::KEYBIND_CAMERA_ZOOM, GameConfig::UI::Text::KEYBIND_PAUSE};
 
 		for(size_t i = 0; i < keybindLabels.size(); ++i)

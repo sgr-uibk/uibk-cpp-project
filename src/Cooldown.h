@@ -46,7 +46,7 @@ class Cooldown
 	// Try to trigger; returns true if was ready
 	bool try_trigger()
 	{
-		const bool wasReady = isReady();
+		bool const wasReady = isReady();
 		if(wasReady)
 			trigger();
 		return wasReady;
@@ -55,7 +55,7 @@ class Cooldown
 	// Try to trigger with explicit duration; returns true if was ready
 	bool try_trigger(float duration)
 	{
-		const bool wasReady = isReady();
+		bool const wasReady = isReady();
 		if(wasReady)
 		{
 			m_duration = duration;

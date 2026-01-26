@@ -29,10 +29,8 @@ class PowerupCooldownPanel
 		float flashTimer = 0.f;
 	};
 
-	void drawMetalPlateBackground(sf::RenderWindow &window, sf::Vector2f const &pos,
-	                              sf::Vector2f const &size) const;
-	void drawSlot(sf::RenderWindow &window, TypeSlotState const &slot,
-	              sf::Vector2f const &pos) const;
+	void drawMetalPlateBackground(sf::RenderWindow &window, sf::Vector2f const &pos, sf::Vector2f const &size) const;
+	void drawSlot(sf::RenderWindow &window, TypeSlotState const &slot, sf::Vector2f const &pos) const;
 	void drawRivet(sf::RenderWindow &window, sf::Vector2f const &pos) const;
 
 	[[nodiscard]] sf::Vector2f calculatePanelPosition() const;

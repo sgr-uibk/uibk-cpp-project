@@ -54,9 +54,15 @@ class TankSpriteManager
 		{
 			switch(state)
 			{
-				case TankState::HEALTHY: row = HEALTHY_HULL_ROW; break;
-				case TankState::DAMAGED: row = DAMAGED_HULL_ROW; break;
-				case TankState::DEAD: row = DEAD_HULL_ROW; break;
+			case TankState::HEALTHY:
+				row = HEALTHY_HULL_ROW;
+				break;
+			case TankState::DAMAGED:
+				row = DAMAGED_HULL_ROW;
+				break;
+			case TankState::DEAD:
+				row = DEAD_HULL_ROW;
+				break;
 			}
 		}
 		else

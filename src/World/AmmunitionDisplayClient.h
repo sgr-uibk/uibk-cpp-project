@@ -27,8 +27,7 @@ class AmmunitionDisplay
 		float animProgress = 0.f;
 	};
 
-	void drawMetalPlateBackground(sf::RenderWindow &window, sf::Vector2f const &pos,
-	                              sf::Vector2f const &size) const;
+	void drawMetalPlateBackground(sf::RenderWindow &window, sf::Vector2f const &pos, sf::Vector2f const &size) const;
 	void drawBullet(sf::RenderWindow &window, size_t index, sf::Vector2f const &pos) const;
 	void drawRivet(sf::RenderWindow &window, sf::Vector2f const &pos) const;
 

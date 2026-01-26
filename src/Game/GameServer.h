@@ -13,8 +13,8 @@ class GameServer
 	PlayerState *matchLoop();
 
 	bool tickStep();
-	PlayerState* m_winner = nullptr;
-	PlayerState* winner() const;
+	PlayerState *m_winner = nullptr;
+	PlayerState *winner() const;
 	void forceEnd();
 
 	uint16_t m_gamePort;

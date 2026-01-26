@@ -78,12 +78,12 @@ class Menu
 		m_startGame = false;
 	}
 	void reset();
-	void updateLobbyDisplay(const std::vector<LobbyPlayerInfo> &players);
+	void updateLobbyDisplay(std::vector<LobbyPlayerInfo> const &players);
 	void setState(State state)
 	{
 		m_state = state;
 	}
-	void setTitle(const std::string &title);
+	void setTitle(std::string const &title);
 	void setupLobbyClient();
 	void updateHostButton(bool canStartGame, bool hasEnoughPlayers, bool hostReady);
 	void updateClientButton(bool clientReady);
@@ -138,7 +138,7 @@ class Menu
 	void setupMapSelection();
 	void setupModeSelection();
 	void updatePlayerNameDisplay();
-	bool isMouseOver(const sf::RectangleShape &shape, sf::Vector2f mousePos) const;
+	bool isMouseOver(sf::RectangleShape const &shape, sf::Vector2f mousePos) const;
 
 	void clearMenuState();
 	void centerTextInButton(sf::Text &text, sf::RectangleShape const &button);

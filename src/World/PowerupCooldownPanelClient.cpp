@@ -2,8 +2,7 @@
 #include "Item/PowerupSpriteManager.h"
 #include <cmath>
 
-PowerupCooldownPanel::PowerupCooldownPanel(PlayerState const &playerState,
-                                           sf::RenderWindow const &window)
+PowerupCooldownPanel::PowerupCooldownPanel(PlayerState const &playerState, sf::RenderWindow const &window)
 	: m_playerState(playerState), m_window(window)
 {
 	for(int i = 0; i < PlayerState::NUM_POWERUP_TYPES; ++i)
@@ -83,8 +82,7 @@ void PowerupCooldownPanel::draw(sf::RenderWindow &window) const
 	}
 }
 
-void PowerupCooldownPanel::drawMetalPlateBackground(sf::RenderWindow &window,
-                                                    sf::Vector2f const &pos,
+void PowerupCooldownPanel::drawMetalPlateBackground(sf::RenderWindow &window, sf::Vector2f const &pos,
                                                     sf::Vector2f const &size) const
 {
 	sf::RectangleShape plate(size);
@@ -106,8 +104,7 @@ void PowerupCooldownPanel::drawMetalPlateBackground(sf::RenderWindow &window,
 	drawRivet(window, {pos.x + size.x - rivetInset, pos.y + size.y - rivetInset});
 }
 
-void PowerupCooldownPanel::drawSlot(sf::RenderWindow &window, TypeSlotState const &slot,
-                                    sf::Vector2f const &pos) const
+void PowerupCooldownPanel::drawSlot(sf::RenderWindow &window, TypeSlotState const &slot, sf::Vector2f const &pos) const
 {
 	float flashIntensity = 0.f;
 	if(slot.flashTimer > 0.f)
@@ -217,8 +214,7 @@ sf::Vector2f PowerupCooldownPanel::calculatePanelSize() const
 	if(activeCount == 0)
 		return {0.f, 0.f};
 
-	float width = PANEL_PADDING * 2.f + activeCount * SLOT_SIZE +
-	              (activeCount - 1) * SLOT_SPACING;
+	float width = PANEL_PADDING * 2.f + activeCount * SLOT_SIZE + (activeCount - 1) * SLOT_SPACING;
 	float height = PANEL_PADDING * 2.f + SLOT_SIZE;
 
 	return {width, height};

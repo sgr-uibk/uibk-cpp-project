@@ -20,22 +20,23 @@ sf::Vector2i MapClient::isoToScreen(sf::Vector2i tilePos, sf::Vector2i tileDim)
 
 void MapClient::drawGroundTiles(sf::RenderWindow &window) const
 {
-	forEachTileInLayer<IgnoreDestroyedWallsTag>(
-		m_state.getGroundLayer(), [&](sf::IntRect const &spriteRect, sf::Vector2f const screenPos) {
-			sf::Sprite s = m_tilesetSprite;
-			s.setTextureRect(spriteRect);
-			s.setPosition(screenPos);
-			window.draw(s);
-		});
+	forEachTileInLayer<IgnoreDestroyedWallsTag>(m_state.getGroundLayer(),
+	                                            [&](sf::IntRect const &spriteRect, sf::Vector2f const screenPos) {
+													sf::Sprite s = m_tilesetSprite;
+													s.setTextureRect(spriteRect);
+													s.setPosition(screenPos);
+													window.draw(s);
+												});
 }
 
 void MapClient::collectWallSprites(std::vector<RenderObject> &queue) const
 {
-	forEachTileInLayer<SkipDestroyedWallsTag>(m_state.getWallsLayer(), [&](sf::IntRect const &spriteRect, sf::Vector2f const screenPos) {
-		sf::Sprite s = m_tilesetSprite;
-		s.setTextureRect(spriteRect);
-		s.setPosition(screenPos);
-		RenderObject const obj{.sortY = screenPos.y + spriteRect.size.y, .tempSprite = std::move(s)};
-		queue.push_back(obj);
-	});
+	forEachTileInLayer<SkipDestroyedWallsTag>(
+		m_state.getWallsLayer(), [&](sf::IntRect const &spriteRect, sf::Vector2f const screenPos) {
+			sf::Sprite s = m_tilesetSprite;
+			s.setTextureRect(spriteRect);
+			s.setPosition(screenPos);
+			RenderObject const obj{.sortY = screenPos.y + spriteRect.size.y, .tempSprite = std::move(s)};
+			queue.push_back(obj);
+		});
 }

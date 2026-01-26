@@ -17,9 +17,10 @@ static int angleToDirection(float degrees)
 }
 
 PlayerClient::PlayerClient(PlayerState &state, sf::Color const &color)
-	: m_state(state), m_color(color),
-	  m_hullSprite(TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::HULL, TankSpriteManager::TankState::HEALTHY, 0)),
-	  m_turretSprite(TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::TURRET, TankSpriteManager::TankState::HEALTHY, 0)),
+	: m_state(state), m_color(color), m_hullSprite(TankSpriteManager::inst().getSprite(
+										  TankSpriteManager::TankPart::HULL, TankSpriteManager::TankState::HEALTHY, 0)),
+	  m_turretSprite(TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::TURRET,
+                                                         TankSpriteManager::TankState::HEALTHY, 0)),
 	  m_currentTankState(TankSpriteManager::TankState::HEALTHY),
 	  m_font(FontManager::inst().load("Font/LiberationSans-Regular.ttf")), m_nameText(m_font, m_state.m_name, 14),
 	  m_shootSoundBuf(SoundBufferManager::inst().load("audio/tank_firing.ogg")), m_shootSound(m_shootSoundBuf),
@@ -123,10 +124,10 @@ void PlayerClient::syncSpriteToState()
 
 	// Get sprites from manager
 	m_hullSprite = TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::HULL, m_currentTankState, hullDir);
-	m_turretSprite = TankSpriteManager::inst().getSprite(
-	    TankSpriteManager::TankPart::TURRET,
-	    TankSpriteManager::TankState::HEALTHY, // Turret always healthy (row 2)
-	    turretDir);
+	m_turretSprite =
+		TankSpriteManager::inst().getSprite(TankSpriteManager::TankPart::TURRET,
+	                                        TankSpriteManager::TankState::HEALTHY, // Turret always healthy (row 2)
+	                                        turretDir);
 
 	// Set sprite origins (150x150 sprites, origin at center)
 	m_hullSprite.setOrigin(sf::Vector2f(75.f, 75.f));
@@ -160,8 +161,7 @@ void PlayerClient::updateNameText()
 	sf::Vector2f isoTankCenter = cartesianToIso(cartTankCenter);
 
 	sf::Vector2f textPos(isoTankCenter.x - textBounds.size.x / 2.f - textBounds.position.x,
-	                     isoTankCenter.y - tankDimensions.y / 2.f - 26.f
-	);
+	                     isoTankCenter.y - tankDimensions.y / 2.f - 26.f);
 	m_nameText.setPosition(textPos);
 }
 
