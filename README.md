@@ -24,12 +24,15 @@ Passive cheats are still possible to some degree: The client does interpolation,
 their client, cheating players can exploit this system to show all interpolation data, thus see where enemies are moving
 a few frames ahead of time.
 
-:
+We took inspiration from the following games:
 - Nier Automata's Hacking Minigame ![](https://www.confreaksandgeeks.com/wp-content/uploads/2017/03/NieR_Automata_20170315171011.jpg)
 - Tank 1990
 - Tank Trouble
-- ![Reference Picture](images/reference_game1.gif)
-- ![Reference Picture](images/reference_game2.jpg)
+
+Some screenshots:
+
+- ![](images/iso4.png)
+- ![](images/iso1.png)
 ---
 
 ## Goals (11 Points)
@@ -127,12 +130,12 @@ uibk-cpp-project/build $ ./TankGame
 
 - The server CLI supports these commands:
   - `end` Ends the battle with no winner, sends clients back to lobby
-  - `map n`, where `n` is the map index, currently 2 maps are implemented `0` and `1`.
+  - `map n`, forces the map for next battle. Where `n` is the map index, currently 2 maps are implemented `0` and `1`.
   - `quit` Shuts down the server.
 
 - Client keybinds can be seen when pressing `ESC`, then selecting `Settings`.
-- There are multiple powerups that gradually spawn in the map, to collect them, move the tank to the item,
 - To shoot, press `Spacebar` or `Mouse Left Click`, note you have limited ammo which regenerates over time.
+- There are multiple powerups that gradually spawn in the map, to collect them, move the tank to the item,
 - To use an item:
   - Select the item's hotbar slot (e.g. by pressing a number key or scrolling with the mouse)
   - press `Q`. The powerup is now active for a specific time.
