@@ -5,7 +5,23 @@
 class Cooldown
 {
   public:
-	Cooldown() = default;
+	Cooldown() : m_duration(0), m_remaining(0)
+	{
+	}
+
+	explicit Cooldown(float const seconds) : m_duration(seconds), m_remaining(0)
+	{
+	}
+
+	[[nodiscard]] float getDuration() const
+	{
+		return m_duration;
+	}
+
+	void setDuration(float seconds)
+	{
+		m_duration = seconds;
+	}
 
 	[[nodiscard]] bool isReady() const
 	{
@@ -17,9 +33,9 @@ class Cooldown
 		m_remaining = std::max(m_remaining - dt, 0.f);
 	}
 
-	void trigger(float const duration)
+	void trigger()
 	{
-		m_remaining = duration;
+		m_remaining = m_duration;
 	}
 
 	void expire()
@@ -28,11 +44,23 @@ class Cooldown
 	}
 
 	// Try to trigger; returns true if was ready
+	bool try_trigger()
+	{
+		bool const wasReady = isReady();
+		if(wasReady)
+			trigger();
+		return wasReady;
+	}
+
+	// Try to trigger with explicit duration; returns true if was ready
 	bool try_trigger(float duration)
 	{
 		bool const wasReady = isReady();
 		if(wasReady)
-			trigger(duration);
+		{
+			m_duration = duration;
+			trigger();
+		}
 		return wasReady;
 	}
 
@@ -47,5 +75,6 @@ class Cooldown
 	}
 
   private:
+	float m_duration;
 	float m_remaining;
 };

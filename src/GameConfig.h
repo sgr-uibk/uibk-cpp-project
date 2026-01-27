@@ -18,16 +18,10 @@ constexpr float CARTESIAN_TILE_SIZE = TILE_HEIGHT;
 
 namespace Maps
 {
-constexpr std::array<char const *, 1> MAP_PATHS = {"map/arena.json"};
+constexpr std::array MAP_PATHS = {"map/arena.json", "map/maze.json"};
 
 constexpr int DEFAULT_MAP_INDEX = 0;
 
-inline std::string getMapPath(int mapIndex)
-{
-	if(mapIndex < 0 || mapIndex >= static_cast<int>(MAP_PATHS.size()))
-		return std::string(MAP_PATHS[DEFAULT_MAP_INDEX]);
-	return std::string(MAP_PATHS[mapIndex]);
-}
 } // namespace Maps
 
 namespace GameConfig
@@ -122,5 +116,23 @@ namespace UI
 		constexpr char const *KEYBIND_CAMERA_ZOOM = "Camera Zoom: + / -";
 		constexpr char const *KEYBIND_PAUSE = "Pause: Escape";
 	} // namespace Text
+
+	// Powerup Cooldown Panel
+	constexpr float POWERUP_PANEL_SLOT_SIZE = 50.f;
+	constexpr float POWERUP_PANEL_SLOT_SPACING = 8.f;
+	constexpr float POWERUP_PANEL_MARGIN = 20.f;
+	constexpr float POWERUP_REUSE_COOLDOWN = 10.f;
+
+	// Ammunition Display
+	constexpr float AMMO_BULLET_WIDTH = 12.f;
+	constexpr float AMMO_BULLET_HEIGHT = 40.f;
+	constexpr float AMMO_BULLET_SPACING = 4.f;
+	constexpr float AMMO_PANEL_MARGIN = 20.f;
+	constexpr int AMMO_BULLET_COUNT = 10;
+
+	// Metal plate styling
+	inline sf::Color const METAL_PLATE_COLOR{60, 65, 70, 230};
+	inline sf::Color const METAL_PLATE_HIGHLIGHT{90, 95, 100, 150};
+	inline sf::Color const METAL_RIVET_COLOR{40, 42, 45};
 } // namespace UI
 } // namespace GameConfig

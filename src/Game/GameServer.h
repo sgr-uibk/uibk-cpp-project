@@ -10,8 +10,7 @@ class GameServer
   public:
 	GameServer(LobbyServer &lobbyServer, uint16_t gamePort, WorldState const &wsInit);
 	~GameServer();
-	PlayerState *matchLoop();
-
+	PlayerState *matchLoop(std::atomic<bool> const &bForceEnd);
 	uint16_t m_gamePort;
 	WorldState m_world;
 	sf::Clock m_tickClock;

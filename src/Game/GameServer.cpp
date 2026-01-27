@@ -30,10 +30,10 @@ GameServer::~GameServer()
 	m_gameSock.unbind();
 }
 
-PlayerState *GameServer::matchLoop()
+PlayerState *GameServer::matchLoop(std::atomic<bool> const &bForceEnd)
 {
 	PlayerState *pWinner = nullptr;
-	while(true)
+	while(!bForceEnd)
 	{
 		// Clear wall deltas from previous tick
 		m_world.clearWallDeltas();
@@ -77,6 +77,8 @@ PlayerState *GameServer::matchLoop()
 			floodWorldState();
 		}
 	}
+	SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Server forced game end.");
+	return nullptr;
 }
 
 void GameServer::processPackets()

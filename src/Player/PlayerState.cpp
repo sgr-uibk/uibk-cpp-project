@@ -55,7 +55,39 @@ void PlayerState::update(float dt)
 
 	for(auto &powerup : m_powerups)
 	{
+		if(powerup.type == PowerupType::NONE)
+			continue;
+
+		PowerupType powerupType = powerup.type;
+		bool wasActive = powerup.isActive();
+
 		powerup.update(dt);
+
+		bool isActive = powerup.isActive();
+
+		if(wasActive && !isActive)
+		{
+			startReuseCooldown(powerupType);
+			powerup.type = PowerupType::NONE;
+		}
+	}
+
+	for(auto &cooldown : m_powerupReuseCooldowns)
+	{
+		cooldown.update(dt);
+	}
+}
+
+void PlayerState::startReuseCooldown(PowerupType type)
+{
+	if(type == PowerupType::NONE)
+		return;
+
+	int idx = static_cast<int>(type);
+	if(idx > 0 && idx < NUM_POWERUP_TYPES)
+	{
+		m_powerupReuseCooldowns[idx] = Cooldown(GameConfig::UI::POWERUP_REUSE_COOLDOWN);
+		m_powerupReuseCooldowns[idx].trigger();
 	}
 }
 
@@ -93,7 +125,6 @@ void PlayerState::setRotation(sf::Angle rot)
 
 void PlayerState::takeDamage(int amount)
 {
-
 	// check for shield powerup
 	for(auto &powerup : m_powerups)
 	{
@@ -105,7 +136,10 @@ void PlayerState::takeDamage(int amount)
 
 			// deactivate shield if depleted
 			if(powerup.value <= 0)
+			{
+				startReuseCooldown(PowerupType::SHIELD);
 				powerup.deactivate();
+			}
 			break;
 		}
 	}
@@ -118,7 +152,7 @@ void PlayerState::takeDamage(int amount)
 
 void PlayerState::heal(int const amount)
 {
-	m_health = std::max(m_maxHealth, m_health + amount);
+	m_health = std::min(m_maxHealth, m_health + amount);
 }
 
 void PlayerState::die()
@@ -131,54 +165,75 @@ void PlayerState::revive()
 	m_health = m_maxHealth;
 }
 
+bool PlayerState::canShoot() const
+{
+	return m_health > 0 && m_shootCooldown.isReady();
+}
+
 bool PlayerState::tryShoot()
 {
 	return m_health > 0 && m_shootCooldown.try_trigger(getShootCooldown());
 }
 
+bool PlayerState::canUsePowerup(PowerupType type) const
+{
+	if(type == PowerupType::NONE)
+		return false;
+
+	int idx = static_cast<int>(type);
+	if(idx <= 0 || idx >= NUM_POWERUP_TYPES)
+		return false;
+
+	if(hasPowerup(type))
+		return false;
+
+	return m_powerupReuseCooldowns[idx].isReady();
+}
+
+float PlayerState::getPowerupReuseCooldown(PowerupType type) const
+{
+	if(type == PowerupType::NONE)
+		return 0.f;
+
+	int idx = static_cast<int>(type);
+	if(idx <= 0 || idx >= NUM_POWERUP_TYPES)
+		return 0.f;
+
+	return m_powerupReuseCooldowns[idx].getRemaining();
+}
+
 void PlayerState::applyPowerup(PowerupType type)
 {
+	if(type == PowerupType::HEALTH_PACK)
+	{
+		heal(GameConfig::Powerup::HEALTH_PACK_HEAL);
+		startReuseCooldown(type);
+		return;
+	}
+
 	for(auto &powerup : m_powerups)
 	{
-		if(!powerup.isActive())
+		if(powerup.type == PowerupType::NONE)
 		{
 			powerup.apply(type);
-
-			// apply instant effects
-			if(type == PowerupType::HEALTH_PACK)
-			{
-				heal(HEALTH_PACK_HEAL);
-			}
 			return;
 		}
 	}
 
-	// all slots full -> replace the first one
 	m_powerups[0].apply(type);
-	if(type == PowerupType::HEALTH_PACK)
-	{
-		heal(HEALTH_PACK_HEAL);
-	}
 }
 
 bool PlayerState::hasPowerup(PowerupType type) const
 {
-	for(auto const &powerup : m_powerups)
-	{
-		if(powerup.type == type && powerup.isActive())
-			return true;
-	}
-	return false;
+	return std::any_of(m_powerups.begin(), m_powerups.end(),
+	                   [type](auto const &p) { return p.type == type && p.isActive(); });
 }
 
 PowerupEffect const *PlayerState::getPowerup(PowerupType type) const
 {
-	for(auto const &powerup : m_powerups)
-	{
-		if(powerup.type == type && powerup.isActive())
-			return &powerup;
-	}
-	return nullptr;
+	auto it = std::find_if(m_powerups.begin(), m_powerups.end(),
+	                       [type](auto const &p) { return p.type == type && p.isActive(); });
+	return it != m_powerups.end() ? &(*it) : nullptr;
 }
 
 float PlayerState::getSpeedMultiplier() const
@@ -255,17 +310,22 @@ bool PlayerState::addToInventory(PowerupType type)
 	return false;
 }
 
-void PlayerState::useItem(size_t const slotNum)
+bool PlayerState::useItem(size_t const slot)
 {
-	if(slotNum > m_inventory.size())
-		return;
+	if(slot == 0 || slot > m_inventory.size())
+		return false;
 
-	PowerupType itemType = m_inventory[slotNum - 1];
+	size_t const idx = slot - 1;
+	PowerupType itemType = m_inventory[idx];
 	if(itemType == PowerupType::NONE)
-		return;
+		return false;
+
+	if(!canUsePowerup(itemType))
+		return false;
 
 	applyPowerup(itemType);
-	m_inventory[slotNum - 1] = PowerupType::NONE;
+	m_inventory[idx] = PowerupType::NONE;
+	return true;
 }
 
 PowerupType PlayerState::getInventoryItem(int slot) const
@@ -277,12 +337,17 @@ PowerupType PlayerState::getInventoryItem(int slot) const
 
 void PlayerState::serialize(sf::Packet &pkt) const
 {
-	pkt << m_iState << m_health << m_maxHealth;
+	pkt << m_name << m_iState << m_health << m_maxHealth;
 	pkt << m_shootCooldown.getRemaining();
 
 	for(auto const &powerup : m_powerups)
 	{
 		powerup.serialize(pkt);
+	}
+
+	for(int i = 0; i < NUM_POWERUP_TYPES; ++i)
+	{
+		pkt << m_powerupReuseCooldowns[i].getRemaining();
 	}
 
 	for(auto const &item : m_inventory)
@@ -293,7 +358,7 @@ void PlayerState::serialize(sf::Packet &pkt) const
 
 void PlayerState::deserialize(sf::Packet &pkt)
 {
-	pkt >> m_iState >> m_health >> m_maxHealth;
+	pkt >> m_name >> m_iState >> m_health >> m_maxHealth;
 
 	float cooldownRemaining;
 	pkt >> cooldownRemaining;
@@ -302,6 +367,17 @@ void PlayerState::deserialize(sf::Packet &pkt)
 	for(auto &powerup : m_powerups)
 	{
 		powerup.deserialize(pkt);
+	}
+
+	for(int i = 0; i < NUM_POWERUP_TYPES; ++i)
+	{
+		float remaining;
+		pkt >> remaining;
+		if(remaining > 0.f)
+		{
+			m_powerupReuseCooldowns[i] = Cooldown(GameConfig::UI::POWERUP_REUSE_COOLDOWN);
+			m_powerupReuseCooldowns[i].setRemaining(remaining);
+		}
 	}
 
 	for(auto &item : m_inventory)

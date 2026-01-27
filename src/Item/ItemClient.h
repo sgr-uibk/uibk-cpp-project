@@ -5,9 +5,9 @@
 class ItemClient
 {
   public:
-	ItemClient(const ItemState &state);
+	ItemClient(ItemState const &state);
 
-	void syncSpriteToState(const ItemState &state);
+	void syncSpriteToState(ItemState const &state);
 
 	void update(float dt);
 

@@ -9,7 +9,8 @@ class TankSpriteManager
 	enum class TankState
 	{
 		HEALTHY,
-		DAMAGED
+		DAMAGED,
+		DEAD
 	};
 
 	enum class TankPart
@@ -51,7 +52,18 @@ class TankSpriteManager
 
 		if(part == TankPart::HULL)
 		{
-			row = (state == TankState::HEALTHY) ? HEALTHY_HULL_ROW : DAMAGED_HULL_ROW;
+			switch(state)
+			{
+			case TankState::HEALTHY:
+				row = HEALTHY_HULL_ROW;
+				break;
+			case TankState::DAMAGED:
+				row = DAMAGED_HULL_ROW;
+				break;
+			case TankState::DEAD:
+				row = DEAD_HULL_ROW;
+				break;
+			}
 		}
 		else
 		{
@@ -67,5 +79,6 @@ class TankSpriteManager
 	static constexpr int SPRITE_SIZE = 150;
 	static constexpr int HEALTHY_HULL_ROW = 0;
 	static constexpr int DAMAGED_HULL_ROW = 1;
-	static constexpr int TURRET_ROW = 2;
+	static constexpr int DEAD_HULL_ROW = 2;
+	static constexpr int TURRET_ROW = 3;
 };

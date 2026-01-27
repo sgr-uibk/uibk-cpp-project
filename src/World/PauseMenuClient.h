@@ -8,7 +8,7 @@
 class PauseMenuClient
 {
   public:
-	explicit PauseMenuClient(sf::RenderWindow &window);
+	explicit PauseMenuClient(sf::RenderWindow &window, bool gameMusicEnabled = true);
 	void draw(sf::RenderWindow &window) const;
 	void handleKeyboardEvent(sf::Event::KeyPressed const &keyEvent);
 	void handleClick(sf::Vector2f mousePos);
@@ -20,6 +20,10 @@ class PauseMenuClient
 	bool isDisconnectRequested() const
 	{
 		return m_shouldDisconnect;
+	}
+	void startBattleMusic()
+	{
+		m_battleMusic.play();
 	}
 
   private:

@@ -4,14 +4,14 @@
 #include <cmath>
 #include <numbers>
 
-ItemClient::ItemClient(const ItemState &state)
+ItemClient::ItemClient(ItemState const &state)
 	: m_state(state), m_sprite(PowerupSpriteManager::inst().getSpriteForType(state.getType())), m_bobPhase(0.f),
 	  m_bobSpeed(0.05f), m_bobHeight(5.f)
 {
 	syncSpriteToState(state);
 }
 
-void ItemClient::syncSpriteToState(const ItemState &state)
+void ItemClient::syncSpriteToState(ItemState const &state)
 {
 	m_state = state;
 

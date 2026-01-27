@@ -1,6 +1,7 @@
 #pragma once
 #include "PlayerState.h"
 #include "TankSpriteManager.h"
+#include "HealthBar.h"
 #include "Map/MapState.h"
 #include <SFML/Graphics.hpp>
 #include <functional>
@@ -22,7 +23,8 @@ class PlayerClient
 	PlayerClient(PlayerClient const &) = default;
 
 	void update(float dt);
-	void collectRenderObjects(std::vector<RenderObject> &queue) const;
+	void collectRenderObjects(std::vector<RenderObject> &queue, EntityId ownPlayerId = 0) const;
+	void drawSilhouette(sf::RenderWindow &window, std::uint8_t alpha = 100) const;
 
 	// apply authoritative server state (reconciliation)
 	void applyServerState(PlayerState const &serverState);
@@ -42,7 +44,6 @@ class PlayerClient
 	void playShotSound();
 
   private:
-	void updateSprite();
 	void updateNameText();
 	void syncSpriteToState();
 	static constexpr sf::Vector2f tankDimensions = {64, 64};
@@ -61,6 +62,7 @@ class PlayerClient
 	sf::SoundBuffer &m_shootSoundBuf;
 	sf::Sound m_shootSound;
 	HealthCallback m_onHealthChanged;
+	mutable HealthBar m_healthBar;
 
 	float m_shootAnimTimer = 0;
 	float m_lastShootCooldown = 0;

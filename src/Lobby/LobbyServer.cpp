@@ -49,6 +49,24 @@ void LobbyServer::lobbyLoop()
 	}
 }
 
+void LobbyServer::tickStep()
+{
+	if(m_multiSock.wait(sf::milliseconds(1)))
+	{
+		if(m_multiSock.isReady(m_listener))
+			acceptNewClient();
+
+		for(auto &p : m_slots)
+			if(p.bValid)
+				handleClient(p);
+	}
+}
+
+bool LobbyServer::readyToStart() const
+{
+	return m_cReady == MAX_PLAYERS;
+}
+
 void LobbyServer::deduplicatePlayerName(std::string &name) const
 {
 	static int suffix = 0;
@@ -201,11 +219,13 @@ std::array<PlayerState, Sz> make_player_init(std::vector<sf::Vector2f> const &sp
 	return make_player_init_impl<Sz>(spawns, rng, std::make_index_sequence<Sz>{});
 }
 
-WorldState LobbyServer::startGame()
+WorldState LobbyServer::startGame(int mapIndex)
 {
-	// Select map (for now always use default map)
-	int mapIndex = Maps::DEFAULT_MAP_INDEX;
-	std::string mapPath = Maps::getMapPath(mapIndex);
+	static std::mt19937_64 rng{std::random_device{}()};
+	// Select map based on index, fallback to default if out of range
+	if(mapIndex != std::clamp(mapIndex, Maps::DEFAULT_MAP_INDEX, int(Maps::MAP_PATHS.size())))
+		mapIndex = rng() % Maps::MAP_PATHS.size();
+	std::string mapPath = Maps::MAP_PATHS[mapIndex];
 
 	// Read only spawn points (no full map loading)
 	auto spawns = MapParser::parseSpawnsOnly(mapPath);
@@ -217,13 +237,17 @@ WorldState LobbyServer::startGame()
 		// Fallback: use default positions
 		spawns.clear();
 		for(size_t i = 0; i < MAX_PLAYERS; ++i)
-			spawns.push_back(sf::Vector2f(100.f + i * 100.f, 100.f + i * 100.f));
+			spawns.emplace_back(100.f + i * 100.f, 100.f + i * 100.f);
 	}
 
-	static std::mt19937_64 rng{}; // deterministic spawn points
 	std::ranges::shuffle(spawns, rng);
 
 	auto playerInit = make_player_init<MAX_PLAYERS>(spawns, rng);
+
+	for(size_t i = 0; i < MAX_PLAYERS; ++i)
+	{
+		playerInit[i].m_name = m_slots[i].bValid ? m_slots[i].name : "";
+	}
 
 	sf::Packet startPkt = createPkt(ReliablePktType::GAME_START);
 	startPkt << mapIndex; // Send map index to clients
@@ -236,7 +260,7 @@ WorldState LobbyServer::startGame()
 		if(checkedSend(lp.tcpSocket, startPkt) != sf::Socket::Status::Done)
 			SPDLOG_LOGGER_ERROR(spdlog::get("Server"), "Failed to send GAME_START to {} (id {})", lp.name, lp.id);
 	}
-	return WorldState{mapIndex, std::move(playerInit)};
+	return WorldState(mapIndex, playerInit);
 }
 
 void LobbyServer::endGame(EntityId winner)
