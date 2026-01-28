@@ -78,8 +78,9 @@ First, download and install [Git](https://git-scm.com/install/windows) and [Git-
 Then, `git clone` this repository and open a shell inside its directory.
 Run:
 ```powershell
-git lfs install # (only once)
-git lfs checkout # to be safe
+git lfs install
+git lfs fetch
+git lfs checkout
 # The following fetch and build external libraries, so can take a while at first
 cmake -S . -B build
 cmake --build build --config Release
@@ -99,8 +100,9 @@ sudo apt install -y \
 
 Then, `git clone` this repository and open a shell inside its directory.
 ```shell
-git lfs install # (only once)
-git lfs checkout # to be safe
+git lfs install
+git lfs fetch
+git lfs checkout
 cmake -S . -B build
 cmake --build build --config Release
 ls build
@@ -109,8 +111,8 @@ ls build
 # Network setup
 
 There are a `Server` and a `TankGame` (client) executable.
-Per default, the server listens at ports 25106/TCP and 3074/UDP, the values can be changed in `src/Networking.h` if
-necessary.
+Per default, the server listens at ports 25106/TCP and 3074/UDP, the values can be changed in `src/Networking.h` if necessary.
+When running Server and Clients on the same machine (localhost), then the Clients will increment their UDP ports (3074, 3075,...) to avoid port collisions. 
 
 The Client connects by specifying IPv4 address and TCP port in the menu.
 
