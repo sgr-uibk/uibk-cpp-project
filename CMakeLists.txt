@@ -15,15 +15,12 @@ endif()
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
-if(NOT WIN32)
-    set(FETCHCONTENT_TRY_FIND_PACKAGE_MODE ALWAYS)
-endif()
+set(FETCHCONTENT_TRY_FIND_PACKAGE_MODE NEVER)
 FetchContent_Declare(
     SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
     GIT_TAG        3.0.2
     GIT_SHALLOW    ON
-    FIND_PACKAGE_ARGS NAMES SFML COMPONENTS Graphics Network Audio
 )
 FetchContent_MakeAvailable(SFML)
 
@@ -32,7 +29,6 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG        v1.16.0
     GIT_SHALLOW    ON
-    FIND_PACKAGE_ARGS NAMES spdlog
 )
 FetchContent_MakeAvailable(spdlog)
 
@@ -41,7 +37,6 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     GIT_TAG        v3.11.3
     GIT_SHALLOW    ON
-    FIND_PACKAGE_ARGS NAMES nlohmann_json
 )
 FetchContent_MakeAvailable(json)
 
