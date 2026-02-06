@@ -12,8 +12,9 @@ constexpr float BORDER_THICKNESS = 2.f;
 
 MinimapClient::MinimapClient(sf::Vector2f mapSize, sf::Vector2f screenSize)
 	: m_mapSize(mapSize),
-	  m_minimapSize(MINIMAP_SIZE, MINIMAP_SIZE),
-	  m_position(screenSize.x - MINIMAP_SIZE - MINIMAP_MARGIN, MINIMAP_MARGIN),
+	  m_minimapSize(MINIMAP_SIZE * (mapSize.y / std::max(mapSize.x, mapSize.y)),
+	                MINIMAP_SIZE * (mapSize.x / std::max(mapSize.x, mapSize.y))),
+	  m_position(screenSize.x - m_minimapSize.x - MINIMAP_MARGIN, MINIMAP_MARGIN),
 	  m_scale(MINIMAP_SIZE / std::max(mapSize.x, mapSize.y))
 {
 	m_background.setSize(m_minimapSize);
@@ -84,8 +85,10 @@ void MinimapClient::setPosition(sf::Vector2f pos)
 
 void MinimapClient::setSize(sf::Vector2f size)
 {
-	m_minimapSize = size;
-	m_scale = std::min(size.x, size.y) / std::max(m_mapSize.x, m_mapSize.y);
+	float const maxDim = std::max(size.x, size.y);
+	m_minimapSize = {maxDim * (m_mapSize.y / std::max(m_mapSize.x, m_mapSize.y)),
+	                 maxDim * (m_mapSize.x / std::max(m_mapSize.x, m_mapSize.y))};
+	m_scale = maxDim / std::max(m_mapSize.x, m_mapSize.y);
 	m_background.setSize(m_minimapSize);
 	m_border.setSize(m_minimapSize);
 }
