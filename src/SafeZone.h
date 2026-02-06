@@ -5,10 +5,10 @@
 struct SafeZone
 {
 	sf::Vector2f center;
-	float currentRadius;
-	float targetRadius;
-	float shrinkSpeed;       // units per second
-	float damagePerSecond;
+	float currentRadius = 0.f;
+	float targetRadius = 0.f;
+	float shrinkSpeed = 0.f;       // units per second
+	float damagePerSecond = 0.f;
 	bool isActive = false;
 
 	void update(float dt);

@@ -2,8 +2,6 @@
 #include <SFML/Graphics.hpp>
 #include <array>
 #include "Player/PlayerState.h"
-#include "Map/MapState.h"
-#include "Networking.h"
 #include "SafeZone.h"
 
 class MinimapClient : public sf::Drawable
@@ -18,6 +16,7 @@ class MinimapClient : public sf::Drawable
 
   private:
 	void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
+	sf::Vector2f worldToMinimap(sf::Vector2f worldPos) const;
 
 	sf::Vector2f m_mapSize;
 	sf::Vector2f m_minimapSize;
