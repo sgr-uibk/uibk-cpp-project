@@ -6,6 +6,26 @@ MapState::MapState(sf::Vector2f size) : m_size(size)
 {
 }
 
+RawLayer *MapState::findLayerByName(std::string const &name)
+{
+	for(auto &layer : m_layers)
+	{
+		if(layer.name == name)
+			return &layer;
+	}
+	return nullptr;
+}
+
+RawLayer const *MapState::findLayerByName(std::string const &name) const
+{
+	for(auto const &layer : m_layers)
+	{
+		if(layer.name == name)
+			return &layer;
+	}
+	return nullptr;
+}
+
 void MapState::addSpawnPoint(sf::Vector2f spawn)
 {
 	m_spawns.push_back(spawn);
@@ -75,7 +95,7 @@ void MapState::loadFromBlueprint(MapBlueprint const &bp)
 
 	for(auto const &layer : bp.layers)
 	{
-		if(layer.name != "Walls")
+		if(layer.name != LayerName::WALLS)
 			continue;
 
 		sf::Vector2i pos = {0, 0};
@@ -86,14 +106,14 @@ void MapState::loadFromBlueprint(MapBlueprint const &bp)
 				int const idx = pos.y * layer.dim.x + pos.x;
 				TileType const tileType = layer.data[idx];
 
-				int health = 100;
+				int health = BASE_WALL_HEALTH;
 				switch(tileType)
 				{
 				default:
 				case AIR:
 					break;
 				case REINFORCED_WALL:
-					health *= 50;
+					health *= REINFORCED_HEALTH_MULTIPLIER;
 					[[fallthrough]];
 				case WALL:
 					sf::Vector2f world = sf::Vector2f(pos) * CARTESIAN_TILE_SIZE;
@@ -106,19 +126,16 @@ void MapState::loadFromBlueprint(MapBlueprint const &bp)
 
 	for(auto const &obj : bp.objects)
 	{
-		if(obj.type == "player_spawn")
+		if(obj.type == ObjectType::PLAYER_SPAWN)
 		{
 			addSpawnPoint(obj.position);
-
 			spdlog::info("Added player spawn at ({}, {})", obj.position.x, obj.position.y);
 		}
-		else if(obj.type == "item_spawn")
+		else if(obj.type == ObjectType::ITEM_SPAWN)
 		{
 			std::string itemTypeStr = obj.getProperty("item_type", "HEALTH_PACK");
 			PowerupType type = stringToPowerupType(itemTypeStr);
-
 			addItemSpawnZone(obj.position, type);
-
 			spdlog::info("Added item spawn {} at ({}, {})", itemTypeStr, obj.position.x, obj.position.y);
 		}
 	}
@@ -143,31 +160,18 @@ PowerupType MapState::stringToPowerupType(std::string const &str)
 
 std::optional<RawLayer> MapState::getGroundLayer() const
 {
-	for(auto const &layer : m_layers)
-	{
-		if(layer.name == "Ground")
-		{
-			return layer;
-		}
-	}
+	auto const *layer = findLayerByName(LayerName::GROUND);
+	if(layer)
+		return *layer;
 	return std::nullopt;
 }
 
 std::optional<RawLayer> MapState::getWallsLayer() const
 {
-	for(auto const &layer : m_layers)
-	{
-		if(layer.name == "Walls")
-		{
-			return layer;
-		}
-	}
+	auto const *layer = findLayerByName(LayerName::WALLS);
+	if(layer)
+		return *layer;
 	return std::nullopt;
-}
-
-std::vector<WallState> const &MapState::getWallStates() const
-{
-	return m_walls;
 }
 
 std::optional<RawTileset> const &MapState::getTileset() const
@@ -190,15 +194,11 @@ void MapState::setGroundLayer(std::optional<RawLayer> const &layer)
 	if(!layer.has_value())
 		return;
 
-	for(auto &l : m_layers)
-	{
-		if(l.name == "Ground")
-		{
-			l = *layer;
-			return;
-		}
-	}
-	m_layers.push_back(*layer);
+	auto *existing = findLayerByName(LayerName::GROUND);
+	if(existing)
+		*existing = *layer;
+	else
+		m_layers.push_back(*layer);
 }
 
 void MapState::setWallsLayer(std::optional<RawLayer> const &layer)
@@ -206,20 +206,17 @@ void MapState::setWallsLayer(std::optional<RawLayer> const &layer)
 	if(!layer.has_value())
 		return;
 
-	for(auto &l : m_layers)
-	{
-		if(l.name == "Walls")
-		{
-			l = *layer;
-			return;
-		}
-	}
-	m_layers.push_back(*layer);
+	auto *existing = findLayerByName(LayerName::WALLS);
+	if(existing)
+		*existing = *layer;
+	else
+		m_layers.push_back(*layer);
 }
 
 WallState const *MapState::getWallAtGridPos(sf::Vector2i const pos) const
 {
-	auto const cellCenter = sf::Vector2f(pos) * CARTESIAN_TILE_SIZE + sf::Vector2f{1, 1} * (CARTESIAN_TILE_SIZE / 2.0f);
+	sf::Vector2f const halfTile{CARTESIAN_TILE_SIZE / 2.0f, CARTESIAN_TILE_SIZE / 2.0f};
+	sf::Vector2f const cellCenter = sf::Vector2f(pos) * CARTESIAN_TILE_SIZE + halfTile;
 
 	for(auto const &wall : m_walls)
 	{
@@ -236,17 +233,14 @@ WallState const *MapState::getWallAtGridPos(sf::Vector2i const pos) const
 
 void MapState::destroyWallAtGridPos(sf::Vector2i pos)
 {
-	for(auto &layer : m_layers)
+	auto *wallsLayer = findLayerByName(LayerName::WALLS);
+	if(!wallsLayer)
+		return;
+
+	size_t const idx = pos.y * wallsLayer->dim.x + pos.x;
+	if(idx < wallsLayer->data.size())
 	{
-		if(layer.name == "Walls")
-		{
-			size_t const idx = pos.y * layer.dim.x + pos.x;
-			if(idx < layer.data.size())
-			{
-				layer.data[idx] = AIR;
-				spdlog::debug("Tile swap: Cleared wall tile at grid ({}, {})", pos.x, pos.y);
-			}
-			break;
-		}
+		wallsLayer->data[idx] = AIR;
+		spdlog::debug("Tile swap: Cleared wall tile at grid ({}, {})", pos.x, pos.y);
 	}
 }

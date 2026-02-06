@@ -30,7 +30,8 @@ class ItemClient
 	ItemState m_state;
 	sf::Sprite m_sprite;
 
-	float m_bobPhase;
-	float m_bobSpeed;
-	float m_bobHeight;
+	float m_bobPhase = 0.f;
+
+	static constexpr float BOB_SPEED = 0.05f; // oscillation frequency in Hz
+	static constexpr float BOB_HEIGHT = 5.f;  // vertical displacement in pixels
 };

@@ -1,6 +1,7 @@
 #include "HealthBar.h"
-#include <algorithm>
 #include "ResourceManager.h"
+#include "GameConfig.h"
+#include <algorithm>
 
 namespace
 {
@@ -8,8 +9,10 @@ constexpr float FLASH_DURATION = 0.3f;
 } // namespace
 
 HealthBar::HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth)
-	: m_maxHealth(maxHealth), m_health(maxHealth), m_midThreshold(3 * maxHealth / 4), m_lowThreshold(maxHealth / 4),
-	  m_highColor(80, 200, 60), m_midColor(240, 200, 64), m_lowColor(220, 60, 60), m_size(size),
+	: m_maxHealth(maxHealth), m_health(maxHealth),
+	  m_midThreshold(static_cast<int>(maxHealth * GameConfig::UI::HEALTH_HIGH_THRESHOLD)),
+	  m_lowThreshold(static_cast<int>(maxHealth * GameConfig::UI::HEALTH_LOW_THRESHOLD)), m_highColor(80, 200, 60),
+	  m_midColor(240, 200, 64), m_lowColor(220, 60, 60), m_size(size),
 	  m_font(ResourceManager<sf::Font>::inst().load("Font/LiberationSans-Regular.ttf")), m_text(m_font)
 {
 	m_bg.setSize(m_size);
@@ -28,6 +31,8 @@ HealthBar::HealthBar(sf::Vector2f position, sf::Vector2f size, int maxHealth)
 void HealthBar::setMaxHealth(int const max)
 {
 	m_maxHealth = max;
+	m_midThreshold = static_cast<int>(max * GameConfig::UI::HEALTH_HIGH_THRESHOLD);
+	m_lowThreshold = static_cast<int>(max * GameConfig::UI::HEALTH_LOW_THRESHOLD);
 	m_health = std::min(m_health, m_maxHealth);
 	updateVisuals();
 }

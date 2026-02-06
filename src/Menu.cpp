@@ -4,15 +4,14 @@
 #include "Networking.h"
 #include "GameConfig.h"
 #include <spdlog/spdlog.h>
-#include <algorithm>
 
 Menu::Menu(sf::Vector2u windowDimensions)
 	: m_windowDimensions(windowDimensions),
 	  m_font(g_assetPathResolver.resolveRelative("Font/LiberationSans-Regular.ttf").string()), m_title(m_font),
 	  m_playerNameLabel(m_font), m_playerNameText(m_font), m_state(State::MAIN), m_startGame(false), m_exit(false),
-	  m_shouldConnect(false), m_playerName("Player"), m_editingName(false), m_menuMusicEnabled(true),
-	  m_gameMusicEnabled(true), m_serverIp("127.0.0.1"), m_serverPort(PORT_TCP), m_serverIpText(m_font),
-	  m_serverPortText(m_font), m_editingField(EditingField::NONE), m_selectedMap("Arena"), m_selectedMode("Deathmatch")
+	  m_shouldConnect(false), m_playerName("Player"), m_menuMusicEnabled(true), m_gameMusicEnabled(true),
+	  m_serverIp("127.0.0.1"), m_serverPort(PORT_TCP), m_serverIpText(m_font), m_serverPortText(m_font),
+	  m_editingField(EditingField::NONE), m_selectedMap("Arena"), m_selectedMode("Deathmatch")
 {
 	m_title.setCharacterSize(50);
 	m_title.setFillColor(sf::Color::White);
@@ -25,9 +24,9 @@ Menu::Menu(sf::Vector2u windowDimensions)
 
 	m_playerNameBox.setSize({150.f, 30.f});
 	m_playerNameBox.setPosition({180.f, windowDimensions.y - 65.f});
-	m_playerNameBox.setFillColor(sf::Color(40, 40, 40));
-	m_playerNameBox.setOutlineColor(sf::Color(100, 100, 100));
-	m_playerNameBox.setOutlineThickness(2.f);
+	m_playerNameBox.setFillColor(GameConfig::UI::INPUT_BOX_COLOR);
+	m_playerNameBox.setOutlineColor(GameConfig::UI::INPUT_BOX_BORDER);
+	m_playerNameBox.setOutlineThickness(GameConfig::UI::INPUT_BOX_OUTLINE_THICKNESS);
 
 	m_playerNameText.setCharacterSize(18);
 	m_playerNameText.setFillColor(sf::Color::White);
@@ -247,9 +246,9 @@ void Menu::setupJoinLobby()
 
 	m_serverIpBox.setSize({180.f, 35.f});
 	m_serverIpBox.setPosition({320.f, 215.f});
-	m_serverIpBox.setFillColor(sf::Color(40, 40, 40));
-	m_serverIpBox.setOutlineColor(sf::Color(100, 100, 100));
-	m_serverIpBox.setOutlineThickness(2.f);
+	m_serverIpBox.setFillColor(GameConfig::UI::INPUT_BOX_COLOR);
+	m_serverIpBox.setOutlineColor(GameConfig::UI::INPUT_BOX_BORDER);
+	m_serverIpBox.setOutlineThickness(GameConfig::UI::INPUT_BOX_OUTLINE_THICKNESS);
 
 	m_serverIpText.setCharacterSize(18);
 	m_serverIpText.setFillColor(sf::Color::White);
@@ -265,9 +264,9 @@ void Menu::setupJoinLobby()
 
 	m_serverPortBox.setSize({120.f, 35.f});
 	m_serverPortBox.setPosition({320.f, 265.f});
-	m_serverPortBox.setFillColor(sf::Color(40, 40, 40));
-	m_serverPortBox.setOutlineColor(sf::Color(100, 100, 100));
-	m_serverPortBox.setOutlineThickness(2.f);
+	m_serverPortBox.setFillColor(GameConfig::UI::INPUT_BOX_COLOR);
+	m_serverPortBox.setOutlineColor(GameConfig::UI::INPUT_BOX_BORDER);
+	m_serverPortBox.setOutlineThickness(GameConfig::UI::INPUT_BOX_OUTLINE_THICKNESS);
 
 	m_serverPortText.setCharacterSize(18);
 	m_serverPortText.setFillColor(sf::Color::White);
@@ -377,51 +376,39 @@ bool Menu::isMouseOver(sf::RectangleShape const &shape, sf::Vector2f mousePos) c
 	return bounds.contains(mousePos);
 }
 
+void Menu::updateInputBoxBorder(sf::RectangleShape &box, bool hovered, bool editing)
+{
+	if(hovered)
+		box.setOutlineColor(GameConfig::UI::INPUT_BOX_HOVER_BORDER);
+	else if(editing)
+		box.setOutlineColor(GameConfig::UI::INPUT_BOX_ACTIVE_BORDER);
+	else
+		box.setOutlineColor(GameConfig::UI::INPUT_BOX_BORDER);
+}
+
 void Menu::handleMouseMove(sf::Vector2f mousePos)
 {
 	for(size_t i = 0; i < m_buttonShapes.size(); ++i)
 	{
 		if(m_buttonEnabled[i] && isMouseOver(m_buttonShapes[i], mousePos))
-		{
-			m_buttonShapes[i].setFillColor(sf::Color(100, 100, 100));
-		}
+			m_buttonShapes[i].setFillColor(GameConfig::UI::BUTTON_HOVER_COLOR);
 		else
-		{
-			m_buttonShapes[i].setFillColor(m_buttonEnabled[i] ? sf::Color(80, 80, 80) : sf::Color(50, 50, 50));
-		}
+			m_buttonShapes[i].setFillColor(m_buttonEnabled[i] ? GameConfig::UI::BUTTON_DEFAULT_COLOR
+			                                                  : GameConfig::UI::BUTTON_DISABLED_COLOR);
 	}
 
-	if(m_state == State::MAIN && isMouseOver(m_playerNameBox, mousePos))
+	if(m_state == State::MAIN)
 	{
-		m_playerNameBox.setOutlineColor(sf::Color(150, 150, 150));
-	}
-	else if(m_state == State::MAIN)
-	{
-		m_playerNameBox.setOutlineColor(m_editingField == EditingField::PLAYER_NAME ? sf::Color(200, 200, 100)
-		                                                                            : sf::Color(100, 100, 100));
+		updateInputBoxBorder(m_playerNameBox, isMouseOver(m_playerNameBox, mousePos),
+		                     m_editingField == EditingField::PLAYER_NAME);
 	}
 
 	if(m_state == State::JOIN_LOBBY)
 	{
-		if(isMouseOver(m_serverIpBox, mousePos))
-		{
-			m_serverIpBox.setOutlineColor(sf::Color(150, 150, 150));
-		}
-		else
-		{
-			m_serverIpBox.setOutlineColor(m_editingField == EditingField::SERVER_IP ? sf::Color(200, 200, 100)
-			                                                                        : sf::Color(100, 100, 100));
-		}
-
-		if(isMouseOver(m_serverPortBox, mousePos))
-		{
-			m_serverPortBox.setOutlineColor(sf::Color(150, 150, 150));
-		}
-		else
-		{
-			m_serverPortBox.setOutlineColor(m_editingField == EditingField::SERVER_PORT ? sf::Color(200, 200, 100)
-			                                                                            : sf::Color(100, 100, 100));
-		}
+		updateInputBoxBorder(m_serverIpBox, isMouseOver(m_serverIpBox, mousePos),
+		                     m_editingField == EditingField::SERVER_IP);
+		updateInputBoxBorder(m_serverPortBox, isMouseOver(m_serverPortBox, mousePos),
+		                     m_editingField == EditingField::SERVER_PORT);
 	}
 }
 
@@ -603,7 +590,7 @@ void Menu::handleClick(sf::Vector2f mousePos)
 
 void Menu::draw(sf::RenderWindow &window) const
 {
-	window.clear(sf::Color(30, 30, 30));
+	window.clear(GameConfig::UI::MENU_BG_COLOR);
 	window.draw(m_title);
 
 	if(m_state == State::MAIN)
@@ -641,7 +628,6 @@ void Menu::updateLobbyDisplay(std::vector<LobbyPlayerInfo> const &players)
 	while(m_lobbyTexts.size() > 1)
 		m_lobbyTexts.pop_back();
 
-	// update player count label
 	sf::Text playersLabel(m_font);
 	playersLabel.setString("Players (" + std::to_string(players.size()) + "/4):");
 	playersLabel.setCharacterSize(24);
@@ -695,7 +681,7 @@ void Menu::updateHostButton(bool canStartGame, bool hasEnoughPlayers, bool hostR
 	m_buttonEnabled[buttonIdx] = true;
 	centerTextInButton(m_buttonTexts[buttonIdx], m_buttonShapes[buttonIdx]);
 
-	m_buttonShapes[buttonIdx].setFillColor(sf::Color(80, 80, 80));
+	m_buttonShapes[buttonIdx].setFillColor(GameConfig::UI::BUTTON_DEFAULT_COLOR);
 	m_buttonTexts[buttonIdx].setFillColor(sf::Color::White);
 }
 
@@ -708,7 +694,7 @@ void Menu::updateClientButton(bool clientReady)
 	m_buttonTexts[buttonIdx].setString("Ready");
 	m_buttonEnabled[buttonIdx] = !clientReady;
 
-	sf::Color fillColor = clientReady ? sf::Color(50, 50, 50) : sf::Color(80, 80, 80);
+	sf::Color fillColor = clientReady ? GameConfig::UI::BUTTON_DISABLED_COLOR : GameConfig::UI::BUTTON_DEFAULT_COLOR;
 	sf::Color textColor = clientReady ? sf::Color(120, 120, 120) : sf::Color::White;
 
 	m_buttonShapes[buttonIdx].setFillColor(fillColor);

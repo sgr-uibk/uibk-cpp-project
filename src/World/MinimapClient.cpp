@@ -23,8 +23,7 @@ float computeScale(sf::Vector2f mapSize, float baseSize)
 } // namespace
 
 MinimapClient::MinimapClient(sf::Vector2f mapSize, sf::Vector2f screenSize)
-	: m_mapSize(mapSize),
-	  m_minimapSize(computeMinimapSize(mapSize, MINIMAP_SIZE)),
+	: m_mapSize(mapSize), m_minimapSize(computeMinimapSize(mapSize, MINIMAP_SIZE)),
 	  m_position(screenSize.x - m_minimapSize.x - MINIMAP_MARGIN, MINIMAP_MARGIN),
 	  m_scale(computeScale(mapSize, MINIMAP_SIZE))
 {

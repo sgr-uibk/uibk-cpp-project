@@ -1,21 +1,19 @@
 #include "ProjectileClient.h"
 #include "Utilities.h"
 
-ProjectileClient::ProjectileClient(ProjectileState const &state) : m_state(state), m_shape(4.f)
+ProjectileClient::ProjectileClient(ProjectileState const &state) : m_state(state), m_shape(VISUAL_RADIUS)
 {
-	m_shape.setFillColor(sf::Color::Black);
-	m_shape.setOrigin(sf::Vector2f(4.f, 4.f));
+	m_shape.setFillColor(FILL_COLOR);
+	m_shape.setOrigin(sf::Vector2f(VISUAL_RADIUS, VISUAL_RADIUS));
 	syncSpriteToState(state);
 }
 
 void ProjectileClient::syncSpriteToState(ProjectileState const &state)
 {
 	m_state = state;
-	sf::Vector2f isoPos = cartesianToIso(m_state.getPosition());
-	m_shape.setPosition(isoPos);
+	m_shape.setPosition(cartesianToIso(m_state.getPosition()));
 }
 
 void ProjectileClient::update([[maybe_unused]] float dt)
 {
-	// visual updates could be implemented in the future
 }

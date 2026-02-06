@@ -2,12 +2,14 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Network.hpp>
 #include <cstdint>
+#include "../GameConfig.h"
 
 class ProjectileState
 {
   public:
 	ProjectileState();
-	ProjectileState(uint32_t id, sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId, int damage = 25);
+	ProjectileState(uint32_t id, sf::Vector2f position, sf::Vector2f velocity, uint32_t ownerId,
+	                int damage = GameConfig::Projectile::BASE_DAMAGE);
 
 	void update(float dt);
 
@@ -62,8 +64,7 @@ class ProjectileState
 	int m_damage;
 	bool m_active;
 	float m_lifetime;
-	float m_maxLifetime;
 
-	static constexpr float PROJECTILE_SIZE = 8.f; // collision box size
+	static constexpr float COLLISION_SIZE = 8.f;
 	static constexpr float MAX_LIFETIME = 5.f;
 };

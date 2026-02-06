@@ -89,15 +89,14 @@ void WallState::updateVisuals()
 {
 	if(m_health == 0)
 	{
-		m_shape.setFillColor(sf::Color(0, 0, 0, 0));
+		m_shape.setFillColor(sf::Color::Transparent);
+		return;
 	}
-	else
-	{
-		float relHealth = getHealthRelative();
-		uint8_t alpha = static_cast<uint8_t>(100 + relHealth * 155);
-		uint8_t brightness = static_cast<uint8_t>(relHealth * 255 / 2);
-		m_shape.setFillColor(sf::Color(brightness, brightness, brightness, alpha));
-	}
+
+	float const relHealth = getHealthRelative();
+	auto const alpha = static_cast<uint8_t>(DAMAGED_ALPHA_MIN + relHealth * DAMAGED_ALPHA_RANGE);
+	auto const brightness = static_cast<uint8_t>(relHealth * 255 * BRIGHTNESS_SCALE);
+	m_shape.setFillColor(sf::Color(brightness, brightness, brightness, alpha));
 }
 
 void WallState::serialize(sf::Packet &pkt) const

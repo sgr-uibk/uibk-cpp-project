@@ -49,5 +49,5 @@ class ItemState
 	PowerupType m_type;
 	bool m_active;
 
-	static constexpr float ITEM_SIZE = 24.f; // collision box size
+	static constexpr float COLLISION_SIZE = 24.f;
 };

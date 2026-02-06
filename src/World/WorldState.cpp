@@ -31,14 +31,12 @@ WorldState::WorldState(int mapIndex, std::array<PlayerState, MAX_PLAYERS> player
 	spdlog::info("Loaded map from index {} (path: {})", mapIndex, mapPath);
 
 	sf::Vector2f const mapSize = m_map.getSize();
-	m_safeZone = {
-		.center = mapSize / 2.f,
-		.currentRadius = std::max(mapSize.x, mapSize.y) * 0.75f,
-		.targetRadius = GameConfig::SafeZone::MIN_RADIUS,
-		.shrinkSpeed = GameConfig::SafeZone::SHRINK_SPEED,
-		.damagePerSecond = GameConfig::SafeZone::DAMAGE_PER_SECOND,
-		.isActive = false
-	};
+	m_safeZone = {.center = mapSize / 2.f,
+	              .currentRadius = std::max(mapSize.x, mapSize.y) * 0.75f,
+	              .targetRadius = GameConfig::SafeZone::MIN_RADIUS,
+	              .shrinkSpeed = GameConfig::SafeZone::SHRINK_SPEED,
+	              .damagePerSecond = GameConfig::SafeZone::DAMAGE_PER_SECOND,
+	              .isActive = false};
 }
 
 WorldState::WorldState(sf::Vector2f const mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit)

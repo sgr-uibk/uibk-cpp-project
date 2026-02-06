@@ -32,4 +32,9 @@ class WallState
 	int m_maxHealth;
 
 	static constexpr int DEFAULT_WALL_HEALTH = 100;
+
+	// Visual feedback constants for wall damage state
+	static constexpr uint8_t DAMAGED_ALPHA_MIN = 100;
+	static constexpr uint8_t DAMAGED_ALPHA_RANGE = 155;
+	static constexpr float BRIGHTNESS_SCALE = 0.5f;
 };

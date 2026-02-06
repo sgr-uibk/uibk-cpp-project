@@ -36,7 +36,6 @@ class MapState
 	[[nodiscard]] std::vector<RawLayer> const &getLayers() const;
 	[[nodiscard]] std::optional<RawLayer> getGroundLayer() const;
 	[[nodiscard]] std::optional<RawLayer> getWallsLayer() const;
-	[[nodiscard]] std::vector<WallState> const &getWallStates() const;
 	[[nodiscard]] WallState const *getWallAtGridPos(sf::Vector2i pos) const;
 
 	// Setters for preserving rendering data on client (when applying server snapshots)
@@ -47,6 +46,13 @@ class MapState
 	static PowerupType stringToPowerupType(std::string const &str);
 
   private:
+	// Finds a layer by name, returning a pointer (null if not found).
+	[[nodiscard]] RawLayer *findLayerByName(std::string const &name);
+	[[nodiscard]] RawLayer const *findLayerByName(std::string const &name) const;
+
+	static constexpr int BASE_WALL_HEALTH = 100;
+	static constexpr int REINFORCED_HEALTH_MULTIPLIER = 50;
+
 	sf::Vector2f m_size;
 	std::vector<WallState> m_walls;
 	std::vector<sf::Vector2f> m_spawns;

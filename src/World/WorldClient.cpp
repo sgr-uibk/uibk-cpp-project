@@ -21,10 +21,9 @@ WorldClient::WorldClient(sf::RenderWindow &window, EntityId const ownPlayerId, i
                   m_state.getPlayerById(ownPlayerId).getMaxHealth()),
 	  m_powerupPanel(m_state.getPlayerById(ownPlayerId), window),
 	  m_ammoDisplay(m_state.getPlayerById(ownPlayerId), window),
-	  m_minimap(m_state.getMap().getSize(), sf::Vector2f(window.getSize())),
-	  m_window(window), m_mapClient(m_state.getMap()),
-	  m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)), m_ownPlayerId(ownPlayerId),
-	  m_interp(m_state.getMap(), ownPlayerId, m_players)
+	  m_minimap(m_state.getMap().getSize(), sf::Vector2f(window.getSize())), m_window(window),
+	  m_mapClient(m_state.getMap()), m_players(make_players<MAX_PLAYERS>(m_state.m_players, PLAYER_COLORS)),
+	  m_ownPlayerId(ownPlayerId), m_interp(m_state.getMap(), ownPlayerId, m_players)
 {
 	m_worldView = sf::View(sf::FloatRect({0, 0}, sf::Vector2f(window.getSize())));
 	m_hudView = sf::View(m_worldView);
