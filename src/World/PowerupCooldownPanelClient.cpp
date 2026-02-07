@@ -85,23 +85,25 @@ void PowerupCooldownPanel::draw(sf::RenderWindow &window) const
 void PowerupCooldownPanel::drawMetalPlateBackground(sf::RenderWindow &window, sf::Vector2f const &pos,
                                                     sf::Vector2f const &size) const
 {
+	using namespace GameConfig::UI;
+
 	sf::RectangleShape plate(size);
 	plate.setPosition(pos);
-	plate.setFillColor(GameConfig::UI::METAL_PLATE_COLOR);
-	plate.setOutlineColor(sf::Color(40, 42, 45));
-	plate.setOutlineThickness(2.f);
+	plate.setFillColor(METAL_PLATE_COLOR);
+	plate.setOutlineColor(METAL_PLATE_BORDER);
+	plate.setOutlineThickness(METAL_PLATE_OUTLINE_THICKNESS);
 	window.draw(plate);
 
-	sf::RectangleShape highlight({size.x - 4.f, 2.f});
-	highlight.setPosition({pos.x + 2.f, pos.y + 2.f});
-	highlight.setFillColor(GameConfig::UI::METAL_PLATE_HIGHLIGHT);
+	float const inset = METAL_HIGHLIGHT_INSET;
+	sf::RectangleShape highlight({size.x - inset * 2.f, METAL_HIGHLIGHT_HEIGHT});
+	highlight.setPosition({pos.x + inset, pos.y + inset});
+	highlight.setFillColor(METAL_PLATE_HIGHLIGHT);
 	window.draw(highlight);
 
-	float rivetInset = 8.f;
-	drawRivet(window, {pos.x + rivetInset, pos.y + rivetInset});
-	drawRivet(window, {pos.x + size.x - rivetInset, pos.y + rivetInset});
-	drawRivet(window, {pos.x + rivetInset, pos.y + size.y - rivetInset});
-	drawRivet(window, {pos.x + size.x - rivetInset, pos.y + size.y - rivetInset});
+	drawRivet(window, {pos.x + RIVET_INSET, pos.y + RIVET_INSET});
+	drawRivet(window, {pos.x + size.x - RIVET_INSET, pos.y + RIVET_INSET});
+	drawRivet(window, {pos.x + RIVET_INSET, pos.y + size.y - RIVET_INSET});
+	drawRivet(window, {pos.x + size.x - RIVET_INSET, pos.y + size.y - RIVET_INSET});
 }
 
 void PowerupCooldownPanel::drawSlot(sf::RenderWindow &window, TypeSlotState const &slot, sf::Vector2f const &pos) const
@@ -188,12 +190,14 @@ void PowerupCooldownPanel::drawSlot(sf::RenderWindow &window, TypeSlotState cons
 
 void PowerupCooldownPanel::drawRivet(sf::RenderWindow &window, sf::Vector2f const &pos) const
 {
-	sf::CircleShape rivet(4.f);
-	rivet.setOrigin({4.f, 4.f});
+	using namespace GameConfig::UI;
+
+	sf::CircleShape rivet(RIVET_RADIUS);
+	rivet.setOrigin({RIVET_RADIUS, RIVET_RADIUS});
 	rivet.setPosition(pos);
-	rivet.setFillColor(GameConfig::UI::METAL_RIVET_COLOR);
-	rivet.setOutlineColor(sf::Color(30, 32, 35));
-	rivet.setOutlineThickness(1.f);
+	rivet.setFillColor(METAL_RIVET_COLOR);
+	rivet.setOutlineColor(RIVET_OUTLINE_COLOR);
+	rivet.setOutlineThickness(RIVET_OUTLINE_THICKNESS);
 	window.draw(rivet);
 }
 

@@ -26,9 +26,7 @@ class PlayerClient
 	void collectRenderObjects(std::vector<RenderObject> &queue, EntityId ownPlayerId = 0) const;
 	void drawSilhouette(sf::RenderWindow &window, std::uint8_t alpha = 100) const;
 
-	// apply authoritative server state (reconciliation)
 	void applyServerState(PlayerState const &serverState);
-	// input / local movement (prediction)
 	void applyLocalMove(MapState const &map, sf::Vector2f delta);
 
 	void setCannonRotation(sf::Angle angle);
@@ -49,14 +47,13 @@ class PlayerClient
 	static constexpr sf::Vector2f tankDimensions = {64, 64};
 	PlayerState &m_state;
 
-	// visuals
 	sf::Color m_color;
 
 	sf::Sprite m_hullSprite;
 	sf::Sprite m_turretSprite;
 	TankSpriteManager::TankState m_currentTankState;
 
-	sf::Font &m_font; // must be declared before m_nameText
+	sf::Font &m_font;
 	sf::Text m_nameText;
 
 	sf::SoundBuffer &m_shootSoundBuf;
@@ -64,8 +61,8 @@ class PlayerClient
 	HealthCallback m_onHealthChanged;
 	mutable HealthBar m_healthBar;
 
-	float m_shootAnimTimer = 0;
-	float m_lastShootCooldown = 0;
+	float m_shootAnimTimer = 0.f;
+	float m_lastShootCooldown = 0.f;
 	static constexpr float SHOOT_ANIM_DURATION = 0.1f;
 };
 

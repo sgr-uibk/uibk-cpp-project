@@ -12,6 +12,8 @@
 #include "HealthBar.h"
 #include "PowerupCooldownPanelClient.h"
 #include "AmmunitionDisplayClient.h"
+#include "MinimapClient.h"
+#include "SafeZoneClient.h"
 
 struct WorldUpdateData
 {
@@ -70,6 +72,8 @@ class WorldClient
 	HealthBar m_healthBar;
 	PowerupCooldownPanel m_powerupPanel;
 	AmmunitionDisplay m_ammoDisplay;
+	mutable MinimapClient m_minimap;
+	mutable SafeZoneClient m_safeZoneClient;
 	sf::RenderWindow &m_window;
 	MapClient m_mapClient;
 	std::array<PlayerClient, MAX_PLAYERS> m_players;

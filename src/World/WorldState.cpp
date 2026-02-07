@@ -29,6 +29,14 @@ WorldState::WorldState(int mapIndex, std::array<PlayerState, MAX_PLAYERS> player
 
 	m_map.loadFromBlueprint(*blueprint);
 	spdlog::info("Loaded map from index {} (path: {})", mapIndex, mapPath);
+
+	sf::Vector2f const mapSize = m_map.getSize();
+	m_safeZone = {.center = mapSize / 2.f,
+	              .currentRadius = std::max(mapSize.x, mapSize.y) * 0.75f,
+	              .targetRadius = GameConfig::SafeZone::MIN_RADIUS,
+	              .shrinkSpeed = GameConfig::SafeZone::SHRINK_SPEED,
+	              .damagePerSecond = GameConfig::SafeZone::DAMAGE_PER_SECOND,
+	              .isActive = false};
 }
 
 WorldState::WorldState(sf::Vector2f const mapSize, std::array<PlayerState, MAX_PLAYERS> playersInit)
@@ -36,16 +44,39 @@ WorldState::WorldState(sf::Vector2f const mapSize, std::array<PlayerState, MAX_P
 {
 }
 
-void WorldState::update(float dt)
+void WorldState::update(float const dt)
 {
 	for(auto &p : m_players)
 		p.update(dt);
-
 	for(auto &proj : m_projectiles)
 		proj.update(dt);
-
 	for(auto &item : m_items)
 		item.update(dt);
+
+	m_safeZone.update(dt);
+	if(!m_safeZone.isActive)
+		return;
+
+	for(auto &p : m_players)
+	{
+		if(p.m_id == 0 || !p.isAlive())
+			continue;
+
+		sf::Vector2f const playerCenter = p.getPosition() + PlayerState::logicalDimensions / 2.f;
+		if(!m_safeZone.isOutside(playerCenter))
+		{
+			p.m_zoneDamageAccum = 0.f;
+			continue;
+		}
+
+		p.m_zoneDamageAccum += m_safeZone.damagePerSecond * dt;
+		if(p.m_zoneDamageAccum >= 1.f)
+		{
+			int const damage = static_cast<int>(p.m_zoneDamageAccum);
+			p.takeDamage(damage);
+			p.m_zoneDamageAccum -= static_cast<float>(damage);
+		}
+	}
 }
 
 void WorldState::setPlayer(PlayerState const &p)
@@ -282,14 +313,14 @@ void WorldState::serialize(sf::Packet &pkt) const
 {
 	serializeFromArray(pkt, m_players, std::make_index_sequence<MAX_PLAYERS>{});
 
-	uint32_t numProjectiles = static_cast<uint32_t>(m_projectiles.size());
+	uint32_t const numProjectiles = static_cast<uint32_t>(m_projectiles.size());
 	pkt << numProjectiles;
 	for(auto const &proj : m_projectiles)
 	{
 		proj.serialize(pkt);
 	}
 
-	uint32_t numItems = static_cast<uint32_t>(m_items.size());
+	uint32_t const numItems = static_cast<uint32_t>(m_items.size());
 	pkt << numItems;
 	for(auto const &item : m_items)
 	{
@@ -297,19 +328,21 @@ void WorldState::serialize(sf::Packet &pkt) const
 	}
 
 	// delta only
-	uint32_t numDestroyedWalls = static_cast<uint32_t>(m_destroyedWallsThisTick.size());
+	uint32_t const numDestroyedWalls = static_cast<uint32_t>(m_destroyedWallsThisTick.size());
 	pkt << numDestroyedWalls;
 	for(auto const &grid : m_destroyedWallsThisTick)
 		pkt << grid;
+
+	pkt << m_safeZone;
 }
 
-// Assigns the WorldState excluding the interpolated part of the PlayerState
 void WorldState::assignSnappedState(WorldState const &other)
 {
 	this->m_items = other.m_items;
 	this->m_nextItemId = other.m_nextItemId;
 	this->m_nextProjectileId = other.m_nextProjectileId;
 	this->m_projectiles = other.m_projectiles;
+	this->m_safeZone = other.m_safeZone;
 
 	for(size_t i = 0; i < m_players.size(); ++i)
 	{
@@ -354,6 +387,8 @@ void WorldState::deserialize(sf::Packet &pkt)
 
 		m_destroyedWallsThisTick.push_back(gridPos);
 	}
+
+	pkt >> m_safeZone;
 }
 
 void WorldState::clearWallDeltas()

@@ -2,7 +2,6 @@
 #include "ResourceManager.h"
 #include "Utilities.h"
 #include <SFML/Graphics/Sprite.hpp>
-#include <vector>
 
 MapClient::MapClient(MapState &state)
 	: m_state(state), m_tilesetTexture(TextureManager::inst().load("map/" + m_state.getTileset()->imagePath)),

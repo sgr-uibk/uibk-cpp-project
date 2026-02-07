@@ -46,7 +46,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(json)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
-set(TEST_ROOT ${CMAKE_SOURCE_DIR}/test)
 
 file(GLOB STATE_SRCS src/*/*State.cpp)
 file(GLOB CLIENT_SRCS src/*/*Client.cpp)
@@ -60,13 +59,13 @@ add_executable(TankGame
     ${SERVER_SRCS}
     src/Utilities.cpp
     src/HealthBar.cpp
+    src/SafeZone.cpp
     src/Map/MapData.h
     src/Map/MapParser.h
     src/Map/MapParser.cpp
 )
 
-add_executable(Client ${TEST_ROOT}/Client.cpp ${STATE_SRCS} ${CLIENT_SRCS} src/Utilities.cpp src/Map/MapParser.cpp src/HealthBar.cpp)
-add_executable(Server ${TEST_ROOT}/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp src/Map/MapParser.cpp)
+add_executable(Server src/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp src/Map/MapParser.cpp src/SafeZone.cpp)
 
 add_library(common_deps INTERFACE)
 target_link_libraries(common_deps
@@ -78,5 +77,4 @@ target_link_libraries(common_deps
     nlohmann_json::nlohmann_json
 )
 target_link_libraries(TankGame PRIVATE common_deps)
-target_link_libraries(Client PRIVATE common_deps)
 target_link_libraries(Server PRIVATE common_deps)

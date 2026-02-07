@@ -10,6 +10,20 @@
 // MAP BLUEPRINT (DTOs)
 // =============================================================================
 
+// Layer name constants used by Tiled export
+namespace LayerName
+{
+constexpr char const *GROUND = "Ground";
+constexpr char const *WALLS = "Walls";
+} // namespace LayerName
+
+// Object type constants used by Tiled export
+namespace ObjectType
+{
+constexpr char const *PLAYER_SPAWN = "player_spawn";
+constexpr char const *ITEM_SPAWN = "item_spawn";
+} // namespace ObjectType
+
 struct RawTileset
 {
 	std::string imagePath;
@@ -20,9 +34,7 @@ struct RawTileset
 	int margin = 0;
 };
 
-// Spritesheet in assets/map
-// We have only a single spritesheet,
-// so naming the sprite indices here
+// Sprite indices in the single map tileset spritesheet (assets/map)
 enum TileType : int
 {
 	AIR = 0,
