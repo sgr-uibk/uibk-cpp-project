@@ -93,7 +93,7 @@ void MapState::loadFromBlueprint(MapBlueprint const &bp)
 	m_spawns.clear();
 	m_itemSpawnZones.clear();
 
-	for(auto const &layer : bp.layers)
+	for(auto const &layer : m_layers)
 	{
 		if(layer.name != LayerName::WALLS)
 			continue;
