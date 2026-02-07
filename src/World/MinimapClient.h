@@ -13,6 +13,7 @@ class MinimapClient : public sf::Drawable
 	void updateSafeZone(SafeZone const &zone);
 	void setPosition(sf::Vector2f pos);
 	void setSize(sf::Vector2f size);
+	void updateScreenSize(sf::Vector2f screenSize);
 
   private:
 	void draw(sf::RenderTarget &target, sf::RenderStates states) const override;

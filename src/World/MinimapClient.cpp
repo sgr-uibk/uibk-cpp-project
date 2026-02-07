@@ -113,6 +113,14 @@ void MinimapClient::setSize(sf::Vector2f size)
 	m_border.setSize(m_minimapSize);
 }
 
+void MinimapClient::updateScreenSize(sf::Vector2f screenSize)
+{
+	// recalculate position to keep minimap in top-right corner
+	m_position = sf::Vector2f(screenSize.x - m_minimapSize.x - MINIMAP_MARGIN, MINIMAP_MARGIN);
+	m_background.setPosition(m_position);
+	m_border.setPosition(m_position);
+}
+
 void MinimapClient::updateSafeZone(SafeZone const &zone)
 {
 	if(!zone.isActive)

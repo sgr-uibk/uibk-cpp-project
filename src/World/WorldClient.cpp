@@ -276,4 +276,5 @@ void WorldClient::handleResize(sf::Vector2u newSize)
 	m_worldView.setSize(sf::Vector2f(newSize));
 	m_hudView.setSize(sf::Vector2f(newSize));
 	m_hudView.setCenter(sf::Vector2f(newSize) / 2.f);
+	m_minimap.updateScreenSize(sf::Vector2f(newSize));
 }
