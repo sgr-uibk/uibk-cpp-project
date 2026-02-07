@@ -57,7 +57,7 @@ enum class ReliablePktType : uint8_t
 	LOBBY_UPDATE,
 	GAME_START,
 	GAME_END,
-	_size
+	LAST
 };
 
 enum class UnreliablePktType : uint8_t

@@ -44,7 +44,7 @@ struct RenderObject
 {
 	float sortY = 0.0f;
 	sf::Drawable const *drawable = nullptr;
-	std::optional<sf::Sprite> tempSprite;
+	std::optional<sf::Sprite> tempSprite = std::nullopt;
 
 	void draw(sf::RenderWindow &window) const
 	{

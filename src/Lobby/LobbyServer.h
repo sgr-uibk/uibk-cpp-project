@@ -20,7 +20,6 @@ class LobbyServer
 	~LobbyServer();
 	void lobbyLoop(); // blocks until all players ready
 
-	void tickStep();
 	bool readyToStart() const;
 
 	uint32_t findClient(Endpoint remote) const;

@@ -12,7 +12,7 @@ class SpriteSheet
 	/// @param spriteHeight Height of each sprite in pixels
 	/// @param columns Number of columns in the grid
 	SpriteSheet(sf::Texture const &texture, int spriteWidth, int spriteHeight, int columns)
-		: m_texture(&texture), m_spriteWidth(spriteWidth), m_spriteHeight(spriteHeight), m_columns(columns)
+		: m_texture(texture), m_spriteWidth(spriteWidth), m_spriteHeight(spriteHeight), m_columns(columns)
 	{
 	}
 
@@ -28,7 +28,7 @@ class SpriteSheet
 		sf::IntRect rect(sf::Vector2i(col * m_spriteWidth, row * m_spriteHeight),
 		                 sf::Vector2i(m_spriteWidth, m_spriteHeight));
 
-		sf::Sprite sprite(*m_texture, rect);
+		sf::Sprite sprite(m_texture, rect);
 		return sprite;
 	}
 
@@ -39,7 +39,7 @@ class SpriteSheet
 	}
 
   private:
-	sf::Texture const *m_texture;
+	sf::Texture const &m_texture;
 	int m_spriteWidth;
 	int m_spriteHeight;
 	int m_columns;

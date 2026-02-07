@@ -49,19 +49,6 @@ void LobbyServer::lobbyLoop()
 	}
 }
 
-void LobbyServer::tickStep()
-{
-	if(m_multiSock.wait(sf::milliseconds(1)))
-	{
-		if(m_multiSock.isReady(m_listener))
-			acceptNewClient();
-
-		for(auto &p : m_slots)
-			if(p.bValid)
-				handleClient(p);
-	}
-}
-
 bool LobbyServer::readyToStart() const
 {
 	return m_cReady == MAX_PLAYERS;

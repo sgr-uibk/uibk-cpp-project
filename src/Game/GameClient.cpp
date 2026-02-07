@@ -80,7 +80,6 @@ bool GameClient::processReliablePackets(sf::TcpSocket &lobbySock) const
 		case uint8_t(ReliablePktType::GAME_END): {
 			EntityId winnerId;
 			reliablePkt >> winnerId;
-			// TODO save the player names somewhere, so that we can print the winner here
 			if(m_lobby.m_clientId == winnerId)
 				SPDLOG_LOGGER_INFO(spdlog::get("Client"), "I won the game!", winnerId);
 			else

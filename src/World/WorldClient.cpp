@@ -111,6 +111,7 @@ bool WorldClient::update(WorldUpdateData &wud)
 			wud.posDelta = m_interp.getCumulativeInputs(m_clientTick);
 	}
 	// Movement is tick-rate-limited, others get sent immediately
+	// Note that tank-tower rotation changes alone are not sent to preserve bandwidth.
 	return bServerTickExpired || wud.bShoot || wud.slot;
 }
 
@@ -123,7 +124,6 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	cameraView.setCenter(cartesianToIso(playerCenter));
 	cameraView.zoom(m_zoomLevel);
 	window.setView(cameraView);
-
 	window.clear(sf::Color::White);
 
 	m_mapClient.drawGroundTiles(window);
@@ -132,7 +132,6 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	window.draw(m_safeZoneClient);
 
 	std::vector<RenderObject> renderQueue;
-	renderQueue.reserve(2000);
 
 	m_mapClient.collectWallSprites(renderQueue);
 
