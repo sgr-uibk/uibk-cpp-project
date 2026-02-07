@@ -132,7 +132,6 @@ void WorldClient::draw(sf::RenderWindow &window) const
 	window.draw(m_safeZoneClient);
 
 	std::vector<RenderObject> renderQueue;
-	renderQueue.reserve(2000);
 
 	m_mapClient.collectWallSprites(renderQueue);
 
