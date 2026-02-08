@@ -111,6 +111,7 @@ bool WorldClient::update(WorldUpdateData &wud)
 			wud.posDelta = m_interp.getCumulativeInputs(m_clientTick);
 	}
 	// Movement is tick-rate-limited, others get sent immediately
+	// Note that tank-tower rotation changes alone are not sent to preserve bandwidth.
 	return bServerTickExpired || wud.bShoot || wud.slot;
 }
 
