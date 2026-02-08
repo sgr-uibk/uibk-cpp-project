@@ -108,7 +108,6 @@ class Menu
 	bool m_exit;
 	bool m_shouldConnect;
 	std::string m_playerName;
-	bool m_editingName;
 
 	bool m_menuMusicEnabled;
 	bool m_gameMusicEnabled;
@@ -142,6 +141,7 @@ class Menu
 
 	void clearMenuState();
 	void centerTextInButton(sf::Text &text, sf::RectangleShape const &button);
+	void updateInputBoxBorder(sf::RectangleShape &box, bool hovered, bool editing);
 	void addButton(sf::Vector2f position, sf::Vector2f size, std::string const &label, unsigned int fontSize,
 	               sf::Color fillColor = sf::Color(80, 80, 80));
 	void goToMainMenu();

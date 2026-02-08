@@ -17,18 +17,17 @@ class HealthBar : public sf::Drawable, public sf::Transformable
 	void setFillColors(sf::Color const &high, sf::Color const &mid, sf::Color const &low);
 	int getHealth() const;
 	int getMaxHealth() const;
+	void triggerDamageFlash();
 
 	void update(float dt);
 	void healthCallback(int health, int max);
 
   private:
-	// Drawable override
 	void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 	void updateVisuals();
 
 	int m_maxHealth;
 	int m_health;
-	// color ramp
 	int m_midThreshold;
 	int m_lowThreshold;
 	sf::Color m_highColor;
@@ -38,6 +37,9 @@ class HealthBar : public sf::Drawable, public sf::Transformable
 	sf::Vector2f m_size;
 	sf::RectangleShape m_bg;
 	sf::RectangleShape m_fill;
-	sf::Font m_font; // must be declared before m_text
+	sf::Font m_font;
 	sf::Text m_text;
+
+	float m_damageFlashTimer = 0.f;
+	int m_lastHealth = 0;
 };

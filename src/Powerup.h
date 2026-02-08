@@ -17,7 +17,7 @@ struct PowerupEffect
 {
 	PowerupType type = PowerupType::NONE;
 	float duration = 0.f;
-	int value = 0; // shield health remaining
+	int value = 0; // type-specific magnitude (e.g. remaining shield HP)
 
 	void update(float dt)
 	{
@@ -75,9 +75,7 @@ struct PowerupEffect
 	{
 		uint8_t typeVal;
 		int32_t valueVal;
-		packet >> typeVal;
-		packet >> duration;
-		packet >> valueVal;
+		packet >> typeVal >> duration >> valueVal;
 		type = static_cast<PowerupType>(typeVal);
 		value = valueVal;
 	}

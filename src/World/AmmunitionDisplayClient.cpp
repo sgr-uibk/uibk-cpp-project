@@ -36,7 +36,6 @@ void AmmunitionDisplay::update(float dt)
 		}
 	}
 
-	// If no bullet is targeted for reload, find the first EMPTY one
 	if(m_currentReloadBullet == -1)
 	{
 		for(size_t i = 0; i < m_bullets.size(); ++i)
@@ -90,14 +89,12 @@ void AmmunitionDisplay::onShoot()
 			m_bullets[i].state = BulletSlot::State::DEPLETING;
 			m_bullets[i].animProgress = 0.f;
 
-			// Reset any currently reloading bullet to EMPTY
 			if(m_currentReloadBullet != -1 && m_currentReloadBullet != i)
 			{
 				m_bullets[m_currentReloadBullet].state = BulletSlot::State::EMPTY;
 				m_bullets[m_currentReloadBullet].animProgress = 0.f;
 			}
 
-			// Transfer reload progress to the newly shot bullet
 			m_currentReloadBullet = i;
 			break;
 		}
@@ -124,23 +121,25 @@ void AmmunitionDisplay::draw(sf::RenderWindow &window) const
 void AmmunitionDisplay::drawMetalPlateBackground(sf::RenderWindow &window, sf::Vector2f const &pos,
                                                  sf::Vector2f const &size) const
 {
+	using namespace GameConfig::UI;
+
 	sf::RectangleShape plate(size);
 	plate.setPosition(pos);
-	plate.setFillColor(GameConfig::UI::METAL_PLATE_COLOR);
-	plate.setOutlineColor(sf::Color(40, 42, 45));
-	plate.setOutlineThickness(2.f);
+	plate.setFillColor(METAL_PLATE_COLOR);
+	plate.setOutlineColor(METAL_PLATE_BORDER);
+	plate.setOutlineThickness(METAL_PLATE_OUTLINE_THICKNESS);
 	window.draw(plate);
 
-	sf::RectangleShape highlight({size.x - 4.f, 2.f});
-	highlight.setPosition({pos.x + 2.f, pos.y + 2.f});
-	highlight.setFillColor(GameConfig::UI::METAL_PLATE_HIGHLIGHT);
+	float const inset = METAL_HIGHLIGHT_INSET;
+	sf::RectangleShape highlight({size.x - inset * 2.f, METAL_HIGHLIGHT_HEIGHT});
+	highlight.setPosition({pos.x + inset, pos.y + inset});
+	highlight.setFillColor(METAL_PLATE_HIGHLIGHT);
 	window.draw(highlight);
 
-	float rivetInset = 8.f;
-	drawRivet(window, {pos.x + rivetInset, pos.y + rivetInset});
-	drawRivet(window, {pos.x + size.x - rivetInset, pos.y + rivetInset});
-	drawRivet(window, {pos.x + rivetInset, pos.y + size.y - rivetInset});
-	drawRivet(window, {pos.x + size.x - rivetInset, pos.y + size.y - rivetInset});
+	drawRivet(window, {pos.x + RIVET_INSET, pos.y + RIVET_INSET});
+	drawRivet(window, {pos.x + size.x - RIVET_INSET, pos.y + RIVET_INSET});
+	drawRivet(window, {pos.x + RIVET_INSET, pos.y + size.y - RIVET_INSET});
+	drawRivet(window, {pos.x + size.x - RIVET_INSET, pos.y + size.y - RIVET_INSET});
 }
 
 void AmmunitionDisplay::drawBullet(sf::RenderWindow &window, size_t index, sf::Vector2f const &pos) const
@@ -155,7 +154,6 @@ void AmmunitionDisplay::drawBullet(sf::RenderWindow &window, size_t index, sf::V
 	sf::Color brassColor(200, 160, 80);
 	sf::Color tipColor(180, 140, 60);
 
-	// helper lambda to draw a full bullet (casing + tip)
 	auto drawFullBullet = [&](sf::Color casingColor, sf::Color bulletTipColor) {
 		sf::RectangleShape casing({BULLET_WIDTH, BULLET_HEIGHT - 6.f});
 		casing.setPosition({pos.x, pos.y + 6.f});
@@ -242,12 +240,14 @@ void AmmunitionDisplay::drawBullet(sf::RenderWindow &window, size_t index, sf::V
 
 void AmmunitionDisplay::drawRivet(sf::RenderWindow &window, sf::Vector2f const &pos) const
 {
-	sf::CircleShape rivet(4.f);
-	rivet.setOrigin({4.f, 4.f});
+	using namespace GameConfig::UI;
+
+	sf::CircleShape rivet(RIVET_RADIUS);
+	rivet.setOrigin({RIVET_RADIUS, RIVET_RADIUS});
 	rivet.setPosition(pos);
-	rivet.setFillColor(GameConfig::UI::METAL_RIVET_COLOR);
-	rivet.setOutlineColor(sf::Color(30, 32, 35));
-	rivet.setOutlineThickness(1.f);
+	rivet.setFillColor(METAL_RIVET_COLOR);
+	rivet.setOutlineColor(RIVET_OUTLINE_COLOR);
+	rivet.setOutlineThickness(RIVET_OUTLINE_THICKNESS);
 	window.draw(rivet);
 }
 

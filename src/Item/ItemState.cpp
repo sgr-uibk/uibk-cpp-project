@@ -17,8 +17,8 @@ void ItemState::update([[maybe_unused]] float dt)
 
 sf::FloatRect ItemState::getBounds() const
 {
-	return sf::FloatRect(sf::Vector2f(m_position.x - ITEM_SIZE / 2.f, m_position.y - ITEM_SIZE / 2.f),
-	                     sf::Vector2f(ITEM_SIZE, ITEM_SIZE));
+	return sf::FloatRect(sf::Vector2f(m_position.x - COLLISION_SIZE / 2.f, m_position.y - COLLISION_SIZE / 2.f),
+	                     sf::Vector2f(COLLISION_SIZE, COLLISION_SIZE));
 }
 
 void ItemState::serialize(sf::Packet &packet) const

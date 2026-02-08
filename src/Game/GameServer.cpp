@@ -21,6 +21,7 @@ GameServer::GameServer(LobbyServer &lobbyServer, uint16_t const gamePort, WorldS
 	}
 	m_gameSock.setBlocking(false);
 	m_itemSpawnClock.start();
+	m_safeZoneClock.start();
 
 	m_nextItemSpawnIndex = 0;
 }
@@ -35,13 +36,11 @@ PlayerState *GameServer::matchLoop(std::atomic<bool> const &bForceEnd)
 	PlayerState *pWinner = nullptr;
 	while(!bForceEnd)
 	{
-		// Clear wall deltas from previous tick
 		m_world.clearWallDeltas();
 
 		processPackets();
 
-		// maintain fixed tick rate updates
-		float dt = m_tickClock.getElapsedTime().asSeconds();
+		float const dt = m_tickClock.getElapsedTime().asSeconds();
 		sf::sleep(sf::seconds(UNRELIABLE_TICK_TIME - dt));
 		m_tickClock.restart();
 		++m_authTick;
@@ -65,12 +64,20 @@ PlayerState *GameServer::matchLoop(std::atomic<bool> const &bForceEnd)
 				pWinner = &p;
 		}
 
+		if(!m_world.m_safeZone.isActive &&
+		   (m_safeZoneClock.getElapsedTime().asSeconds() >= GameConfig::SafeZone::INITIAL_DELAY || cAlive <= 2))
+		{
+			m_world.m_safeZone.isActive = true;
+			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Safe zone activated: radius {} -> {}",
+			                   m_world.m_safeZone.currentRadius, m_world.m_safeZone.targetRadius);
+		}
+
 		switch(cAlive)
 		{
 		case 1:
 			SPDLOG_LOGGER_INFO(spdlog::get("Server"), "Game ended, winner {}.", pWinner->m_id);
 			return pWinner;
-		case 0: // Technically possible that all players die in the same tick
+		case 0:
 			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Game ended in a draw.");
 			return nullptr;
 		default:
@@ -143,10 +150,12 @@ void GameServer::processPackets()
 			}
 			break;
 		}
-		default:
-			std::string srcAddr = srcAddrOpt.has_value() ? srcAddrOpt.value().toString() : std::string("?");
+		default: {
+			std::string const srcAddr = srcAddrOpt.has_value() ? srcAddrOpt->toString() : "?";
 			SPDLOG_LOGGER_WARN(spdlog::get("Server"), "Unhandled unreliable packet type: {}, src={}:{}", type, srcAddr,
 			                   srcPort);
+			break;
+		}
 		}
 	}
 }
@@ -183,7 +192,6 @@ void GameServer::spawnItems()
 
 void GameServer::floodWorldState()
 {
-	// flood snapshots to all known clients
 	sf::Packet snapPkt = createTickedPkt(UnreliablePktType::SNAPSHOT, m_authTick);
 	m_world.serialize(snapPkt);
 	snapPkt << m_lastClientTicks;

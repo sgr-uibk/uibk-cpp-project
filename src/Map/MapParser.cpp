@@ -1,20 +1,19 @@
 #include "MapParser.h"
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <spdlog/spdlog.h>
-#include <filesystem>
-
 #include "ResourceManager.h"
+#include <filesystem>
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 using json = nlohmann::json;
 
-std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
+static std::optional<json> loadJsonFile(std::string const &filePath, std::string const &caller)
 {
 	auto fullPath = g_assetPathResolver.resolveRelative(filePath);
 	std::ifstream file(fullPath);
 	if(!file.is_open())
 	{
-		spdlog::error("MapParser: Could not open file {}", fullPath.string());
+		spdlog::error("{}: Could not open file {}", caller, fullPath.string());
 		return std::nullopt;
 	}
 
@@ -25,9 +24,37 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 	}
 	catch(json::parse_error const &e)
 	{
-		spdlog::error("MapParser: JSON error in {} - {}", filePath, e.what());
+		spdlog::error("{}: JSON error in {} - {}", caller, filePath, e.what());
 		return std::nullopt;
 	}
+	return j;
+}
+
+static std::string extractObjectType(nlohmann::json const &objJson)
+{
+	std::string type = objJson.value("type", "");
+
+	if(objJson.contains("properties"))
+	{
+		for(auto const &prop : objJson["properties"])
+		{
+			if(prop.contains("name") && prop["name"] == "type" && prop.contains("value") && prop["value"].is_string())
+			{
+				type = prop["value"].get<std::string>();
+				break;
+			}
+		}
+	}
+	return type;
+}
+
+std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
+{
+	auto jOpt = loadJsonFile(filePath, "MapParser::parse");
+	if(!jOpt.has_value())
+		return std::nullopt;
+
+	auto const &j = *jOpt;
 
 	auto const tileDim = sf::Vector2i{j.value("tilewidth", 0), j.value("tileheight", 0)};
 
@@ -35,15 +62,12 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 	if(j.contains("tilesets") && !j["tilesets"].empty())
 	{
 		auto const &tsJson = j["tilesets"][0];
-		RawTileset ts{.imagePath = tsJson.value("image", ""),
-		              .tileDim = {tsJson.value("tilewidth", 0), tsJson.value("tileheight", 0)},
-		              .mapTileDim = tileDim,
-		              .columns = tsJson.value("columns", 0),
-		              .spacing = tsJson.value("spacing", 0),
-		              .margin = tsJson.value("margin", 0)};
-
-		// Store map tile dimensions (from map root, not tileset)
-		tilesets = ts;
+		tilesets = RawTileset{.imagePath = tsJson.value("image", ""),
+		                      .tileDim = {tsJson.value("tilewidth", 0), tsJson.value("tileheight", 0)},
+		                      .mapTileDim = tileDim,
+		                      .columns = tsJson.value("columns", 0),
+		                      .spacing = tsJson.value("spacing", 0),
+		                      .margin = tsJson.value("margin", 0)};
 	}
 
 	std::vector<RawLayer> layers{};
@@ -69,46 +93,36 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 			}
 			else if(type == "objectgroup")
 			{
-				if(layerJson.contains("objects"))
+				if(!layerJson.contains("objects"))
+					continue;
+
+				for(auto const &objJson : layerJson["objects"])
 				{
-					for(auto const &objJson : layerJson["objects"])
+					RawObject obj;
+					obj.id = objJson.value("id", -1);
+					obj.name = objJson.value("name", "");
+					obj.type = extractObjectType(objJson);
+					obj.position = {objJson.value("x", 0.f), objJson.value("y", 0.f)};
+					obj.size = {objJson.value("width", 0.f), objJson.value("height", 0.f)};
+					obj.rotation = objJson.value("rotation", 0.f);
+
+					if(objJson.contains("properties"))
 					{
-						RawObject obj;
-						obj.id = objJson.value("id", -1);
-						obj.name = objJson.value("name", "");
-						obj.type = objJson.value("type", ""); // Crucial: "player_spawn", etc.
-						obj.position = {objJson.value("x", 0.f), objJson.value("y", 0.f)};
-						obj.size = {objJson.value("width", 0.f), objJson.value("height", 0.f)};
-						obj.rotation = objJson.value("rotation", 0.f);
-
-						if(objJson.contains("properties"))
+						for(auto const &prop : objJson["properties"])
 						{
-							for(auto const &prop : objJson["properties"])
-							{
-								// Tiled properties are array of objects {name, type, value}
-								if(prop.contains("name") && prop.contains("value"))
-								{
-									std::string propName = prop["name"];
-									auto val = prop["value"];
+							if(!prop.contains("name") || !prop.contains("value"))
+								continue;
 
-									if(val.is_string())
-									{
-										obj.properties[propName] = val.get<std::string>();
-									}
-									else
-									{
-										obj.properties[propName] = val.dump();
-									}
+							std::string propName = prop["name"];
+							auto val = prop["value"];
 
-									if(propName == "type" && val.is_string())
-									{
-										obj.type = val.get<std::string>();
-									}
-								}
-							}
+							if(val.is_string())
+								obj.properties[propName] = val.get<std::string>();
+							else
+								obj.properties[propName] = val.dump();
 						}
-						objects.push_back(obj);
 					}
+					objects.push_back(obj);
 				}
 			}
 		}
@@ -123,56 +137,29 @@ std::optional<MapBlueprint> MapParser::parse(std::string const &filePath)
 
 std::vector<sf::Vector2f> MapParser::parseSpawnsOnly(std::string const &filePath)
 {
-	auto fullPath = g_assetPathResolver.resolveRelative(filePath);
-	std::ifstream file(fullPath);
-	if(!file.is_open())
-	{
-		spdlog::error("MapParser::parseSpawnsOnly: Could not open file {}", fullPath.string());
+	auto jOpt = loadJsonFile(filePath, "MapParser::parseSpawnsOnly");
+	if(!jOpt.has_value())
 		return {};
-	}
 
-	json j;
-	try
-	{
-		file >> j;
-	}
-	catch(json::parse_error const &e)
-	{
-		spdlog::error("MapParser::parseSpawnsOnly: JSON error in {} - {}", filePath, e.what());
-		return {};
-	}
+	auto const &j = *jOpt;
 
 	std::vector<sf::Vector2f> spawns;
 
-	if(j.contains("layers"))
+	if(!j.contains("layers"))
+		return spawns;
+
+	for(auto const &layerJson : j["layers"])
 	{
-		for(auto const &layerJson : j["layers"])
+		if(layerJson.value("type", "") != "objectgroup" || !layerJson.contains("objects"))
+			continue;
+
+		for(auto const &objJson : layerJson["objects"])
 		{
-			if(layerJson.value("type", "") == "objectgroup" && layerJson.contains("objects"))
+			std::string type = extractObjectType(objJson);
+
+			if(type == ObjectType::PLAYER_SPAWN)
 			{
-				for(auto const &objJson : layerJson["objects"])
-				{
-					std::string type = objJson.value("type", "");
-
-					if(objJson.contains("properties"))
-					{
-						for(auto const &prop : objJson["properties"])
-						{
-							if(prop.contains("name") && prop["name"] == "type" && prop.contains("value") &&
-							   prop["value"].is_string())
-							{
-								type = prop["value"].get<std::string>();
-								break;
-							}
-						}
-					}
-
-					if(type == "player_spawn")
-					{
-						sf::Vector2f pos{objJson.value("x", 0.f), objJson.value("y", 0.f)};
-						spawns.push_back(pos);
-					}
-				}
+				spawns.push_back({objJson.value("x", 0.f), objJson.value("y", 0.f)});
 			}
 		}
 	}

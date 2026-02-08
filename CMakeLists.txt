@@ -54,12 +54,13 @@ add_executable(TankGame
     ${SERVER_SRCS}
     src/Utilities.cpp
     src/HealthBar.cpp
+    src/SafeZone.cpp
     src/Map/MapData.h
     src/Map/MapParser.h
     src/Map/MapParser.cpp
 )
 
-add_executable(Server src/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp src/Map/MapParser.cpp)
+add_executable(Server src/Server.cpp ${STATE_SRCS} ${SERVER_SRCS} src/Utilities.cpp src/Map/MapParser.cpp src/SafeZone.cpp)
 
 add_library(common_deps INTERFACE)
 target_link_libraries(common_deps

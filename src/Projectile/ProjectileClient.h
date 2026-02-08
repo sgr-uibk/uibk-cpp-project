@@ -29,4 +29,7 @@ class ProjectileClient
   private:
 	ProjectileState m_state;
 	sf::CircleShape m_shape;
+
+	static constexpr float VISUAL_RADIUS = 4.f;
+	static inline sf::Color const FILL_COLOR = sf::Color::Black;
 };
