@@ -212,7 +212,7 @@
                  "type":"",
                  "visible":true,
                  "width":32,
-                 "x":320,
+                  "x": 352,
                  "y":128
                 }, 
                 {
@@ -379,7 +379,7 @@
                 {
                  "height":32,
                  "id":50,
-                 "template":"hard_wall.tx",
+                  "template": "wall.tx",
                  "width":1248,
                  "x":0,
                  "y":1248
@@ -387,7 +387,7 @@
                 {
                  "height":1248,
                  "id":51,
-                 "template":"hard_wall.tx",
+                  "template": "wall.tx",
                  "width":32,
                  "x":1248,
                  "y":32
@@ -395,7 +395,7 @@
                 {
                  "height":1248,
                  "id":52,
-                 "template":"hard_wall.tx",
+                  "template": "wall.tx",
                  "width":32,
                  "x":0,
                  "y":0
@@ -403,7 +403,7 @@
                 {
                  "height":32,
                  "id":53,
-                 "template":"hard_wall.tx",
+                  "template": "wall.tx",
                  "width":1248,
                  "x":32,
                  "y":0
@@ -5143,15 +5143,15 @@
  "tileheight":32,
  "tilesets":[
         {
-         "columns":10,
+          "columns": 4,
          "firstgid":1,
          "image":"iso-64-blocks.png",
          "imageheight":64,
-         "imagewidth":640,
+          "imagewidth": 256,
          "margin":0,
          "name":"iso-64-blocks.png",
          "spacing":0,
-         "tilecount":10,
+          "tilecount": 4,
          "tileheight":64,
          "tilewidth":64
         }],

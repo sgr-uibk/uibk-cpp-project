@@ -375,15 +375,15 @@
  "tileheight":32,
  "tilesets":[
         {
-         "columns":10,
+          "columns": 4,
          "firstgid":1,
          "image":"iso-64-blocks.png",
          "imageheight":64,
-         "imagewidth":640,
+          "imagewidth": 256,
          "margin":0,
          "name":"iso-64-blocks.png",
          "spacing":0,
-         "tilecount":10,
+          "tilecount": 4,
          "tileheight":64,
          "tilewidth":64
         }],
