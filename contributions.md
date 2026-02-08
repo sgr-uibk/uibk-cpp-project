@@ -1,0 +1,11 @@
+- Simon Graber:
+    - ResourceManager `src/ResourceManager.h`
+    - Predicton/Interpolation client `src/Game/InterpClient.[cpp, h]`
+    - Network code: `src/Networking.h`, `src/Game/Game[Client, Server].[cpp, h]`, large parts of `src/Lobby`.
+  - Battle logic, Healthbar, Resource manager, Audio, Logging, CI pipelines, Readme.md
+
+- Maksim Bek:
+  - Isometric Maps with destroyable walls `src/Map`
+  - Items / Powerups / Projectiles with UI `src/[Item, Projectile]/`
+  - Menu `src/Menu.[cpp,h]`
+  - Battle-royale mode, Minimap, Isometric TankSprites 
