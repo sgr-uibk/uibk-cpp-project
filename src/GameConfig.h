@@ -31,10 +31,8 @@ namespace Player
 	constexpr float SHOOT_COOLDOWN = 0.5f; // seconds between shots
 	constexpr int INVENTORY_SIZE = 9;
 	constexpr int MAX_SIMULTANEOUS_POWERUPS = 5;
-	constexpr float COLLISION_DAMAGE = 0.15f;
 	constexpr float CANNON_LENGTH = 22.f; // distance from tank center to cannon tip
 
-	constexpr char const *TANK_SPRITESHEET_PATH = "tanks/tiger/hull_spritesheet.png";
 	constexpr int TANK_SPRITE_SIZE = 150;
 	constexpr int TANK_SPRITE_COLUMNS = 8;
 	constexpr float TANK_SPRITE_ORIGIN = TANK_SPRITE_SIZE / 2.f;

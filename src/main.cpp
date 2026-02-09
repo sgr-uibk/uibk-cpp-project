@@ -27,7 +27,7 @@ void runGameLoop(sf::RenderWindow &window, LobbyClient &lobbyClient, int mapInde
 		if(players[i].m_id != 0)
 		{
 			validPlayerCount++;
-			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Player {}: pos=({:.1f},{:.1f}), rot={:.1f}°, hp={}",
+			SPDLOG_LOGGER_INFO(spdlog::get("Client"), "Player {}: pos=({:.1f},{:.1f}), rot={:.1f}, hp={}",
 			                   players[i].m_id, players[i].getPosition().x, players[i].getPosition().y,
 			                   players[i].getRotation().asDegrees(), players[i].getHealth());
 		}

@@ -102,8 +102,8 @@ sf::Vector2f PlayerState::moveOn(MapState const &map, sf::Vector2f posDelta)
 	nextShape.setPosition(m_iState.m_pos + posDelta);
 
 	if(map.isColliding(nextShape))
-	{                                                            // player crashed against something, deal them damage
-		takeDamage(COLLISION_DAMAGE * posDelta.lengthSquared()); // impact damage prop. speed
+	{                                            // player crashed against something, deal them damage
+		takeDamage(ceilf(getSpeedMultiplier())); // impact damage prop. speed
 		posDelta = {0, 0};
 	}
 	else

@@ -2,6 +2,7 @@
 #include "GameConfig.h"
 #include "Lobby/LobbyServer.h"
 #include "World/WorldClient.h"
+#include <algorithm>
 #include <spdlog/spdlog.h>
 
 using namespace GameConfig::ItemSpawn;
@@ -9,10 +10,9 @@ using namespace GameConfig::ItemSpawn;
 GameServer::GameServer(LobbyServer &lobbyServer, uint16_t const gamePort, WorldState const &wsInit)
 	: m_gamePort(gamePort), m_world(wsInit), m_lobby(lobbyServer)
 {
-	for(auto const &p : lobbyServer.m_slots)
-	{
-		assert(p.endpoint.port != gamePort); // No client can use our port, else get collisions on local multiplayer
-	}
+	// ensure no client uses our UDP port to avoid collisions in local multiplayer
+	assert(std::ranges::none_of(lobbyServer.m_slots,
+	                            [gamePort](auto const &slot) { return slot.endpoint.port == gamePort; }));
 	sf::Socket::Status status = m_gameSock.bind(m_gamePort);
 	if(status != sf::Socket::Status::Done)
 	{

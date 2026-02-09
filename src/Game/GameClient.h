@@ -4,7 +4,6 @@
 #include "World/WorldClient.h"
 
 // A thin facade for orchestrating Lobby/Battle loop
-// TODO I don't see a real responsibility, this class could be inlined.
 class GameClient
 {
   public:
